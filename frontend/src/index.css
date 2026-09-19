@@ -52,3 +52,26 @@ body {
 .janela-fechada__detalhe {
   color: #4b5563;
 }
+
+.historico__tabela {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+.historico__tabela th,
+.historico__tabela td {
+  padding: 0.5rem;
+  border-bottom: 1px solid #e0e0e5;
+  text-align: left;
+  vertical-align: top;
+}
+
+.historico__erro {
+  color: #b91c1c;
+}
+
+.historico__erro--linha {
+  margin: 0.25rem 0 0;
+  font-size: 0.85rem;
+}
