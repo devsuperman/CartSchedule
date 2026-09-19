@@ -43,10 +43,11 @@ semana, por turno**.
   solicitações manualmente) e finaliza a escala mensal antes do mês
   seguinte começar.
 - **Fora da janela** (do dia 26 ao dia 14 do mês seguinte): o
-  Publicador que acessar o site vê apenas uma **mensagem informando
-  que o envio está fechado** (ex: "Envio fechado. Abre novamente no
-  dia 15."), sem acesso a status de solicitações ou histórico nessa
-  fase inicial do projeto.
+  Publicador que acessar o site vê uma **mensagem informando que o
+  envio de novas solicitações está fechado** (ex: "Envio fechado.
+  Abre novamente no dia 15."). O **histórico de suas próprias
+  solicitações continua disponível para consulta a qualquer momento**,
+  independentemente da janela estar aberta ou fechada (ver regra 11).
 - **Apenas uma escala fica aberta por vez** para novos envios de
   Publicadores — sempre a do mês seguinte ao mês corrente, do dia 15
   ao dia 25.
@@ -118,7 +119,7 @@ mesma combinação `(escala, carrinho, dia da semana, turno)`.
 8. **Sem limite (por padrão) de quantas trincas um mesmo publicador pode ter aprovadas** em uma escala — pode trabalhar em vários carrinhos/dias/turnos, a menos que o administrador decida limitar isso no futuro (ver seção 10).
 9. **Identificação do publicador**: não há cadastro com login e senha — o nome é informado livremente, tanto no envio do publicador quanto na adição manual pelo administrador.
 10. **Bloqueio de duplicidade (único bloqueio automático do sistema)**: um publicador não pode ter duas solicitações para a mesma combinação `(escala, carrinho, dia da semana, turno)`. Ao tentar enviar uma solicitação idêntica a uma já existente sua, o sistema recusa o novo envio. Este é o único bloqueio automático de todo o sistema — o limite de 2 por trinca (regras 1 e 3) **não** é bloqueado, apenas sinalizado.
-11. **Histórico de solicitações**: o publicador deve conseguir consultar as solicitações que ele mesmo enviou (e o status de cada uma — pendente/aprovada/rejeitada), sem precisar de cadastro formal. A forma de identificá-lo para isso será definida na fase de implementação.
+11. **Histórico de solicitações**: o publicador deve conseguir consultar as solicitações que ele mesmo enviou (e o status de cada uma — pendente/aprovada/rejeitada), sem precisar de cadastro formal. Essa consulta fica **sempre disponível**, mesmo fora da janela de envio (dia 26 ao dia 14). A forma de identificá-lo para isso será definida na fase de implementação.
 
 ## 8. Estados de uma Solicitação
 
@@ -179,9 +180,8 @@ PENDENTE ──► APROVADA
 - **Critério de desempate** quando há mais de 2 solicitações: já que o sistema não bloqueia nem decide automaticamente, o administrador escolhe livremente — vale documentar algum critério sugerido na tela (ex: ordem de chegada) para ajudá-lo, ou fica 100% a critério dele, sem qualquer sugestão?
 - **Cancelamento**: o publicador pode cancelar/editar uma solicitação enquanto ela está pendente e a janela ainda está aberta? E depois de aprovada?
 - **Limite de carga por publicador**: deve haver um número máximo de turnos/combinações que um mesmo publicador pode ter aprovado em uma escala?
-- **Notificação**: o publicador precisa ser avisado (e-mail, notificação na tela) quando sua solicitação for aprovada/rejeitada, ou basta ele consultar o histórico (regra 11) quando quiser?
+- **Notificação**: o publicador precisa ser avisado (e-mail, notificação na tela) quando sua solicitação for aprovada/rejeitada, ou basta ele consultar o histórico (regra 11), que agora fica sempre disponível?
 - **Múltiplos administradores**: haverá mais de um administrador gerenciando o sistema? Precisa de controle de acesso por papel (publicador vs. administrador)?
-- **Consulta de histórico fora da janela de envio**: a regra 11 diz que o publicador deve poder consultar suas próprias solicitações — isso vale só durante a janela de envio (dias 15 a 25), ou também nos demais dias do mês (quando o envio de novas solicitações está fechado, mas a consulta continua liberada)?
 
 ## 11. Roadmap Sugerido
 
