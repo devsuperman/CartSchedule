@@ -38,3 +38,17 @@ body {
   width: 100%;
   margin: 0 auto;
 }
+
+.janela-fechada {
+  text-align: center;
+  padding: 2rem 1rem;
+}
+
+.janela-fechada__mensagem {
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.janela-fechada__detalhe {
+  color: #4b5563;
+}
