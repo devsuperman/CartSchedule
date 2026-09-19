@@ -57,11 +57,10 @@ semana, por turno**.
 ## 5. Fluxo do Publicador
 
 1. Acessa o site durante a janela de envio (dias 15 a 25 do mês).
-2. Informa seu **nome**. Não há login/senha nem verificação de
-   duplicidade: como cada publicador acessa pelo próprio celular, o
-   nome digitado é **salvo localmente no navegador/dispositivo**
-   (frontend) e pré-preenchido automaticamente nas próximas vezes que
-   ele acessar o site.
+2. Informa seu **nome**. Não há cadastro/login com senha — a
+   identificação é simples e o sistema deve poupar o publicador de
+   redigitar o nome a cada nova visita (a forma técnica de fazer isso
+   será definida na fase de implementação).
 3. Seleciona o **carrinho** que deseja usar.
 4. Seleciona o **dia da semana** em que quer trabalhar.
 5. Seleciona o **turno** desejado.
@@ -116,8 +115,10 @@ mesma combinação `(escala, carrinho, dia da semana, turno)`.
 5. **Escala mensal**: é composta **apenas pelas solicitações aprovadas**; toda trinca com 0 aprovados simplesmente não aparece na escala.
 6. **Janela de envio automática**: publicadores só enviam solicitações do dia 15 ao dia 25 do mês corrente, sempre para a escala do mês seguinte. Fora disso, o envio fica fechado para eles.
 7. **Administrador sem restrição de janela**: pode gerenciar (ver, aprovar, rejeitar, adicionar) qualquer escala a qualquer momento, independentemente da janela de envio. A partir do dia 25, esse é o período esperado para os ajustes finais antes do mês seguinte começar.
-8. **Sem limite (por padrão) de quantas trincas um mesmo publicador pode ter aprovadas** em uma escala — pode trabalhar em vários carrinhos/dias/turnos, a menos que o administrador decida limitar isso no futuro (ver seção 9).
-9. **Identificação do publicador**: não há login, senha nem verificação de duplicidade de nomes no backend — o nome é apenas um texto livre, tanto no envio do publicador quanto na adição manual pelo administrador. A conveniência de não redigitar o nome fica a cargo do frontend (nome salvo localmente no dispositivo do publicador).
+8. **Sem limite (por padrão) de quantas trincas um mesmo publicador pode ter aprovadas** em uma escala — pode trabalhar em vários carrinhos/dias/turnos, a menos que o administrador decida limitar isso no futuro (ver seção 10).
+9. **Identificação do publicador**: não há cadastro com login e senha — o nome é informado livremente, tanto no envio do publicador quanto na adição manual pelo administrador.
+10. **Bloqueio de duplicidade (único bloqueio automático do sistema)**: um publicador não pode ter duas solicitações para a mesma combinação `(escala, carrinho, dia da semana, turno)`. Ao tentar enviar uma solicitação idêntica a uma já existente sua, o sistema recusa o novo envio. Este é o único bloqueio automático de todo o sistema — o limite de 2 por trinca (regras 1 e 3) **não** é bloqueado, apenas sinalizado.
+11. **Histórico de solicitações**: o publicador deve conseguir consultar as solicitações que ele mesmo enviou (e o status de cada uma — pendente/aprovada/rejeitada), sem precisar de cadastro formal. A forma de identificá-lo para isso será definida na fase de implementação.
 
 ## 8. Estados de uma Solicitação
 
@@ -178,13 +179,13 @@ PENDENTE ──► APROVADA
 - **Critério de desempate** quando há mais de 2 solicitações: já que o sistema não bloqueia nem decide automaticamente, o administrador escolhe livremente — vale documentar algum critério sugerido na tela (ex: ordem de chegada) para ajudá-lo, ou fica 100% a critério dele, sem qualquer sugestão?
 - **Cancelamento**: o publicador pode cancelar/editar uma solicitação enquanto ela está pendente e a janela ainda está aberta? E depois de aprovada?
 - **Limite de carga por publicador**: deve haver um número máximo de turnos/combinações que um mesmo publicador pode ter aprovado em uma escala?
-- **Notificação**: o publicador precisa ser avisado (e-mail, notificação na tela) quando sua solicitação for aprovada/rejeitada? Como, se ele só acessa o site na janela de envio?
+- **Notificação**: o publicador precisa ser avisado (e-mail, notificação na tela) quando sua solicitação for aprovada/rejeitada, ou basta ele consultar o histórico (regra 11) quando quiser?
 - **Múltiplos administradores**: haverá mais de um administrador gerenciando o sistema? Precisa de controle de acesso por papel (publicador vs. administrador)?
-- **Acesso do publicador fora da janela**: confirmado que, nesta primeira versão, ele só vê a mensagem de "fechado" — sem consultar status ou escala aprovada. Isso deve mudar em uma fase futura?
+- **Consulta de histórico fora da janela de envio**: a regra 11 diz que o publicador deve poder consultar suas próprias solicitações — isso vale só durante a janela de envio (dias 15 a 25), ou também nos demais dias do mês (quando o envio de novas solicitações está fechado, mas a consulta continua liberada)?
 
 ## 11. Roadmap Sugerido
 
-- **Fase 1 — Solicitação do publicador**: formulário (nome, carrinho, dia da semana, turno) disponível apenas durante a janela automática (dia 15 ao dia 25 do mês), sempre direcionado à escala do mês seguinte; nome pré-preenchido a partir do armazenamento local do dispositivo.
-- **Fase 2 — Painel do administrador**: listagem/contagem de solicitações por escala, agrupamento por `(carrinho, dia, turno)` com sinalização visual de excesso (mais de 2), aprovação/rejeição livre (sem bloqueio automático), e adição manual de solicitações (com criação de publicador por nome livre) a qualquer escala.
+- **Fase 1 — Solicitação do publicador**: formulário (nome, carrinho, dia da semana, turno) disponível apenas durante a janela automática (dia 15 ao dia 25 do mês), sempre direcionado à escala do mês seguinte, com bloqueio de solicitações duplicadas e consulta ao histórico próprio, sem cadastro formal.
+- **Fase 2 — Painel do administrador**: listagem/contagem de solicitações por escala, agrupamento por `(carrinho, dia, turno)` com sinalização visual de excesso (mais de 2, sem bloqueio automático desse limite), aprovação/rejeição livre, e adição manual de solicitações (com criação de publicador por nome livre) a qualquer escala.
 - **Fase 3 — Escala mensal**: geração e visualização da grade final (Carrinho × Dia da semana × Turno) a partir das solicitações aprovadas.
 - **Fase 4 — Melhorias**: notificações, exportação da escala (PDF/Excel/impressão), histórico de escalas passadas, autenticação/login, regras de prioridade/desempate configuráveis, consulta de status fora da janela.
