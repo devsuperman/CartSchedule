@@ -1,0 +1,43 @@
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: cartschedule
+      POSTGRES_USER: cartschedule
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?defina POSTGRES_PASSWORD no .env}
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U cartschedule -d cartschedule"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  api:
+    build: ./backend
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      ConnectionStrings__Default: "Host=db;Database=cartschedule;Username=cartschedule;Password=${POSTGRES_PASSWORD}"
+      Admin__Usuario: ${ADMIN_USUARIO:?defina ADMIN_USUARIO no .env}
+      Admin__SenhaHash: ${ADMIN_SENHA_HASH:?defina ADMIN_SENHA_HASH no .env}
+      Jwt__ChaveSecreta: ${JWT_CHAVE_SECRETA:?defina JWT_CHAVE_SECRETA no .env}
+      Cors__FrontendOrigin: http://localhost:3000
+    ports:
+      - "5000:8080"
+
+  web:
+    build:
+      context: ./frontend
+      args:
+        VITE_API_URL: http://localhost:5000
+    depends_on:
+      - api
+    ports:
+      - "3000:80"
+
+volumes:
+  db-data:
