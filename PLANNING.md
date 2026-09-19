@@ -27,7 +27,8 @@ semana, por turno**.
 | **Janela de envio** | Período em que o sistema aceita novas solicitações de Publicadores para a escala do mês seguinte (ver seção 4). |
 | **Carrinho** | Um carrinho de trabalho disponível (ex: Carrinho 1, Carrinho 2...). |
 | **Dia da semana** | Segunda a Domingo. A escolha é **recorrente**: se o publicador escolhe "Segunda-feira", isso vale para todas as segundas-feiras daquele mês — não é uma data específica do calendário. |
-| **Turno** | Faixa de horário fixa e predefinida (ex: Manhã, Tarde, Noite), cadastrada previamente pelo administrador. |
+| **Turno** | Faixa de horário fixa e predefinida (ex: Manhã, Tarde, Noite), cadastrada previamente pelo administrador. Existe uma lista única de turnos no sistema, com os mesmos horários para todos os carrinhos. |
+| **Turnos disponíveis do carrinho** | Cada carrinho usa apenas um subconjunto dos turnos cadastrados, definido pelo administrador. Um carrinho pode ter turnos diferentes de outro (ex: Carrinho A tem Manhã e Tarde; Carrinho B tem só Noite). |
 | **Solicitação** | O pedido para trabalhar em `(carrinho, dia da semana, turno)` dentro de uma escala (mês). Pode ter sido criada por um Publicador (fluxo normal, começa Pendente) ou pelo Administrador (entra direto como Aprovada). |
 | **Escala mensal (resultado final)** | Para cada `(carrinho, dia da semana, turno)`, até 2 publicadores aprovados. |
 
@@ -64,7 +65,7 @@ semana, por turno**.
    será definida na fase de implementação).
 3. Seleciona o **carrinho** que deseja usar.
 4. Seleciona o **dia da semana** em que quer trabalhar.
-5. Seleciona o **turno** desejado.
+5. Seleciona o **turno** desejado — apenas entre os turnos que o administrador configurou como disponíveis **para aquele carrinho** (carrinhos diferentes podem ter turnos diferentes).
 6. Pode repetir os passos 3–5 para pedir mais de uma combinação na mesma escala (ex: Carrinho A / Segunda / Manhã **e** Carrinho B / Quinta / Tarde). O mês/escala já está implícito (é sempre o mês seguinte, definido automaticamente pela janela aberta).
 7. Revisa e **envia** as solicitações.
 8. A qualquer momento (mesmo fora da janela de envio), pode acessar a tela de **histórico** e ver o status de cada solicitação que enviou: *Pendente*, *Aprovada*, *Rejeitada* ou *Cancelada*.
@@ -76,21 +77,28 @@ mesma combinação `(escala, carrinho, dia da semana, turno)`.
 ## 6. Fluxo do Administrador
 
 1. Acessa o painel administrativo.
-2. Seleciona a escala (mês) que deseja gerenciar — pode ser a que está
+2. **Configura os carrinhos e seus turnos**: cadastra os carrinhos e os
+   turnos do sistema, e define, para cada carrinho, quais turnos ele
+   tem disponíveis (um carrinho pode ter turnos diferentes de outro).
+   Essa configuração vale para os publicadores escolherem e também
+   para a adição manual (ver item 7).
+3. Seleciona a escala (mês) que deseja gerenciar — pode ser a que está
    com a janela aberta no momento, ou qualquer outra (passada ou
    futura).
-3. Vê um **resumo geral**: total de solicitações recebidas naquela
+4. Vê um **resumo geral**: total de solicitações recebidas naquela
    escala, quantas pendentes/aprovadas/rejeitadas.
-4. Vê as solicitações **agrupadas por `(carrinho, dia da semana,
+5. Vê as solicitações **agrupadas por `(carrinho, dia da semana,
    turno)`**, já sinalizando cada grupo conforme a regra de negócio
    (seção 7):
    - Grupo **vazio** (0 solicitações) → ignorado, nem aparece como pendência.
    - Grupo com **1 ou 2** solicitações → dentro do limite, pode aprovar diretamente.
    - Grupo com **mais de 2** solicitações → sinalizado como **excedente**; o administrador precisa escolher quais 2 aprova e rejeitar as demais.
-5. Para cada grupo excedente, o administrador aprova exatamente 2 e rejeita o restante. **O critério de desempate é de uso exclusivo do administrador** — o sistema não sugere nem impõe nenhum critério (ordem de chegada, prioridade, etc.); a escolha de quem aprovar fica inteiramente a seu critério. Para ajudá-lo nessa decisão, o sistema mostra, ao lado de cada publicador do grupo excedente, **quantas solicitações (pendentes + aprovadas) esse publicador já tem na mesma escala** (contando todas as trincas, não só a que está em desempate).
-6. **A qualquer momento**, o administrador também pode **adicionar
+6. Para cada grupo excedente, o administrador aprova exatamente 2 e rejeita o restante. **O critério de desempate é de uso exclusivo do administrador** — o sistema não sugere nem impõe nenhum critério (ordem de chegada, prioridade, etc.); a escolha de quem aprovar fica inteiramente a seu critério. Para ajudá-lo nessa decisão, o sistema mostra, ao lado de cada publicador do grupo excedente, **quantas solicitações (pendentes + aprovadas) esse publicador já tem na mesma escala** (contando todas as trincas, não só a que está em desempate).
+7. **A qualquer momento**, o administrador também pode **adicionar
    manualmente** uma nova solicitação a qualquer escala:
-   - Escolhe carrinho, dia da semana e turno.
+   - Escolhe o carrinho, o dia da semana e o turno — o turno só pode
+     ser um dos configurados como disponível para aquele carrinho
+     (mesma restrição que vale para o publicador, ver item 2).
    - Informa o nome do publicador — pode escolher um publicador já
      cadastrado **ou digitar um nome novo livremente** (o sistema cria
      o publicador automaticamente se ele ainda não existir).
@@ -104,11 +112,11 @@ mesma combinação `(escala, carrinho, dia da semana, turno)`.
      normais) — a tela apenas **sinaliza visualmente** o excesso, e
      cabe ao administrador decidir quando e como ajustar (rejeitando
      ou removendo alguma solicitação daquela trinca).
-7. Ao concluir as decisões da escala, o sistema mantém a **escala
+8. Ao concluir as decisões da escala, o sistema mantém a **escala
    mensal sempre atualizada automaticamente** a partir de todas as
    solicitações aprovadas (sejam vindas de publicadores ou adicionadas
    manualmente pelo administrador).
-8. O administrador visualiza a escala final (grade Carrinho × Dia da
+9. O administrador visualiza a escala final (grade Carrinho × Dia da
    semana × Turno, com os nomes aprovados) e pode compartilhá-la/exportá-la.
 
 ## 7. Regras de Negócio
@@ -129,6 +137,7 @@ mesma combinação `(escala, carrinho, dia da semana, turno)`.
 14. **Sem notificações**: o sistema não envia avisos (e-mail, push, etc.) ao publicador sobre o status de suas solicitações; ele consulta o histórico quando quiser.
 15. **Um único administrador**: não há necessidade de múltiplos administradores nem de controle de acesso por diferentes papéis administrativos.
 16. **Contagem de apoio ao desempate**: para cada publicador presente num grupo excedente (mais de 2 solicitações na mesma trinca), o sistema exibe o total de solicitações (pendentes + aprovadas, somando todas as trincas) que ele já tem naquela mesma escala — para ajudar o administrador a decidir, sem determinar a decisão.
+17. **Turnos por carrinho**: cada carrinho tem seu próprio conjunto de turnos disponíveis, definido pelo administrador, como um subconjunto da lista única de turnos do sistema (os horários de cada turno são os mesmos em qualquer carrinho que o utilize). Um carrinho pode ter turnos diferentes de outro. O publicador só pode escolher, para um carrinho, um dos turnos configurados para ele; a adição manual pelo administrador segue a mesma restrição.
 
 ## 8. Estados de uma Solicitação
 
@@ -164,6 +173,11 @@ PENDENTE ──► APROVADA
 - `nome` (ex: "Manhã")
 - `hora_inicio`, `hora_fim`
 
+**CarrinhoTurno** (associação: quais turnos cada carrinho tem disponível)
+- `carrinho_id`
+- `turno_id`
+- Definida pelo administrador; um carrinho pode ter qualquer subconjunto dos turnos cadastrados, diferente de outro carrinho.
+
 **DiaSemana**
 - Enum fixo: Segunda, Terça, Quarta, Quinta, Sexta, Sábado, Domingo (não precisa de tabela própria).
 
@@ -190,7 +204,7 @@ PENDENTE ──► APROVADA
 
 ## 10. Roadmap Sugerido
 
-- **Fase 1 — Solicitação do publicador**: formulário (nome, carrinho, dia da semana, turno) disponível apenas durante a janela automática (dia 15 ao dia 25 do mês), sempre direcionado à escala do mês seguinte, com bloqueio de solicitações duplicadas e tela de histórico próprio (sempre disponível, com opção de cancelamento), sem cadastro formal.
-- **Fase 2 — Painel do administrador**: listagem/contagem de solicitações por escala, agrupamento por `(carrinho, dia, turno)` com sinalização visual de excesso (mais de 2, sem bloqueio automático desse limite), aprovação/rejeição livre (critério de desempate a critério exclusivo do administrador), e adição manual de solicitações (com criação de publicador por nome livre) a qualquer escala.
+- **Fase 1 — Solicitação do publicador**: formulário (nome, carrinho, dia da semana, turno — restrito aos turnos configurados para o carrinho escolhido) disponível apenas durante a janela automática (dia 15 ao dia 25 do mês), sempre direcionado à escala do mês seguinte, com bloqueio de solicitações duplicadas e tela de histórico próprio (sempre disponível, com opção de cancelamento), sem cadastro formal.
+- **Fase 2 — Painel do administrador**: cadastro de carrinhos, turnos e a configuração de quais turnos cada carrinho tem disponível; listagem/contagem de solicitações por escala, agrupamento por `(carrinho, dia, turno)` com sinalização visual de excesso (mais de 2, sem bloqueio automático desse limite) e contagem de apoio ao desempate por publicador; aprovação/rejeição livre (critério de desempate exclusivo do administrador); e adição manual de solicitações (com criação de publicador por nome livre) a qualquer escala.
 - **Fase 3 — Escala mensal**: geração e visualização da grade final (Carrinho × Dia da semana × Turno) a partir das solicitações aprovadas.
 - **Fase 4 — Melhorias futuras (opcionais)**: exportação da escala (PDF/Excel/impressão) e relatórios/histórico consolidado de escalas passadas.
