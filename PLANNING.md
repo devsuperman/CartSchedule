@@ -67,7 +67,8 @@ semana, por turno**.
 5. Seleciona o **turno** desejado.
 6. Pode repetir os passos 3–5 para pedir mais de uma combinação na mesma escala (ex: Carrinho A / Segunda / Manhã **e** Carrinho B / Quinta / Tarde). O mês/escala já está implícito (é sempre o mês seguinte, definido automaticamente pela janela aberta).
 7. Revisa e **envia** as solicitações.
-8. (Recomendado, fase futura) Consegue ver depois o status de cada solicitação: *Pendente*, *Aprovada* ou *Rejeitada*.
+8. A qualquer momento (mesmo fora da janela de envio), pode acessar a tela de **histórico** e ver o status de cada solicitação que enviou: *Pendente*, *Aprovada*, *Rejeitada* ou *Cancelada*.
+9. Nessa mesma tela de histórico, pode **cancelar** qualquer solicitação sua — esteja ela Pendente ou já Aprovada — a qualquer momento.
 
 Regra de duplicidade: o mesmo publicador não pode enviar duas vezes a
 mesma combinação `(escala, carrinho, dia da semana, turno)`.
@@ -86,7 +87,7 @@ mesma combinação `(escala, carrinho, dia da semana, turno)`.
    - Grupo **vazio** (0 solicitações) → ignorado, nem aparece como pendência.
    - Grupo com **1 ou 2** solicitações → dentro do limite, pode aprovar diretamente.
    - Grupo com **mais de 2** solicitações → sinalizado como **excedente**; o administrador precisa escolher quais 2 aprova e rejeitar as demais.
-5. Para cada grupo excedente, o administrador aprova exatamente 2 e rejeita o restante (critério de desempate fica a cargo do administrador — ex: ordem de chegada, mostrada na tela).
+5. Para cada grupo excedente, o administrador aprova exatamente 2 e rejeita o restante. **O critério de desempate é de uso exclusivo do administrador** — o sistema não sugere nem impõe nenhum critério (ordem de chegada, prioridade, etc.); a escolha de quem aprovar fica inteiramente a seu critério.
 6. **A qualquer momento**, o administrador também pode **adicionar
    manualmente** uma nova solicitação a qualquer escala:
    - Escolhe carrinho, dia da semana e turno.
@@ -111,29 +112,37 @@ mesma combinação `(escala, carrinho, dia da semana, turno)`.
 
 1. **Limite alvo por combinação**: cada trinca `(carrinho, dia da semana, turno)` em uma escala deve ter **no máximo 2 pessoas aprovadas** — vale tanto para solicitações de publicadores quanto para adições manuais do administrador. Esse limite **não é imposto automaticamente pelo sistema**; é uma meta que o administrador persegue manualmente ao revisar a escala (o sistema apenas sinaliza visualmente quando uma trinca está com excesso).
 2. **Combinação sem solicitação**: se não houver nenhuma solicitação para uma trinca, ela é **ignorada** — não entra na escala e não aparece como pendência para o administrador decidir.
-3. **Combinação com excesso**: se houver mais de 2 solicitações para a mesma trinca, o sistema **sinaliza** o excesso na tela do administrador, mas **não bloqueia** nada — o administrador decide quando e como reduzir para 2 (rejeitando/removendo o excedente).
+3. **Combinação com excesso**: se houver mais de 2 solicitações para a mesma trinca, o sistema **sinaliza** o excesso na tela do administrador, mas **não bloqueia** nada — o administrador decide sozinho, sem nenhum critério sugerido pelo sistema, quando e como reduzir para 2 (rejeitando/removendo o excedente).
 4. **Combinação dentro do limite** (1 ou 2 solicitações): podem ser aprovadas diretamente, sem conflito.
 5. **Escala mensal**: é composta **apenas pelas solicitações aprovadas**; toda trinca com 0 aprovados simplesmente não aparece na escala.
 6. **Janela de envio automática**: publicadores só enviam solicitações do dia 15 ao dia 25 do mês corrente, sempre para a escala do mês seguinte. Fora disso, o envio fica fechado para eles.
 7. **Administrador sem restrição de janela**: pode gerenciar (ver, aprovar, rejeitar, adicionar) qualquer escala a qualquer momento, independentemente da janela de envio. A partir do dia 25, esse é o período esperado para os ajustes finais antes do mês seguinte começar.
-8. **Sem limite (por padrão) de quantas trincas um mesmo publicador pode ter aprovadas** em uma escala — pode trabalhar em vários carrinhos/dias/turnos, a menos que o administrador decida limitar isso no futuro (ver seção 10).
+8. **Sem limite** de quantas trincas um mesmo publicador pode ter aprovadas em uma escala — pode trabalhar em vários carrinhos/dias/turnos livremente.
 9. **Identificação do publicador**: não há cadastro com login e senha — o nome é informado livremente, tanto no envio do publicador quanto na adição manual pelo administrador.
 10. **Bloqueio de duplicidade (único bloqueio automático do sistema)**: um publicador não pode ter duas solicitações para a mesma combinação `(escala, carrinho, dia da semana, turno)`. Ao tentar enviar uma solicitação idêntica a uma já existente sua, o sistema recusa o novo envio. Este é o único bloqueio automático de todo o sistema — o limite de 2 por trinca (regras 1 e 3) **não** é bloqueado, apenas sinalizado.
-11. **Histórico de solicitações**: o publicador deve conseguir consultar as solicitações que ele mesmo enviou (e o status de cada uma — pendente/aprovada/rejeitada), sem precisar de cadastro formal. Essa consulta fica **sempre disponível**, mesmo fora da janela de envio (dia 26 ao dia 14). A forma de identificá-lo para isso será definida na fase de implementação.
+11. **Histórico de solicitações**: o publicador deve conseguir consultar as solicitações que ele mesmo enviou (e o status de cada uma — pendente/aprovada/rejeitada/cancelada), sem precisar de cadastro formal. Essa consulta fica **sempre disponível**, mesmo fora da janela de envio (dia 26 ao dia 14). A forma de identificá-lo para isso será definida na fase de implementação.
+12. **Cancelamento pelo publicador**: através da tela de histórico, o publicador pode cancelar qualquer solicitação sua, esteja ela Pendente ou já Aprovada, a qualquer momento (mesmo fora da janela de envio). Uma solicitação Aprovada que é cancelada libera a vaga que ocupava na trinca `(carrinho, dia da semana, turno)`.
+13. **Critério de desempate exclusivo do administrador**: quando há mais de 2 solicitações para a mesma trinca, a escolha de quais aprovar é inteiramente do administrador — o sistema não sugere nem aplica nenhum critério.
+14. **Sem notificações**: o sistema não envia avisos (e-mail, push, etc.) ao publicador sobre o status de suas solicitações; ele consulta o histórico quando quiser.
+15. **Um único administrador**: não há necessidade de múltiplos administradores nem de controle de acesso por diferentes papéis administrativos.
 
 ## 8. Estados de uma Solicitação
 
 ```
 PENDENTE ──► APROVADA
-    │
-    └──────► REJEITADA
+    │            │
+    ├──► REJEITADA
+    │            │
+    └──────────────► CANCELADA
 
 (criada pelo Administrador entra direto como APROVADA)
+(CANCELADA só é alcançada por ação do próprio publicador, a partir de Pendente ou Aprovada)
 ```
 
 - **Pendente**: recém-enviada por um publicador, aguardando decisão do administrador.
 - **Aprovada**: confere vaga na escala mensal (respeitando o limite de 2). Toda solicitação criada manualmente pelo administrador já nasce neste estado.
 - **Rejeitada**: não entra na escala (seja por excesso na trinca, seja por outro motivo do administrador).
+- **Cancelada**: o próprio publicador cancelou, pela tela de histórico (estando Pendente ou Aprovada). Não entra/deixa de entrar na escala.
 
 ## 9. Modelo de Dados (entidades sugeridas)
 
@@ -166,7 +175,7 @@ PENDENTE ──► APROVADA
 - `carrinho_id`
 - `dia_semana`
 - `turno_id`
-- `status` (PENDENTE | APROVADA | REJEITADA)
+- `status` (PENDENTE | APROVADA | REJEITADA | CANCELADA)
 - `origem` (PUBLICADOR | ADMINISTRADOR) — indica se veio do fluxo normal de envio ou foi criada manualmente pelo administrador
 - `criado_em`
 - `decidido_em`
@@ -175,17 +184,9 @@ PENDENTE ──► APROVADA
 **EscalaMensal (grade final)** (pode ser calculada sob demanda, sem precisar de tabela própria)
 - Para cada `(escala_id, carrinho_id, dia_semana, turno_id)`: lista das `Solicitacao` com `status = APROVADA` (0, 1 ou 2 registros).
 
-## 10. Pontos em Aberto (para decidirmos antes de implementar)
+## 10. Roadmap Sugerido
 
-- **Critério de desempate** quando há mais de 2 solicitações: já que o sistema não bloqueia nem decide automaticamente, o administrador escolhe livremente — vale documentar algum critério sugerido na tela (ex: ordem de chegada) para ajudá-lo, ou fica 100% a critério dele, sem qualquer sugestão?
-- **Cancelamento**: o publicador pode cancelar/editar uma solicitação enquanto ela está pendente e a janela ainda está aberta? E depois de aprovada?
-- **Limite de carga por publicador**: deve haver um número máximo de turnos/combinações que um mesmo publicador pode ter aprovado em uma escala?
-- **Notificação**: o publicador precisa ser avisado (e-mail, notificação na tela) quando sua solicitação for aprovada/rejeitada, ou basta ele consultar o histórico (regra 11), que agora fica sempre disponível?
-- **Múltiplos administradores**: haverá mais de um administrador gerenciando o sistema? Precisa de controle de acesso por papel (publicador vs. administrador)?
-
-## 11. Roadmap Sugerido
-
-- **Fase 1 — Solicitação do publicador**: formulário (nome, carrinho, dia da semana, turno) disponível apenas durante a janela automática (dia 15 ao dia 25 do mês), sempre direcionado à escala do mês seguinte, com bloqueio de solicitações duplicadas e consulta ao histórico próprio, sem cadastro formal.
-- **Fase 2 — Painel do administrador**: listagem/contagem de solicitações por escala, agrupamento por `(carrinho, dia, turno)` com sinalização visual de excesso (mais de 2, sem bloqueio automático desse limite), aprovação/rejeição livre, e adição manual de solicitações (com criação de publicador por nome livre) a qualquer escala.
+- **Fase 1 — Solicitação do publicador**: formulário (nome, carrinho, dia da semana, turno) disponível apenas durante a janela automática (dia 15 ao dia 25 do mês), sempre direcionado à escala do mês seguinte, com bloqueio de solicitações duplicadas e tela de histórico próprio (sempre disponível, com opção de cancelamento), sem cadastro formal.
+- **Fase 2 — Painel do administrador**: listagem/contagem de solicitações por escala, agrupamento por `(carrinho, dia, turno)` com sinalização visual de excesso (mais de 2, sem bloqueio automático desse limite), aprovação/rejeição livre (critério de desempate a critério exclusivo do administrador), e adição manual de solicitações (com criação de publicador por nome livre) a qualquer escala.
 - **Fase 3 — Escala mensal**: geração e visualização da grade final (Carrinho × Dia da semana × Turno) a partir das solicitações aprovadas.
-- **Fase 4 — Melhorias**: notificações, exportação da escala (PDF/Excel/impressão), histórico de escalas passadas, autenticação/login, regras de prioridade/desempate configuráveis, consulta de status fora da janela.
+- **Fase 4 — Melhorias futuras (opcionais)**: exportação da escala (PDF/Excel/impressão) e relatórios/histórico consolidado de escalas passadas.
