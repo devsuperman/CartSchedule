@@ -38,3 +38,64 @@ body {
   width: 100%;
   margin: 0 auto;
 }
+
+.grupo-solicitacoes {
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  padding: 1rem;
+  margin-bottom: 1rem;
+  background-color: #fff;
+}
+
+.grupo-solicitacoes--excedente {
+  border-color: #dc2626;
+  border-width: 2px;
+}
+
+.grupo-solicitacoes__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.grupo-solicitacoes__lista {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.grupo-solicitacoes__lista li {
+  padding: 0.5rem 0;
+  border-top: 1px solid #e5e7eb;
+}
+
+.grupo-solicitacoes__lista li:first-child {
+  border-top: none;
+}
+
+.grupo-solicitacoes__acoes {
+  display: inline-flex;
+  gap: 0.5rem;
+  margin-left: 0.75rem;
+}
+
+.grupo-solicitacoes__erro-acao {
+  color: #dc2626;
+  margin: 0.25rem 0 0;
+  font-size: 0.9rem;
+}
+
+.badge {
+  display: inline-block;
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.badge--excedente {
+  background-color: #fee2e2;
+  color: #991b1b;
+}
