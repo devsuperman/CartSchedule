@@ -1,4 +1,5 @@
 using CartSchedule.Api.Infrastructure;
+using FluentValidation;
 using Microsoft.EntityFrameworkCore;
 
 const string FrontendCorsPolicy = "FrontendCorsPolicy";
@@ -7,6 +8,8 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("Default")));
+
+builder.Services.AddValidatorsFromAssemblyContaining<Program>();
 
 builder.Services.AddProblemDetails();
 
