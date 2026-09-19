@@ -136,3 +136,19 @@ body {
   background-color: #fee2e2;
   color: #991b1b;
 }
+
+.form-field {
+  display: block;
+  margin-bottom: 1rem;
+}
+
+.form-field input,
+.form-field select {
+  display: block;
+  width: 100%;
+  margin-top: 0.25rem;
+}
+
+.form-success {
+  color: #166534;
+}
