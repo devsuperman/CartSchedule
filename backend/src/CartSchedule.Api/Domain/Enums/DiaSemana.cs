@@ -1,0 +1,13 @@
+namespace CartSchedule.Api.Domain.Enums;
+
+/// <summary>
+/// Dias fixos do sistema. Nunca adicionar Sábado/Domingo (PLANNING.md regra 19).
+/// </summary>
+public enum DiaSemana
+{
+    Segunda = 1,
+    Terca = 2,
+    Quarta = 3,
+    Quinta = 4,
+    Sexta = 5,
+}
