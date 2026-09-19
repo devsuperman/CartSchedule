@@ -75,8 +75,7 @@ backend/
         Administradores/
           Login/                    # POST /api/admin/login
           GerenciarCarrinhos/       # GET/POST/PUT /api/admin/carrinhos
-          GerenciarTurnos/          # GET/POST      /api/admin/turnos
-          GerenciarTurnosDoCarrinho/# PUT           /api/admin/carrinhos/{id}/turnos
+          GerenciarTurnosDoCarrinho/# GET/PUT       /api/admin/carrinhos/{id}/turnos (turnos em si são fixos, ver 2.4)
           RevisarEscala/
             ListarSolicitacoesAgrupadas/ # GET  /api/admin/escalas/{mes}/solicitacoes
             AprovarSolicitacao/          # POST /api/admin/solicitacoes/{id}/aprovar
@@ -113,7 +112,28 @@ bloqueio de duplicidade e histórico):
   - Se o nome digitado **coincidir exatamente** com um `Publicador` já existente, a solicitação é associada a esse mesmo registro — inclusive aparecerá no histórico daquele publicador quando ele acessar pelo próprio celular.
   - Caso contrário (nome novo, ou grafia diferente de um nome existente), o backend cria um `Publicador` novo com um token gerado no servidor. Isso é uma consequência aceita da regra de negócio 9 (sem verificação/bloqueio de nomes duplicados) — pequenas diferenças de grafia podem gerar registros distintos para a mesma pessoa; a escala final não é afetada, pois é montada pelos nomes aprovados, não pelo token.
 
-### 2.4 Janela de Envio e Escala — cálculo automático
+### 2.4 Turnos e dias da semana fixos (dados de seed)
+
+Conforme regras de negócio 19 e 20 (`PLANNING.md`):
+
+- `DiaSemana` é um enum com **apenas 5 valores**: Segunda, Terça,
+  Quarta, Quinta, Sexta. Não existem Sábado nem Domingo em lugar
+  nenhum do sistema (nem no enum, nem na validação de entrada).
+- `Turno` **não tem endpoint de criação/edição** — não há
+  `GerenciarTurnos` como slice administrativo. Os 6 turnos são dados
+  fixos, inseridos por uma **migration de seed** do EF Core, sempre
+  os mesmos: `06:00–08:00`, `08:00–10:00`, `10:00–12:00`,
+  `14:00–16:00`, `16:00–18:00`, `18:00–20:00`.
+- O único endpoint relacionado a turno que o administrador usa é o de
+  **associação** (`GerenciarTurnosDoCarrinho`), que só lê da lista
+  fixa de 6 e escreve em `CarrinhoTurno` — nunca cria ou altera um
+  `Turno` em si.
+- O frontend também pode tratar essa lista de 6 turnos como uma
+  constante compartilhada, evitando uma chamada extra à API só para
+  listá-los (ela ainda existe via `GET /api/carrinhos`, que já retorna
+  os turnos habilitados por carrinho).
+
+### 2.5 Janela de Envio e Escala — cálculo automático
 
 Não há job agendado nem tarefa de background: a janela de envio (regra
 6) e a escala-alvo (mês seguinte) são **calculadas em tempo real** a
@@ -125,28 +145,28 @@ partir da data atual do servidor, toda vez que uma requisição chega
 
 A entidade `Escala` (mês de referência) é criada **sob demanda** (lazy) na primeira vez que é referenciada — seja pelo primeiro envio de um publicador, seja pela primeira ação do administrador naquele mês.
 
-### 2.5 Persistência
+### 2.6 Persistência
 
 - **Entity Framework Core** com provider **Npgsql** (PostgreSQL).
 - Migrations versionadas em `Infrastructure/Migrations/`.
 - Aplicação das migrations automaticamente na subida do container da API (em todos os ambientes deste projeto, dado o escopo simples — sem múltiplos ambientes/produção complexa por enquanto).
 
-### 2.6 Validação
+### 2.7 Validação
 
 - **FluentValidation** para validar os `Request` de cada slice (ex: nome obrigatório, carrinho/turno/dia válidos, turno pertence ao carrinho escolhido no momento do envio).
 - Erros de validação retornam `400` com detalhes (`ProblemDetails`).
 
-### 2.7 Remoção de turno de um carrinho / desativação de carrinho
+### 2.8 Remoção de turno de um carrinho / desativação de carrinho
 
 Conforme regra de negócio 18 (`PLANNING.md`): remover um turno de um
 `CarrinhoTurno` ou marcar `Carrinho.ativo = false` **não** altera nem
 remove `Solicitacao` já existentes — essas linhas continuam no banco
 normalmente, e o histórico/escala continuam exibindo-as. A validação
-de "turno pertence ao carrinho" (2.6) só se aplica à **criação** de
+de "turno pertence ao carrinho" (2.7) só se aplica à **criação** de
 novas solicitações, não é reavaliada retroativamente sobre as
 existentes.
 
-### 2.8 CORS
+### 2.9 CORS
 
 A API habilita CORS para a origem do frontend (`VITE_API_URL`/URL do
 container `web`), permitindo os métodos e headers usados pelo cliente
@@ -182,7 +202,7 @@ frontend/
         Login.tsx
         RevisaoEscala.tsx         # solicitações agrupadas por carrinho/dia/turno + desempate
         AdicionarSolicitacao.tsx  # adição manual
-        GestaoCarrinhos.tsx       # cadastro de carrinhos, turnos e associação carrinho-turno
+        GestaoCarrinhos.tsx       # cadastro de carrinhos e associação com os 6 turnos fixos
         EscalaFinal.tsx           # grade final do mês
     hooks/
       usePublicadorToken.ts       # lê/gera o token e o nome salvos no localStorage
@@ -198,7 +218,7 @@ frontend/
 ### 3.3 Duas áreas da aplicação
 
 - **Área do Publicador** (`/`): fluxo mobile-first (a maioria acessa pelo celular) — nome, carrinho, dia da semana, turno, envio, histórico com cancelamento. Sem login.
-- **Área do Administrador** (`/admin/*`): protegida por login (JWT armazenado no cliente); painel de revisão de escala, gestão de carrinhos/turnos e escala final.
+- **Área do Administrador** (`/admin/*`): protegida por login (JWT armazenado no cliente); painel de revisão de escala, gestão de carrinhos (com associação aos turnos fixos) e escala final.
 
 ## 4. Banco de Dados — PostgreSQL
 
@@ -208,7 +228,7 @@ Tabelas espelhando o modelo de dados do `PLANNING.md` (seção 9):
 |---|---|
 | `publicadores` | `id` (uuid/token), `nome` |
 | `carrinhos` | `id`, `nome`, `ativo` |
-| `turnos` | `id`, `nome`, `hora_inicio`, `hora_fim` |
+| `turnos` | `id`, `hora_inicio`, `hora_fim` — **tabela com dado fixo (seed)**, sempre as mesmas 6 linhas, sem endpoint de criação/edição |
 | `carrinho_turnos` | `carrinho_id`, `turno_id` (PK composta) |
 | `escalas` | `id`, `mes_referencia` (ex: `2026-10-01`, primeiro dia do mês) |
 | `solicitacoes` | `id`, `publicador_id`, `escala_id`, `carrinho_id`, `dia_semana`, `turno_id`, `status`, `origem`, `criado_em`, `decidido_em` |
@@ -308,7 +328,7 @@ CartSchedule/
 
 Alinhado ao roadmap de negócio (`PLANNING.md`, seção 10):
 
-- **Fase 1**: modelo de dados + migrations; slices do Publicador (janela, carrinhos disponíveis, criar solicitação, histórico, cancelamento); frontend da área do Publicador; `docker-compose` funcional com os 3 serviços.
-- **Fase 2**: autenticação do administrador (login + JWT); slices de gestão de carrinhos/turnos; slices de revisão de escala (listagem agrupada, aprovar/rejeitar, contagem de apoio ao desempate, adição manual); frontend da área do Administrador.
+- **Fase 1**: modelo de dados + migrations (incluindo o seed dos 6 turnos fixos); slices do Publicador (janela, carrinhos disponíveis, criar solicitação, histórico, cancelamento); frontend da área do Publicador; `docker-compose` funcional com os 3 serviços.
+- **Fase 2**: autenticação do administrador (login + JWT); slice de gestão de carrinhos e da associação carrinho-turno; slices de revisão de escala (listagem agrupada, aprovar/rejeitar, contagem de apoio ao desempate, adição manual); frontend da área do Administrador.
 - **Fase 3**: slice e tela da escala mensal final (grade Carrinho × Dia × Turno).
 - **Fase 4 (opcional, futura)**: exportação da escala (PDF/Excel), relatórios de escalas passadas.
