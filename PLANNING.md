@@ -3,82 +3,129 @@
 ## 1. Visão Geral
 
 Sistema web para organizar o uso de carrinhos de trabalho ao longo do mês.
-Funcionários solicitam em quais carrinhos, dias da semana e turnos desejam
+Publicadores solicitam em quais carrinhos, dias da semana e turnos desejam
 trabalhar; um administrador analisa os pedidos e monta a escala mensal
 final, respeitando o limite de **2 pessoas por carrinho, por dia da
 semana, por turno**.
 
 ## 2. Atores
 
-- **Funcionário**: informa seu nome, escolhe o mês, o carrinho, o(s) dia(s)
-  da semana e o turno em que quer trabalhar, e envia a solicitação.
-- **Administrador**: visualiza todas as solicitações recebidas no mês,
-  aprova ou rejeita cada uma (respeitando o limite de 2 por combinação) e
-  gera a escala mensal final.
+- **Publicador**: informa seu nome, escolhe o carrinho, o(s) dia(s) da
+  semana e o turno em que quer trabalhar, e envia a solicitação — apenas
+  durante a janela de envio automaticamente aberta pelo sistema (ver
+  seção 4).
+- **Administrador**: visualiza todas as solicitações recebidas para uma
+  escala, aprova ou rejeita cada uma (respeitando o limite de 2 por
+  combinação), pode adicionar solicitações manualmente a qualquer escala
+  a qualquer momento, e gera a escala mensal final.
 
 ## 3. Conceitos-chave
 
 | Conceito | Descrição |
 |---|---|
-| **Mês de referência** | O mês/ano para o qual a escala está sendo montada (ex: Outubro/2026). |
+| **Escala (mês de referência)** | O mês/ano para o qual a escala está sendo montada (ex: Outubro/2026). |
+| **Janela de envio** | Período em que o sistema aceita novas solicitações de Publicadores para a escala do mês seguinte (ver seção 4). |
 | **Carrinho** | Um carrinho de trabalho disponível (ex: Carrinho 1, Carrinho 2...). |
-| **Dia da semana** | Segunda a Domingo. A escolha é **recorrente**: se o funcionário escolhe "Segunda-feira", isso vale para todas as segundas-feiras daquele mês — não é uma data específica do calendário. |
+| **Dia da semana** | Segunda a Domingo. A escolha é **recorrente**: se o publicador escolhe "Segunda-feira", isso vale para todas as segundas-feiras daquele mês — não é uma data específica do calendário. |
 | **Turno** | Faixa de horário fixa e predefinida (ex: Manhã, Tarde, Noite), cadastrada previamente pelo administrador. |
-| **Solicitação** | O pedido de um funcionário para trabalhar em `(carrinho, dia da semana, turno)` dentro do mês de referência. |
-| **Escala mensal** | O resultado final: para cada `(carrinho, dia da semana, turno)`, até 2 funcionários aprovados. |
+| **Solicitação** | O pedido para trabalhar em `(carrinho, dia da semana, turno)` dentro de uma escala (mês). Pode ter sido criada por um Publicador (fluxo normal, começa Pendente) ou pelo Administrador (entra direto como Aprovada). |
+| **Escala mensal (resultado final)** | Para cada `(carrinho, dia da semana, turno)`, até 2 publicadores aprovados. |
 
-## 4. Fluxo do Funcionário
+## 4. Janela de Envio (automática)
 
-1. Acessa o site.
-2. Informa seu **nome** (identificação simples; ver seção 8 sobre autenticação).
-3. Visualiza/seleciona o **mês** em questão.
-4. Seleciona o **carrinho** que deseja usar.
-5. Seleciona o **dia da semana** em que quer trabalhar.
-6. Seleciona o **turno** desejado.
-7. Pode repetir os passos 4–6 para pedir mais de uma combinação no mesmo mês (ex: Carrinho A / Segunda / Manhã **e** Carrinho B / Quinta / Tarde).
-8. Revisa e **envia** as solicitações.
-9. (Recomendado) Consegue ver depois o status de cada solicitação: *Pendente*, *Aprovada* ou *Rejeitada*.
+- **Abertura**: todo dia **20** do mês, o sistema abre automaticamente o
+  envio de solicitações para a escala do **mês seguinte**.
+  - Ex: dia 20 de setembro → abre a escala de Outubro.
+- **Fechamento**: a janela fecha no **início do dia 01** do mês seguinte
+  — ou seja, o último dia válido para envio é o **último dia do mês
+  corrente** (ex: se abriu em 20/09, o último dia para enviar é 30/09;
+  no dia 01/10 a janela já está fechada).
+- **Fora da janela** (do dia 02 ao dia 19): o Publicador que acessar o
+  site vê apenas uma **mensagem informando que o envio está fechado**
+  (ex: "Envio fechado. Abre novamente no dia 20."), sem acesso a
+  status de solicitações ou histórico nessa fase inicial do projeto.
+- **Apenas uma escala fica aberta por vez** para novos envios de
+  Publicadores — sempre a do mês seguinte ao mês corrente, a partir do
+  dia 20.
+- O Administrador **não é limitado pela janela**: pode ver, aprovar,
+  rejeitar e adicionar solicitações em qualquer escala (passada, atual
+  em aberto, ou futura) a qualquer momento.
 
-Regra de duplicidade: o mesmo funcionário não pode enviar duas vezes a
-mesma combinação `(mês, carrinho, dia da semana, turno)`.
+## 5. Fluxo do Publicador
 
-## 5. Fluxo do Administrador
+1. Acessa o site durante a janela de envio (dias 20 até o fim do mês).
+2. Informa seu **nome** (identificação simples; ver seção 9 sobre autenticação).
+3. Seleciona o **carrinho** que deseja usar.
+4. Seleciona o **dia da semana** em que quer trabalhar.
+5. Seleciona o **turno** desejado.
+6. Pode repetir os passos 3–5 para pedir mais de uma combinação na mesma escala (ex: Carrinho A / Segunda / Manhã **e** Carrinho B / Quinta / Tarde). O mês/escala já está implícito (é sempre o mês seguinte, definido automaticamente pela janela aberta).
+7. Revisa e **envia** as solicitações.
+8. (Recomendado, fase futura) Consegue ver depois o status de cada solicitação: *Pendente*, *Aprovada* ou *Rejeitada*.
+
+Regra de duplicidade: o mesmo publicador não pode enviar duas vezes a
+mesma combinação `(escala, carrinho, dia da semana, turno)`.
+
+## 6. Fluxo do Administrador
 
 1. Acessa o painel administrativo.
-2. Seleciona o mês em questão.
-3. Vê um **resumo geral**: total de solicitações recebidas no mês, quantas pendentes/aprovadas/rejeitadas.
-4. Vê as solicitações **agrupadas por `(carrinho, dia da semana, turno)`**, já sinalizando cada grupo conforme a regra de negócio (seção 6):
+2. Seleciona a escala (mês) que deseja gerenciar — pode ser a que está
+   com a janela aberta no momento, ou qualquer outra (passada ou
+   futura).
+3. Vê um **resumo geral**: total de solicitações recebidas naquela
+   escala, quantas pendentes/aprovadas/rejeitadas.
+4. Vê as solicitações **agrupadas por `(carrinho, dia da semana,
+   turno)`**, já sinalizando cada grupo conforme a regra de negócio
+   (seção 7):
    - Grupo **vazio** (0 solicitações) → ignorado, nem aparece como pendência.
    - Grupo com **1 ou 2** solicitações → dentro do limite, pode aprovar diretamente.
    - Grupo com **mais de 2** solicitações → sinalizado como **excedente**; o administrador precisa escolher quais 2 aprova e rejeitar as demais.
 5. Para cada grupo excedente, o administrador aprova exatamente 2 e rejeita o restante (critério de desempate fica a cargo do administrador — ex: ordem de chegada, mostrada na tela).
-6. Ao concluir as decisões do mês, o sistema **gera automaticamente a escala mensal** a partir de todas as solicitações aprovadas.
-7. O administrador visualiza a escala final (grade Carrinho × Dia da semana × Turno, com os nomes aprovados) e pode compartilhá-la/exportá-la.
+6. **A qualquer momento**, o administrador também pode **adicionar
+   manualmente** uma nova solicitação a qualquer escala:
+   - Escolhe carrinho, dia da semana e turno.
+   - Informa o nome do publicador — pode escolher um publicador já
+     cadastrado **ou digitar um nome novo livremente** (o sistema cria
+     o publicador automaticamente se ele ainda não existir).
+   - A solicitação criada dessa forma **já entra como Aprovada**
+     diretamente, ocupando uma das 2 vagas daquela trinca.
+   - Se a trinca já tiver 2 aprovados, o sistema **bloqueia** a adição
+     manual até o administrador remover/rejeitar uma das existentes
+     (o limite de 2 vale também para adições manuais).
+7. Ao concluir as decisões da escala, o sistema mantém a **escala
+   mensal sempre atualizada automaticamente** a partir de todas as
+   solicitações aprovadas (sejam vindas de publicadores ou adicionadas
+   manualmente pelo administrador).
+8. O administrador visualiza a escala final (grade Carrinho × Dia da
+   semana × Turno, com os nomes aprovados) e pode compartilhá-la/exportá-la.
 
-## 6. Regras de Negócio
+## 7. Regras de Negócio
 
-1. **Limite por combinação**: cada trinca `(carrinho, dia da semana, turno)` no mês pode ter **no máximo 2 pessoas aprovadas**.
+1. **Limite por combinação**: cada trinca `(carrinho, dia da semana, turno)` em uma escala pode ter **no máximo 2 pessoas aprovadas** — vale tanto para solicitações de publicadores quanto para adições manuais do administrador.
 2. **Combinação sem solicitação**: se não houver nenhuma solicitação para uma trinca, ela é **ignorada** — não entra na escala e não aparece como pendência para o administrador decidir.
-3. **Combinação com excesso**: se houver mais de 2 solicitações para a mesma trinca, o administrador **precisa agir**, removendo (rejeitando) o excesso até restarem só 2 aprovadas.
+3. **Combinação com excesso**: se houver mais de 2 solicitações pendentes para a mesma trinca, o administrador **precisa agir**, removendo (rejeitando) o excesso até restarem só 2 aprovadas.
 4. **Combinação dentro do limite** (1 ou 2 solicitações): podem ser aprovadas diretamente, sem conflito.
 5. **Escala mensal**: é composta **apenas pelas solicitações aprovadas**; toda trinca com 0 aprovados simplesmente não aparece na escala.
-6. **Sem limite (por padrão) de quantas trincas um mesmo funcionário pode ter aprovadas** no mês — pode trabalhar em vários carrinhos/dias/turnos, a menos que o administrador decida limitar isso no futuro (ver seção 8).
+6. **Janela de envio automática**: publicadores só enviam solicitações do dia 20 ao último dia do mês corrente, sempre para a escala do mês seguinte. Fora disso, o envio fica fechado para eles.
+7. **Administrador sem restrição de janela**: pode gerenciar (ver, aprovar, rejeitar, adicionar) qualquer escala a qualquer momento, independentemente da janela de envio.
+8. **Sem limite (por padrão) de quantas trincas um mesmo publicador pode ter aprovadas** em uma escala — pode trabalhar em vários carrinhos/dias/turnos, a menos que o administrador decida limitar isso no futuro (ver seção 9).
 
-## 7. Estados de uma Solicitação
+## 8. Estados de uma Solicitação
 
 ```
 PENDENTE ──► APROVADA
     │
     └──────► REJEITADA
+
+(criada pelo Administrador entra direto como APROVADA)
 ```
 
-- **Pendente**: recém-enviada, aguardando decisão do administrador.
-- **Aprovada**: confere vaga na escala mensal (respeitando o limite de 2).
+- **Pendente**: recém-enviada por um publicador, aguardando decisão do administrador.
+- **Aprovada**: confere vaga na escala mensal (respeitando o limite de 2). Toda solicitação criada manualmente pelo administrador já nasce neste estado.
 - **Rejeitada**: não entra na escala (seja por excesso na trinca, seja por outro motivo do administrador).
 
-## 8. Modelo de Dados (entidades sugeridas)
+## 9. Modelo de Dados (entidades sugeridas)
 
-**Funcionario**
+**Publicador**
 - `id`
 - `nome`
 
@@ -95,34 +142,40 @@ PENDENTE ──► APROVADA
 **DiaSemana**
 - Enum fixo: Segunda, Terça, Quarta, Quinta, Sexta, Sábado, Domingo (não precisa de tabela própria).
 
+**Escala**
+- `id`
+- `mes_referencia` (ano + mês, ex: "2026-10")
+- Status de janela (aberta/fechada) **calculado automaticamente** a partir da data atual — não é um campo editável manualmente.
+
 **Solicitacao**
 - `id`
-- `funcionario_id`
-- `mes_referencia` (ano + mês, ex: "2026-10")
+- `publicador_id`
+- `escala_id`
 - `carrinho_id`
 - `dia_semana`
 - `turno_id`
 - `status` (PENDENTE | APROVADA | REJEITADA)
+- `origem` (PUBLICADOR | ADMINISTRADOR) — indica se veio do fluxo normal de envio ou foi criada manualmente pelo administrador
 - `criado_em`
 - `decidido_em`
-- Restrição de unicidade: `(funcionario_id, mes_referencia, carrinho_id, dia_semana, turno_id)`
+- Restrição de unicidade: `(publicador_id, escala_id, carrinho_id, dia_semana, turno_id)`
 
-**EscalaMensal** (pode ser calculada sob demanda, sem precisar de tabela própria)
-- Para cada `(mes_referencia, carrinho_id, dia_semana, turno_id)`: lista das `Solicitacao` com `status = APROVADA` (0, 1 ou 2 registros).
+**EscalaMensal (grade final)** (pode ser calculada sob demanda, sem precisar de tabela própria)
+- Para cada `(escala_id, carrinho_id, dia_semana, turno_id)`: lista das `Solicitacao` com `status = APROVADA` (0, 1 ou 2 registros).
 
-## 9. Pontos em Aberto (para decidirmos antes de implementar)
+## 10. Pontos em Aberto (para decidirmos antes de implementar)
 
-- **Identificação do funcionário**: só pelo nome digitado (sem login/senha) é suficiente, ou é melhor ter cadastro/login para evitar nomes duplicados ou confusão entre duas pessoas com o mesmo nome?
-- **Prazo de envio**: existe uma data limite no mês para enviar solicitações antes do administrador fechar a escala? Ou o admin decide manualmente quando "fechar" o mês?
-- **Critério de desempate** quando há mais de 2 solicitações: ordem de chegada, prioridade manual do administrador, ou outro critério (ex: quem já trabalhou menos naquele mês)?
-- **Cancelamento**: o funcionário pode cancelar/editar uma solicitação enquanto ela está pendente? E depois de aprovada?
-- **Limite de carga por funcionário**: deve haver um número máximo de turnos/combinações que um mesmo funcionário pode ter aprovado no mês?
-- **Notificação**: o funcionário precisa ser avisado (e-mail, notificação na tela) quando sua solicitação for aprovada/rejeitada?
-- **Múltiplos administradores**: haverá mais de um administrador gerenciando o sistema? Precisa de controle de acesso por papel (funcionário vs. administrador)?
+- **Identificação do publicador**: só pelo nome digitado (sem login/senha) é suficiente, ou é melhor ter cadastro/login para evitar nomes duplicados ou confusão entre duas pessoas com o mesmo nome? (Relevante também para a adição manual com nome livre pelo administrador — como evitar criar publicadores duplicados por erro de digitação?)
+- **Critério de desempate** quando há mais de 2 solicitações: ordem de chegada, prioridade manual do administrador, ou outro critério (ex: quem já trabalhou menos naquela escala)?
+- **Cancelamento**: o publicador pode cancelar/editar uma solicitação enquanto ela está pendente e a janela ainda está aberta? E depois de aprovada?
+- **Limite de carga por publicador**: deve haver um número máximo de turnos/combinações que um mesmo publicador pode ter aprovado em uma escala?
+- **Notificação**: o publicador precisa ser avisado (e-mail, notificação na tela) quando sua solicitação for aprovada/rejeitada? Como, se ele só acessa o site na janela de envio?
+- **Múltiplos administradores**: haverá mais de um administrador gerenciando o sistema? Precisa de controle de acesso por papel (publicador vs. administrador)?
+- **Acesso do publicador fora da janela**: confirmado que, nesta primeira versão, ele só vê a mensagem de "fechado" — sem consultar status ou escala aprovada. Isso deve mudar em uma fase futura?
 
-## 10. Roadmap Sugerido
+## 11. Roadmap Sugerido
 
-- **Fase 1 — Solicitação do funcionário**: formulário (nome, mês, carrinho, dia da semana, turno) + listagem das próprias solicitações e status.
-- **Fase 2 — Painel do administrador**: listagem/contagem de solicitações do mês, agrupamento por `(carrinho, dia, turno)`, aprovação/rejeição com aplicação automática do limite de 2.
+- **Fase 1 — Solicitação do publicador**: formulário (nome, carrinho, dia da semana, turno) disponível apenas durante a janela automática (dia 20 ao fim do mês), sempre direcionado à escala do mês seguinte.
+- **Fase 2 — Painel do administrador**: listagem/contagem de solicitações por escala, agrupamento por `(carrinho, dia, turno)`, aprovação/rejeição com aplicação automática do limite de 2, e adição manual de solicitações (com criação de publicador por nome livre) a qualquer escala.
 - **Fase 3 — Escala mensal**: geração e visualização da grade final (Carrinho × Dia da semana × Turno) a partir das solicitações aprovadas.
-- **Fase 4 — Melhorias**: notificações, exportação da escala (PDF/Excel/impressão), histórico de meses anteriores, autenticação/login, regras de prioridade/desempate configuráveis.
+- **Fase 4 — Melhorias**: notificações, exportação da escala (PDF/Excel/impressão), histórico de escalas passadas, autenticação/login, regras de prioridade/desempate configuráveis, consulta de status fora da janela.
