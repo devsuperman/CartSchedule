@@ -1,9 +1,22 @@
 export const PUBLICADOR_TOKEN_STORAGE_KEY = "cartschedule:publicadorToken";
 export const PUBLICADOR_NOME_STORAGE_KEY = "cartschedule:publicadorNome";
+export const ADMIN_TOKEN_SESSION_KEY = "cartschedule:adminToken";
 
 const API_BASE_URL = import.meta.env.VITE_API_URL ?? "";
 
-let adminToken: string | null = null;
+function lerAdminTokenSalvo(): string | null {
+  try {
+    return sessionStorage.getItem(ADMIN_TOKEN_SESSION_KEY);
+  } catch {
+    return null;
+  }
+}
+
+// Inicializado direto do sessionStorage (não de um useEffect) para que o token já
+// esteja disponível na primeira requisição de uma tela protegida, mesmo antes do
+// efeito de sincronização de useAdminAuth rodar (efeitos de componentes filhos
+// disparam antes dos do pai no mount).
+let adminToken: string | null = lerAdminTokenSalvo();
 
 /** Guarda o JWT do administrador em memória (nunca em localStorage). */
 export function setAdminToken(token: string | null): void {

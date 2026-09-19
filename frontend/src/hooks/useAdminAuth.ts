@@ -1,7 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { setAdminToken } from "../api/client";
-
-const ADMIN_TOKEN_SESSION_KEY = "cartschedule:adminToken";
+import { ADMIN_TOKEN_SESSION_KEY, setAdminToken } from "../api/client";
 
 function lerTokenSalvo(): string | null {
   try {
