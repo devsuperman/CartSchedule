@@ -87,13 +87,16 @@ mesma combinação `(escala, carrinho, dia da semana, turno)`.
    - Grupo **vazio** (0 solicitações) → ignorado, nem aparece como pendência.
    - Grupo com **1 ou 2** solicitações → dentro do limite, pode aprovar diretamente.
    - Grupo com **mais de 2** solicitações → sinalizado como **excedente**; o administrador precisa escolher quais 2 aprova e rejeitar as demais.
-5. Para cada grupo excedente, o administrador aprova exatamente 2 e rejeita o restante. **O critério de desempate é de uso exclusivo do administrador** — o sistema não sugere nem impõe nenhum critério (ordem de chegada, prioridade, etc.); a escolha de quem aprovar fica inteiramente a seu critério.
+5. Para cada grupo excedente, o administrador aprova exatamente 2 e rejeita o restante. **O critério de desempate é de uso exclusivo do administrador** — o sistema não sugere nem impõe nenhum critério (ordem de chegada, prioridade, etc.); a escolha de quem aprovar fica inteiramente a seu critério. Para ajudá-lo nessa decisão, o sistema mostra, ao lado de cada publicador do grupo excedente, **quantas solicitações (pendentes + aprovadas) esse publicador já tem na mesma escala** (contando todas as trincas, não só a que está em desempate).
 6. **A qualquer momento**, o administrador também pode **adicionar
    manualmente** uma nova solicitação a qualquer escala:
    - Escolhe carrinho, dia da semana e turno.
    - Informa o nome do publicador — pode escolher um publicador já
      cadastrado **ou digitar um nome novo livremente** (o sistema cria
      o publicador automaticamente se ele ainda não existir).
+   - Vale a mesma **regra de duplicidade** do envio normal (regra 10):
+     o sistema não permite criar uma solicitação manual idêntica a
+     uma que aquele publicador já tenha na mesma escala.
    - A solicitação criada dessa forma **já entra como Aprovada**
      diretamente.
    - **Não há bloqueio do sistema** caso uma trinca fique com mais de
@@ -119,12 +122,13 @@ mesma combinação `(escala, carrinho, dia da semana, turno)`.
 7. **Administrador sem restrição de janela**: pode gerenciar (ver, aprovar, rejeitar, adicionar) qualquer escala a qualquer momento, independentemente da janela de envio. A partir do dia 25, esse é o período esperado para os ajustes finais antes do mês seguinte começar.
 8. **Sem limite** de quantas trincas um mesmo publicador pode ter aprovadas em uma escala — pode trabalhar em vários carrinhos/dias/turnos livremente.
 9. **Identificação do publicador**: não há cadastro com login e senha — o nome é informado livremente, tanto no envio do publicador quanto na adição manual pelo administrador.
-10. **Bloqueio de duplicidade (único bloqueio automático do sistema)**: um publicador não pode ter duas solicitações para a mesma combinação `(escala, carrinho, dia da semana, turno)`. Ao tentar enviar uma solicitação idêntica a uma já existente sua, o sistema recusa o novo envio. Este é o único bloqueio automático de todo o sistema — o limite de 2 por trinca (regras 1 e 3) **não** é bloqueado, apenas sinalizado.
+10. **Bloqueio de duplicidade (único bloqueio automático do sistema)**: um publicador não pode ter duas solicitações para a mesma combinação `(escala, carrinho, dia da semana, turno)`. Ao tentar enviar uma solicitação idêntica a uma já existente sua, o sistema recusa o novo envio. Vale tanto para o envio normal do publicador quanto para uma adição manual feita pelo administrador em nome dele. Este é o único bloqueio automático de todo o sistema — o limite de 2 por trinca (regras 1 e 3) **não** é bloqueado, apenas sinalizado.
 11. **Histórico de solicitações**: o publicador deve conseguir consultar as solicitações que ele mesmo enviou (e o status de cada uma — pendente/aprovada/rejeitada/cancelada), sem precisar de cadastro formal. Essa consulta fica **sempre disponível**, mesmo fora da janela de envio (dia 26 ao dia 14). A forma de identificá-lo para isso será definida na fase de implementação.
-12. **Cancelamento pelo publicador**: através da tela de histórico, o publicador pode cancelar qualquer solicitação sua, esteja ela Pendente ou já Aprovada, a qualquer momento (mesmo fora da janela de envio). Uma solicitação Aprovada que é cancelada libera a vaga que ocupava na trinca `(carrinho, dia da semana, turno)`.
-13. **Critério de desempate exclusivo do administrador**: quando há mais de 2 solicitações para a mesma trinca, a escolha de quais aprovar é inteiramente do administrador — o sistema não sugere nem aplica nenhum critério.
+12. **Cancelamento pelo publicador**: através da tela de histórico, o publicador pode cancelar qualquer solicitação sua, esteja ela Pendente ou já Aprovada, **a qualquer momento e sem restrição de prazo** — inclusive depois que o mês da escala já começou ou já terminou. Uma solicitação Aprovada que é cancelada libera a vaga que ocupava na trinca `(carrinho, dia da semana, turno)`.
+13. **Critério de desempate exclusivo do administrador**: quando há mais de 2 solicitações para a mesma trinca, a escolha de quais aprovar é inteiramente do administrador — o sistema não sugere nem aplica nenhum critério. Como apoio (não como critério imposto), o sistema mostra quantas solicitações (pendentes + aprovadas) cada publicador envolvido já tem na mesma escala (regra 16).
 14. **Sem notificações**: o sistema não envia avisos (e-mail, push, etc.) ao publicador sobre o status de suas solicitações; ele consulta o histórico quando quiser.
 15. **Um único administrador**: não há necessidade de múltiplos administradores nem de controle de acesso por diferentes papéis administrativos.
+16. **Contagem de apoio ao desempate**: para cada publicador presente num grupo excedente (mais de 2 solicitações na mesma trinca), o sistema exibe o total de solicitações (pendentes + aprovadas, somando todas as trincas) que ele já tem naquela mesma escala — para ajudar o administrador a decidir, sem determinar a decisão.
 
 ## 8. Estados de uma Solicitação
 
