@@ -33,28 +33,35 @@ semana, por turno**.
 
 ## 4. Janela de Envio (automática)
 
-- **Abertura**: todo dia **20** do mês, o sistema abre automaticamente o
+- **Abertura**: todo dia **15** do mês, o sistema abre automaticamente o
   envio de solicitações para a escala do **mês seguinte**.
-  - Ex: dia 20 de setembro → abre a escala de Outubro.
-- **Fechamento**: a janela fecha no **início do dia 01** do mês seguinte
-  — ou seja, o último dia válido para envio é o **último dia do mês
-  corrente** (ex: se abriu em 20/09, o último dia para enviar é 30/09;
-  no dia 01/10 a janela já está fechada).
-- **Fora da janela** (do dia 02 ao dia 19): o Publicador que acessar o
-  site vê apenas uma **mensagem informando que o envio está fechado**
-  (ex: "Envio fechado. Abre novamente no dia 20."), sem acesso a
-  status de solicitações ou histórico nessa fase inicial do projeto.
+  - Ex: dia 15 de setembro → abre a escala de Outubro.
+- **Fechamento**: a janela fecha ao final do dia **25** do mesmo mês
+  (ex: se abriu em 15/09, o último dia para enviar é 25/09).
+- **A partir do dia 25**, começa o período em que o **administrador
+  realiza os ajustes** (aprovando, rejeitando e adicionando
+  solicitações manualmente) e finaliza a escala mensal antes do mês
+  seguinte começar.
+- **Fora da janela** (do dia 26 ao dia 14 do mês seguinte): o
+  Publicador que acessar o site vê apenas uma **mensagem informando
+  que o envio está fechado** (ex: "Envio fechado. Abre novamente no
+  dia 15."), sem acesso a status de solicitações ou histórico nessa
+  fase inicial do projeto.
 - **Apenas uma escala fica aberta por vez** para novos envios de
-  Publicadores — sempre a do mês seguinte ao mês corrente, a partir do
-  dia 20.
+  Publicadores — sempre a do mês seguinte ao mês corrente, do dia 15
+  ao dia 25.
 - O Administrador **não é limitado pela janela**: pode ver, aprovar,
   rejeitar e adicionar solicitações em qualquer escala (passada, atual
   em aberto, ou futura) a qualquer momento.
 
 ## 5. Fluxo do Publicador
 
-1. Acessa o site durante a janela de envio (dias 20 até o fim do mês).
-2. Informa seu **nome** (identificação simples; ver seção 9 sobre autenticação).
+1. Acessa o site durante a janela de envio (dias 15 a 25 do mês).
+2. Informa seu **nome**. Não há login/senha nem verificação de
+   duplicidade: como cada publicador acessa pelo próprio celular, o
+   nome digitado é **salvo localmente no navegador/dispositivo**
+   (frontend) e pré-preenchido automaticamente nas próximas vezes que
+   ele acessar o site.
 3. Seleciona o **carrinho** que deseja usar.
 4. Seleciona o **dia da semana** em que quer trabalhar.
 5. Seleciona o **turno** desejado.
@@ -87,10 +94,12 @@ mesma combinação `(escala, carrinho, dia da semana, turno)`.
      cadastrado **ou digitar um nome novo livremente** (o sistema cria
      o publicador automaticamente se ele ainda não existir).
    - A solicitação criada dessa forma **já entra como Aprovada**
-     diretamente, ocupando uma das 2 vagas daquela trinca.
-   - Se a trinca já tiver 2 aprovados, o sistema **bloqueia** a adição
-     manual até o administrador remover/rejeitar uma das existentes
-     (o limite de 2 vale também para adições manuais).
+     diretamente.
+   - **Não há bloqueio do sistema** caso uma trinca fique com mais de
+     2 aprovados (seja por adição manual, seja por aprovações
+     normais) — a tela apenas **sinaliza visualmente** o excesso, e
+     cabe ao administrador decidir quando e como ajustar (rejeitando
+     ou removendo alguma solicitação daquela trinca).
 7. Ao concluir as decisões da escala, o sistema mantém a **escala
    mensal sempre atualizada automaticamente** a partir de todas as
    solicitações aprovadas (sejam vindas de publicadores ou adicionadas
@@ -100,14 +109,15 @@ mesma combinação `(escala, carrinho, dia da semana, turno)`.
 
 ## 7. Regras de Negócio
 
-1. **Limite por combinação**: cada trinca `(carrinho, dia da semana, turno)` em uma escala pode ter **no máximo 2 pessoas aprovadas** — vale tanto para solicitações de publicadores quanto para adições manuais do administrador.
+1. **Limite alvo por combinação**: cada trinca `(carrinho, dia da semana, turno)` em uma escala deve ter **no máximo 2 pessoas aprovadas** — vale tanto para solicitações de publicadores quanto para adições manuais do administrador. Esse limite **não é imposto automaticamente pelo sistema**; é uma meta que o administrador persegue manualmente ao revisar a escala (o sistema apenas sinaliza visualmente quando uma trinca está com excesso).
 2. **Combinação sem solicitação**: se não houver nenhuma solicitação para uma trinca, ela é **ignorada** — não entra na escala e não aparece como pendência para o administrador decidir.
-3. **Combinação com excesso**: se houver mais de 2 solicitações pendentes para a mesma trinca, o administrador **precisa agir**, removendo (rejeitando) o excesso até restarem só 2 aprovadas.
+3. **Combinação com excesso**: se houver mais de 2 solicitações para a mesma trinca, o sistema **sinaliza** o excesso na tela do administrador, mas **não bloqueia** nada — o administrador decide quando e como reduzir para 2 (rejeitando/removendo o excedente).
 4. **Combinação dentro do limite** (1 ou 2 solicitações): podem ser aprovadas diretamente, sem conflito.
 5. **Escala mensal**: é composta **apenas pelas solicitações aprovadas**; toda trinca com 0 aprovados simplesmente não aparece na escala.
-6. **Janela de envio automática**: publicadores só enviam solicitações do dia 20 ao último dia do mês corrente, sempre para a escala do mês seguinte. Fora disso, o envio fica fechado para eles.
-7. **Administrador sem restrição de janela**: pode gerenciar (ver, aprovar, rejeitar, adicionar) qualquer escala a qualquer momento, independentemente da janela de envio.
+6. **Janela de envio automática**: publicadores só enviam solicitações do dia 15 ao dia 25 do mês corrente, sempre para a escala do mês seguinte. Fora disso, o envio fica fechado para eles.
+7. **Administrador sem restrição de janela**: pode gerenciar (ver, aprovar, rejeitar, adicionar) qualquer escala a qualquer momento, independentemente da janela de envio. A partir do dia 25, esse é o período esperado para os ajustes finais antes do mês seguinte começar.
 8. **Sem limite (por padrão) de quantas trincas um mesmo publicador pode ter aprovadas** em uma escala — pode trabalhar em vários carrinhos/dias/turnos, a menos que o administrador decida limitar isso no futuro (ver seção 9).
+9. **Identificação do publicador**: não há login, senha nem verificação de duplicidade de nomes no backend — o nome é apenas um texto livre, tanto no envio do publicador quanto na adição manual pelo administrador. A conveniência de não redigitar o nome fica a cargo do frontend (nome salvo localmente no dispositivo do publicador).
 
 ## 8. Estados de uma Solicitação
 
@@ -165,8 +175,7 @@ PENDENTE ──► APROVADA
 
 ## 10. Pontos em Aberto (para decidirmos antes de implementar)
 
-- **Identificação do publicador**: só pelo nome digitado (sem login/senha) é suficiente, ou é melhor ter cadastro/login para evitar nomes duplicados ou confusão entre duas pessoas com o mesmo nome? (Relevante também para a adição manual com nome livre pelo administrador — como evitar criar publicadores duplicados por erro de digitação?)
-- **Critério de desempate** quando há mais de 2 solicitações: ordem de chegada, prioridade manual do administrador, ou outro critério (ex: quem já trabalhou menos naquela escala)?
+- **Critério de desempate** quando há mais de 2 solicitações: já que o sistema não bloqueia nem decide automaticamente, o administrador escolhe livremente — vale documentar algum critério sugerido na tela (ex: ordem de chegada) para ajudá-lo, ou fica 100% a critério dele, sem qualquer sugestão?
 - **Cancelamento**: o publicador pode cancelar/editar uma solicitação enquanto ela está pendente e a janela ainda está aberta? E depois de aprovada?
 - **Limite de carga por publicador**: deve haver um número máximo de turnos/combinações que um mesmo publicador pode ter aprovado em uma escala?
 - **Notificação**: o publicador precisa ser avisado (e-mail, notificação na tela) quando sua solicitação for aprovada/rejeitada? Como, se ele só acessa o site na janela de envio?
@@ -175,7 +184,7 @@ PENDENTE ──► APROVADA
 
 ## 11. Roadmap Sugerido
 
-- **Fase 1 — Solicitação do publicador**: formulário (nome, carrinho, dia da semana, turno) disponível apenas durante a janela automática (dia 20 ao fim do mês), sempre direcionado à escala do mês seguinte.
-- **Fase 2 — Painel do administrador**: listagem/contagem de solicitações por escala, agrupamento por `(carrinho, dia, turno)`, aprovação/rejeição com aplicação automática do limite de 2, e adição manual de solicitações (com criação de publicador por nome livre) a qualquer escala.
+- **Fase 1 — Solicitação do publicador**: formulário (nome, carrinho, dia da semana, turno) disponível apenas durante a janela automática (dia 15 ao dia 25 do mês), sempre direcionado à escala do mês seguinte; nome pré-preenchido a partir do armazenamento local do dispositivo.
+- **Fase 2 — Painel do administrador**: listagem/contagem de solicitações por escala, agrupamento por `(carrinho, dia, turno)` com sinalização visual de excesso (mais de 2), aprovação/rejeição livre (sem bloqueio automático), e adição manual de solicitações (com criação de publicador por nome livre) a qualquer escala.
 - **Fase 3 — Escala mensal**: geração e visualização da grade final (Carrinho × Dia da semana × Turno) a partir das solicitações aprovadas.
 - **Fase 4 — Melhorias**: notificações, exportação da escala (PDF/Excel/impressão), histórico de escalas passadas, autenticação/login, regras de prioridade/desempate configuráveis, consulta de status fora da janela.
