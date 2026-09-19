@@ -138,18 +138,20 @@ mesma combinação `(escala, carrinho, dia da semana, turno)`.
 15. **Um único administrador**: não há necessidade de múltiplos administradores nem de controle de acesso por diferentes papéis administrativos.
 16. **Contagem de apoio ao desempate**: para cada publicador presente num grupo excedente (mais de 2 solicitações na mesma trinca), o sistema exibe o total de solicitações (pendentes + aprovadas, somando todas as trincas) que ele já tem naquela mesma escala — para ajudar o administrador a decidir, sem determinar a decisão.
 17. **Turnos por carrinho**: cada carrinho tem seu próprio conjunto de turnos disponíveis, definido pelo administrador, como um subconjunto da lista única de turnos do sistema (os horários de cada turno são os mesmos em qualquer carrinho que o utilize). Um carrinho pode ter turnos diferentes de outro. O publicador só pode escolher, para um carrinho, um dos turnos configurados para ele; a adição manual pelo administrador segue a mesma restrição.
+18. **Remoção de turno de um carrinho / desativação de um carrinho**: quando o administrador remove um turno da configuração de um carrinho, ou desativa um carrinho, isso afeta apenas **novos** envios a partir dali (aquele turno/carrinho deixa de ser oferecido). As solicitações que já existiam com essa combinação (pendentes, aprovadas, rejeitadas ou canceladas) **não são alteradas nem removidas** — continuam aparecendo normalmente no histórico do publicador e na escala.
 
 ## 8. Estados de uma Solicitação
 
 ```
-PENDENTE ──► APROVADA
-    │            │
-    ├──► REJEITADA
-    │            │
-    └──────────────► CANCELADA
+PENDENTE ──(admin aprova)──► APROVADA
+    │
+    ├──(admin rejeita)──► REJEITADA
+    │
+    └──(publicador cancela)──► CANCELADA
+
+APROVADA ──(publicador cancela)──► CANCELADA
 
 (criada pelo Administrador entra direto como APROVADA)
-(CANCELADA só é alcançada por ação do próprio publicador, a partir de Pendente ou Aprovada)
 ```
 
 - **Pendente**: recém-enviada por um publicador, aguardando decisão do administrador.
@@ -183,7 +185,7 @@ PENDENTE ──► APROVADA
 
 **Escala**
 - `id`
-- `mes_referencia` (ano + mês, ex: "2026-10")
+- `mes_referencia` (ano + mês, ex: Outubro/2026 — formato de armazenamento exato é decisão técnica, ver `TECHNICAL_SPEC.md`)
 - Status de janela (aberta/fechada) **calculado automaticamente** a partir da data atual — não é um campo editável manualmente.
 
 **Solicitacao**

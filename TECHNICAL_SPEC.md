@@ -109,7 +109,9 @@ bloqueio de duplicidade e histórico):
 - Esse token é enviado em todo request do publicador (ex: header `X-Publicador-Token`).
 - No backend, a entidade `Publicador` é identificada por esse token (chave técnica), com o `nome` como um campo editável associado a ele.
 - O bloqueio de duplicidade (regra 10) e o histórico (regra 11) usam esse `publicadorToken` para saber quais solicitações são "do mesmo publicador".
-- Ao usar a adição manual (administrador digita um nome livre), o backend cria um `Publicador` novo com um token gerado no servidor (o administrador não trabalha com token, só com nome).
+- Ao usar a adição manual, o administrador escolhe entre os nomes de publicadores já vistos pelo sistema (autocomplete) ou digita um nome novo:
+  - Se o nome digitado **coincidir exatamente** com um `Publicador` já existente, a solicitação é associada a esse mesmo registro — inclusive aparecerá no histórico daquele publicador quando ele acessar pelo próprio celular.
+  - Caso contrário (nome novo, ou grafia diferente de um nome existente), o backend cria um `Publicador` novo com um token gerado no servidor. Isso é uma consequência aceita da regra de negócio 9 (sem verificação/bloqueio de nomes duplicados) — pequenas diferenças de grafia podem gerar registros distintos para a mesma pessoa; a escala final não é afetada, pois é montada pelos nomes aprovados, não pelo token.
 
 ### 2.4 Janela de Envio e Escala — cálculo automático
 
@@ -131,8 +133,25 @@ A entidade `Escala` (mês de referência) é criada **sob demanda** (lazy) na pr
 
 ### 2.6 Validação
 
-- **FluentValidation** para validar os `Request` de cada slice (ex: nome obrigatório, carrinho/turno/dia válidos, turno pertence ao carrinho escolhido).
+- **FluentValidation** para validar os `Request` de cada slice (ex: nome obrigatório, carrinho/turno/dia válidos, turno pertence ao carrinho escolhido no momento do envio).
 - Erros de validação retornam `400` com detalhes (`ProblemDetails`).
+
+### 2.7 Remoção de turno de um carrinho / desativação de carrinho
+
+Conforme regra de negócio 18 (`PLANNING.md`): remover um turno de um
+`CarrinhoTurno` ou marcar `Carrinho.ativo = false` **não** altera nem
+remove `Solicitacao` já existentes — essas linhas continuam no banco
+normalmente, e o histórico/escala continuam exibindo-as. A validação
+de "turno pertence ao carrinho" (2.6) só se aplica à **criação** de
+novas solicitações, não é reavaliada retroativamente sobre as
+existentes.
+
+### 2.8 CORS
+
+A API habilita CORS para a origem do frontend (`VITE_API_URL`/URL do
+container `web`), permitindo os métodos e headers usados pelo cliente
+(incluindo o header customizado `X-Publicador-Token` e
+`Authorization` para o admin).
 
 ## 3. Frontend — React
 
@@ -219,11 +238,17 @@ services:
       - db-data:/var/lib/postgresql/data
     ports:
       - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U cartschedule"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
   api:
     build: ./backend
     depends_on:
-      - db
+      db:
+        condition: service_healthy
     environment:
       ConnectionStrings__Default: "Host=db;Database=cartschedule;Username=cartschedule;Password=${POSTGRES_PASSWORD}"
       Admin__Usuario: ${ADMIN_USUARIO}
