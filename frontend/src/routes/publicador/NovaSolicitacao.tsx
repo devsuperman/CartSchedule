@@ -1,9 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 import { apiFetch, ApiError } from "../../api/client";
 import { usePublicadorToken } from "../../hooks/usePublicadorToken";
 import { useJanela } from "../../hooks/useJanela";
 import { TURNOS } from "../../constants/turnos";
 import { DIAS_SEMANA, type DiaSemana } from "../../constants/diasSemana";
+import { formatarDia, formatarMes, formatarTurno } from "../../utils/formatacao";
 
 /** Contrato de GET /api/carrinhos (TECHNICAL_SPEC.md, tarefa F1-BE-02). */
 interface Carrinho {
@@ -36,15 +38,6 @@ interface ResultadoEnvio {
   mensagem: string;
 }
 
-function formatarTurno(turnoId: number): string {
-  const turno = TURNOS.find((t) => t.id === turnoId);
-  return turno ? `${turno.horaInicio}–${turno.horaFim}` : `Turno ${turnoId}`;
-}
-
-function formatarDia(diaSemana: DiaSemana): string {
-  return DIAS_SEMANA.find((d) => d.valor === diaSemana)?.label ?? String(diaSemana);
-}
-
 export default function NovaSolicitacao() {
   const { nome, setNome } = usePublicadorToken();
   const { janela } = useJanela();
@@ -54,8 +47,6 @@ export default function NovaSolicitacao() {
   const [erroCarrinhos, setErroCarrinhos] = useState<string | null>(null);
 
   const [carrinhoId, setCarrinhoId] = useState<number | null>(null);
-  const [diaSemana, setDiaSemana] = useState<DiaSemana>(DIAS_SEMANA[0].valor);
-  const [turnoId, setTurnoId] = useState<number | null>(null);
 
   const [pendentes, setPendentes] = useState<ItemPendente[]>([]);
   const [enviando, setEnviando] = useState(false);
@@ -103,39 +94,22 @@ export default function NovaSolicitacao() {
     return TURNOS.filter((t) => carrinhoSelecionado.turnoIds.includes(t.id));
   }, [carrinhoSelecionado]);
 
-  // Sempre que o carrinho mudar, o turno selecionado é revalidado contra o
-  // novo conjunto de turnos disponíveis (o turno é restrito ao carrinho).
-  useEffect(() => {
-    if (turnosDisponiveis.length === 0) {
-      setTurnoId(null);
-      return;
-    }
-    if (!turnosDisponiveis.some((t) => t.id === turnoId)) {
-      setTurnoId(turnosDisponiveis[0].id);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [turnosDisponiveis]);
+  function chaveDe(carrinho: number, dia: DiaSemana, turno: number) {
+    return `${carrinho}-${dia}-${turno}`;
+  }
 
-  function handleAdicionar() {
-    if (carrinhoId == null || turnoId == null) return;
+  function handleAlternarCelula(dia: DiaSemana, turno: number) {
+    if (carrinhoId == null) return;
 
-    const jaExiste = pendentes.some(
-      (item) =>
-        item.carrinhoId === carrinhoId && item.diaSemana === diaSemana && item.turnoId === turnoId,
-    );
-    if (jaExiste) return;
-
-    setPendentes((atual) => [
-      ...atual,
-      {
-        chaveLocal: `${carrinhoId}-${diaSemana}-${turnoId}-${Date.now()}`,
-        carrinhoId,
-        diaSemana,
-        turnoId,
-      },
-    ]);
+    const chave = chaveDe(carrinhoId, dia, turno);
     setResultados(null);
     setConfirmacao(null);
+    setPendentes((atual) => {
+      if (atual.some((item) => item.chaveLocal === chave)) {
+        return atual.filter((item) => item.chaveLocal !== chave);
+      }
+      return [...atual, { chaveLocal: chave, carrinhoId, diaSemana: dia, turnoId: turno }];
+    });
   }
 
   function handleRemover(chaveLocal: string) {
@@ -167,9 +141,7 @@ export default function NovaSolicitacao() {
 
     const resultadosDetalhados: ResultadoEnvio[] = respostas.map((resultado, indice) => {
       const item = itensParaEnviar[indice];
-      const descricaoItem = `${
-        carrinhos.find((c) => c.id === item.carrinhoId)?.nome ?? item.carrinhoId
-      } · ${formatarDia(item.diaSemana)} · ${formatarTurno(item.turnoId)}`;
+      const descricaoItem = `${nomeCarrinho(item.carrinhoId)}, ${formatarDia(item.diaSemana)}, ${formatarTurno(item.turnoId)}`;
 
       if (resultado.status === "fulfilled") {
         return {
@@ -212,117 +184,184 @@ export default function NovaSolicitacao() {
     setEnviando(false);
   }
 
-  return (
-    <section>
-      <h1>Nova solicitação</h1>
-      {janela?.mesAlvo && <p>Escala de referência: {janela.mesAlvo}</p>}
+  const nomeVazio = nome.trim() === "";
+  const nomeCarrinho = (id: number) => carrinhos.find((c) => c.id === id)?.nome ?? String(id);
+  const pendentesDoCarrinho = (dia: DiaSemana, turno: number) =>
+    carrinhoId != null && pendentes.some((i) => i.chaveLocal === chaveDe(carrinhoId, dia, turno));
+  const totalEmOutrosCarrinhos = pendentes.filter((i) => i.carrinhoId !== carrinhoId).length;
 
-      <div className="form-row">
-        <label>
-          Nome
+  return (
+    <section className="pilha">
+      <div className="pagina-titulo">
+        <h1>Nova solicitação</h1>
+        {janela?.mesAlvo && (
+          <p className="subtitulo">
+            Escala de {formatarMes(janela.mesAlvo)}. Cada dia escolhido vale para todas as
+            semanas do mês.
+          </p>
+        )}
+      </div>
+
+      <div className="painel pilha">
+        <label className="campo">
+          Seu nome
           <input
             value={nome}
             onChange={(e) => setNome(e.target.value)}
-            placeholder="Seu nome"
+            autoComplete="name"
             required
           />
+          <span className="campo__ajuda">Fica salvo neste aparelho para as próximas vezes.</span>
         </label>
       </div>
 
-      {carregandoCarrinhos && <p>Carregando carrinhos...</p>}
+      {carregandoCarrinhos && <p className="carregando">Carregando carrinhos…</p>}
       {erroCarrinhos && (
-        <p role="alert" className="historico__erro">
+        <p role="alert" className="aviso aviso--erro">
           {erroCarrinhos}
         </p>
       )}
 
       {!carregandoCarrinhos && !erroCarrinhos && carrinhos.length === 0 && (
-        <p>Nenhum carrinho disponível no momento.</p>
-      )}
-
-      {!carregandoCarrinhos && carrinhos.length > 0 && (
-        <div className="form-row">
-          <label>
-            Carrinho
-            <select value={carrinhoId ?? ""} onChange={(e) => setCarrinhoId(Number(e.target.value))}>
-              {carrinhos.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.nome}
-                </option>
-              ))}
-            </select>
-          </label>
-
-          <label>
-            Dia da semana
-            <select
-              value={diaSemana}
-              onChange={(e) => setDiaSemana(Number(e.target.value) as DiaSemana)}
-            >
-              {DIAS_SEMANA.map((d) => (
-                <option key={d.valor} value={d.valor}>
-                  {d.label}
-                </option>
-              ))}
-            </select>
-          </label>
-
-          <label>
-            Turno
-            <select
-              value={turnoId ?? ""}
-              onChange={(e) => setTurnoId(Number(e.target.value))}
-              disabled={turnosDisponiveis.length === 0}
-            >
-              {turnosDisponiveis.length === 0 && <option value="">Sem turnos disponíveis</option>}
-              {turnosDisponiveis.map((t) => (
-                <option key={t.id} value={t.id}>
-                  {t.horaInicio}–{t.horaFim}
-                </option>
-              ))}
-            </select>
-          </label>
-
-          <button
-            type="button"
-            onClick={handleAdicionar}
-            disabled={carrinhoId == null || turnoId == null}
-          >
-            Adicionar
-          </button>
+        <div className="estado-vazio painel">
+          <strong>Nenhum carrinho disponível</strong>
+          Volte mais tarde, quando o administrador cadastrar os carrinhos.
         </div>
       )}
 
+      {!carregandoCarrinhos && carrinhos.length > 0 && (
+        <div className="painel pilha">
+          <fieldset className="pilha">
+            <legend>Carrinho</legend>
+            <div className="seletor-carrinhos">
+              {carrinhos.map((c) => (
+                <button
+                  key={c.id}
+                  type="button"
+                  aria-pressed={c.id === carrinhoId}
+                  onClick={() => setCarrinhoId(c.id)}
+                >
+                  {c.nome}
+                </button>
+              ))}
+            </div>
+          </fieldset>
+
+          {turnosDisponiveis.length === 0 ? (
+            <p className="aviso aviso--info">Este carrinho não tem turnos disponíveis.</p>
+          ) : (
+            <>
+              <p className="campo__ajuda">
+                Toque nos horários em que você quer trabalhar em {carrinhoSelecionado?.nome}.
+              </p>
+              <div className="grade-wrap">
+                <table className="grade">
+                  <thead>
+                    <tr>
+                      <th scope="col">
+                        <span className="sr-only">Turno</span>
+                      </th>
+                      {DIAS_SEMANA.map((d) => (
+                        <th key={d.valor} scope="col" abbr={d.label}>
+                          {d.curto}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {TURNOS.map((turno) => {
+                      const disponivel = turnosDisponiveis.some((t) => t.id === turno.id);
+                      return (
+                        <tr key={turno.id}>
+                          <th scope="row">
+                            {turno.horaInicio}–{turno.horaFim}
+                          </th>
+                          {DIAS_SEMANA.map((d) => {
+                            const marcado = pendentesDoCarrinho(d.valor, turno.id);
+                            return (
+                              <td key={d.valor}>
+                                <button
+                                  type="button"
+                                  aria-pressed={marcado}
+                                  aria-label={`${d.label}, ${formatarTurno(turno.id)}`}
+                                  disabled={!disponivel}
+                                  onClick={() => handleAlternarCelula(d.valor, turno.id)}
+                                >
+                                  {marcado ? "✓" : ""}
+                                </button>
+                              </td>
+                            );
+                          })}
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+              {totalEmOutrosCarrinhos > 0 && (
+                <p className="grade__outro">
+                  Você também escolheu {totalEmOutrosCarrinhos} horário(s) em outros carrinhos.
+                </p>
+              )}
+            </>
+          )}
+        </div>
+      )}
+
+      {confirmacao && (
+        <p role="status" className="aviso aviso--sucesso">
+          {confirmacao} Acompanhe em <Link to="/historico">Meu histórico</Link>.
+        </p>
+      )}
+
+      {resultados && (
+        <ul className="pilha" style={{ listStyle: "none", padding: 0, margin: 0 }}>
+          {resultados.map((r) => (
+            <li
+              key={r.chaveLocal}
+              role={r.sucesso ? "status" : "alert"}
+              className={`aviso ${r.sucesso ? "aviso--sucesso" : "aviso--erro"}`}
+            >
+              {r.mensagem}
+            </li>
+          ))}
+        </ul>
+      )}
+
       {pendentes.length > 0 && (
-        <div>
-          <h2>Solicitações a enviar</h2>
-          <ul>
+        <div className="pedido" aria-label="Resumo do pedido">
+          <h2>
+            {pendentes.length === 1 ? "1 horário escolhido" : `${pendentes.length} horários escolhidos`}
+          </h2>
+          <ul className="pedido__lista">
             {pendentes.map((item) => (
               <li key={item.chaveLocal}>
-                {carrinhos.find((c) => c.id === item.carrinhoId)?.nome ?? item.carrinhoId} ·{" "}
-                {formatarDia(item.diaSemana)} · {formatarTurno(item.turnoId)}{" "}
-                <button type="button" onClick={() => handleRemover(item.chaveLocal)}>
+                <span>
+                  <strong>{nomeCarrinho(item.carrinhoId)}</strong>, {formatarDia(item.diaSemana)},{" "}
+                  {formatarTurno(item.turnoId)}
+                </span>
+                <button
+                  type="button"
+                  className="btn--pequeno"
+                  onClick={() => handleRemover(item.chaveLocal)}
+                >
                   Remover
                 </button>
               </li>
             ))}
           </ul>
-          <button type="button" onClick={() => void handleEnviar()} disabled={enviando}>
-            {enviando ? "Enviando..." : "Enviar solicitações"}
-          </button>
+          <div className="pedido__acoes">
+            <button
+              type="button"
+              className="btn--primario"
+              onClick={() => void handleEnviar()}
+              disabled={enviando || nomeVazio}
+            >
+              {enviando ? "Enviando…" : "Enviar solicitações"}
+            </button>
+            {nomeVazio && <span className="campo__ajuda">Digite seu nome para enviar.</span>}
+          </div>
         </div>
-      )}
-
-      {confirmacao && <p role="status">{confirmacao}</p>}
-
-      {resultados && (
-        <ul>
-          {resultados.map((r) => (
-            <li key={r.chaveLocal} role={r.sucesso ? "status" : "alert"}>
-              {r.mensagem}
-            </li>
-          ))}
-        </ul>
       )}
     </section>
   );

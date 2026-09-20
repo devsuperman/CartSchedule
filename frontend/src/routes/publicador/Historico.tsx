@@ -1,7 +1,14 @@
 import { useEffect, useState } from "react";
 import { apiFetch, ApiError } from "../../api/client";
-import { DIAS_SEMANA } from "../../constants/diasSemana";
-import { TURNOS } from "../../constants/turnos";
+import { Link } from "react-router-dom";
+import {
+  formatarDia,
+  formatarMes,
+  formatarTurno,
+  STATUS,
+  STATUS_CLASSES,
+  STATUS_LABELS,
+} from "../../utils/formatacao";
 
 /** Contrato de GET /api/solicitacoes (uma solicitação do publicador autenticado via token). */
 interface Solicitacao {
@@ -16,25 +23,9 @@ interface Solicitacao {
   criadoEm: string;
 }
 
-const STATUS_PENDENTE = 1;
-const STATUS_APROVADA = 2;
-const STATUS_REJEITADA = 3;
-const STATUS_CANCELADA = 4;
-
-const STATUS_LABELS: Record<number, string> = {
-  [STATUS_PENDENTE]: "Pendente",
-  [STATUS_APROVADA]: "Aprovada",
-  [STATUS_REJEITADA]: "Rejeitada",
-  [STATUS_CANCELADA]: "Cancelada",
-};
-
-function formatarMesReferencia(iso: string): string {
-  const data = new Date(`${iso}T00:00:00`);
-  if (Number.isNaN(data.getTime())) {
-    return iso;
-  }
-  return data.toLocaleDateString("pt-BR", { month: "long", year: "numeric" });
-}
+const STATUS_PENDENTE = STATUS.Pendente;
+const STATUS_APROVADA = STATUS.Aprovada;
+const STATUS_CANCELADA = STATUS.Cancelada;
 
 function formatarDataHora(iso: string): string {
   const data = new Date(iso);
@@ -42,15 +33,6 @@ function formatarDataHora(iso: string): string {
     return iso;
   }
   return data.toLocaleString("pt-BR");
-}
-
-function labelDiaSemana(diaSemana: number): string {
-  return DIAS_SEMANA.find((d) => d.valor === diaSemana)?.label ?? `Dia ${diaSemana}`;
-}
-
-function labelTurno(turnoId: number): string {
-  const turno = TURNOS.find((t) => t.id === turnoId);
-  return turno ? `${turno.horaInicio}–${turno.horaFim}` : `Turno ${turnoId}`;
 }
 
 export default function Historico() {
@@ -122,73 +104,77 @@ export default function Historico() {
     }
   }
 
-  return (
-    <section>
-      <h1>Meu histórico de solicitações</h1>
+  const porMes = new Map<string, Solicitacao[]>();
+  for (const solicitacao of solicitacoes ?? []) {
+    const lista = porMes.get(solicitacao.escalaMesReferencia) ?? [];
+    lista.push(solicitacao);
+    porMes.set(solicitacao.escalaMesReferencia, lista);
+  }
 
-      {carregando && <p>Carregando histórico...</p>}
+  return (
+    <section className="pilha">
+      <div className="pagina-titulo">
+        <h1>Meu histórico</h1>
+        <p className="subtitulo">Você pode cancelar um pedido pendente ou aprovado a qualquer momento.</p>
+      </div>
+
+      {carregando && <p className="carregando">Carregando histórico…</p>}
 
       {!carregando && erroCarregamento && (
-        <p role="alert" className="historico__erro">
+        <p role="alert" className="aviso aviso--erro">
           {erroCarregamento}
         </p>
       )}
 
       {!carregando && !erroCarregamento && solicitacoes && solicitacoes.length === 0 && (
-        <p>Nenhuma solicitação enviada ainda.</p>
+        <div className="estado-vazio painel">
+          <strong>Você ainda não fez nenhum pedido</strong>
+          <Link to="/">Escolher horários</Link>
+        </div>
       )}
 
-      {!carregando && !erroCarregamento && solicitacoes && solicitacoes.length > 0 && (
-        <table className="historico__tabela">
-          <thead>
-            <tr>
-              <th>Mês</th>
-              <th>Carrinho</th>
-              <th>Dia</th>
-              <th>Turno</th>
-              <th>Status</th>
-              <th>Enviado em</th>
-              <th aria-label="Ações"></th>
-            </tr>
-          </thead>
-          <tbody>
-            {solicitacoes.map((solicitacao) => {
+      {[...porMes.entries()].map(([mes, lista]) => (
+        <div key={mes} className="pilha">
+          <h2 className="mes-titulo">{formatarMes(mes)}</h2>
+          <ul className="lista-cartoes">
+            {lista.map((solicitacao) => {
               const podeCancelar =
                 solicitacao.status === STATUS_PENDENTE || solicitacao.status === STATUS_APROVADA;
               const erroCancelamento = errosCancelamento[solicitacao.id];
 
               return (
-                <tr key={solicitacao.id}>
-                  <td>{formatarMesReferencia(solicitacao.escalaMesReferencia)}</td>
-                  <td>{solicitacao.carrinhoNome}</td>
-                  <td>{labelDiaSemana(solicitacao.diaSemana)}</td>
-                  <td>{labelTurno(solicitacao.turnoId)}</td>
-                  <td>{STATUS_LABELS[solicitacao.status] ?? `Status ${solicitacao.status}`}</td>
-                  <td>{formatarDataHora(solicitacao.criadoEm)}</td>
-                  <td>
+                <li key={solicitacao.id} className="cartao">
+                  <span className="cartao__titulo">{solicitacao.carrinhoNome}</span>
+                  <span className="cartao__meta">
+                    {formatarDia(solicitacao.diaSemana)}, {formatarTurno(solicitacao.turnoId)}. Enviado em{" "}
+                    {formatarDataHora(solicitacao.criadoEm)}
+                  </span>
+                  <div className="cartao__lado">
+                    <span className={`chip ${STATUS_CLASSES[solicitacao.status] ?? ""}`}>
+                      {STATUS_LABELS[solicitacao.status] ?? `Status ${solicitacao.status}`}
+                    </span>
                     {podeCancelar && (
-                      <>
-                        <button
-                          type="button"
-                          onClick={() => void cancelarSolicitacao(solicitacao.id)}
-                          disabled={cancelandoId === solicitacao.id}
-                        >
-                          {cancelandoId === solicitacao.id ? "Cancelando..." : "Cancelar"}
-                        </button>
-                        {erroCancelamento && (
-                          <p role="alert" className="historico__erro historico__erro--linha">
-                            {erroCancelamento}
-                          </p>
-                        )}
-                      </>
+                      <button
+                        type="button"
+                        className="btn--perigo btn--pequeno"
+                        onClick={() => void cancelarSolicitacao(solicitacao.id)}
+                        disabled={cancelandoId === solicitacao.id}
+                      >
+                        {cancelandoId === solicitacao.id ? "Cancelando…" : "Cancelar pedido"}
+                      </button>
                     )}
-                  </td>
-                </tr>
+                  </div>
+                  {erroCancelamento && (
+                    <p role="alert" className="aviso aviso--erro aviso--linha cartao__erro">
+                      {erroCancelamento}
+                    </p>
+                  )}
+                </li>
               );
             })}
-          </tbody>
-        </table>
-      )}
+          </ul>
+        </div>
+      ))}
     </section>
   );
 }

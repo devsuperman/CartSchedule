@@ -135,38 +135,57 @@ export default function GestaoCarrinhos() {
   }
 
   return (
-    <section>
-      <h1>Gestão de carrinhos</h1>
+    <section className="pilha">
+      <div className="pagina-titulo">
+        <h1>Carrinhos</h1>
+        <p className="subtitulo">
+          Escolha quais turnos cada carrinho oferece. Desativar um carrinho ou remover um turno não
+          altera pedidos que já existem.
+        </p>
+      </div>
 
-      <form onSubmit={handleCriarCarrinho}>
-        <label>
-          Novo carrinho
-          <input
-            value={novoNome}
-            onChange={(e) => setNovoNome(e.target.value)}
-            placeholder="Ex: Carrinho 1"
-            required
-          />
-        </label>
-        <button type="submit" disabled={criando}>
-          {criando ? "Criando..." : "Criar carrinho"}
-        </button>
-        {erroCriacao && <p role="alert">{erroCriacao}</p>}
+      <form onSubmit={handleCriarCarrinho} className="painel pilha">
+        <div className="form-inline">
+          <label className="campo">
+            Novo carrinho
+            <input
+              value={novoNome}
+              onChange={(e) => setNovoNome(e.target.value)}
+              placeholder="Ex.: Carrinho 1"
+              required
+            />
+          </label>
+          <button type="submit" className="btn--primario" disabled={criando}>
+            {criando ? "Criando…" : "Criar carrinho"}
+          </button>
+        </div>
+        {erroCriacao && (
+          <p role="alert" className="aviso aviso--erro">
+            {erroCriacao}
+          </p>
+        )}
       </form>
 
-      {carregando && <p>Carregando carrinhos...</p>}
-      {erroLista && <p role="alert">{erroLista}</p>}
+      {carregando && <p className="carregando">Carregando carrinhos…</p>}
+      {erroLista && (
+        <p role="alert" className="aviso aviso--erro">
+          {erroLista}
+        </p>
+      )}
 
       {!carregando && !erroLista && carrinhos && carrinhos.length === 0 && (
-        <p>Nenhum carrinho cadastrado ainda.</p>
+        <div className="estado-vazio painel">
+          <strong>Nenhum carrinho cadastrado</strong>
+          Crie o primeiro carrinho acima para liberar pedidos.
+        </div>
       )}
 
       {!carregando && !erroLista && carrinhos && carrinhos.length > 0 && (
-        <ul className="carrinhos-lista">
+        <ul className="lista-cartoes">
           {carrinhos.map((carrinho) => (
-            <li key={carrinho.id} className="carrinho-item">
+            <li key={carrinho.id} className="painel carrinho-item">
               <div className="carrinho-item__cabecalho">
-                <strong>{carrinho.nome}</strong>
+                <h2>{carrinho.nome}</h2>
                 <label>
                   <input
                     type="checkbox"
@@ -180,19 +199,25 @@ export default function GestaoCarrinhos() {
 
               <fieldset disabled={salvandoId === carrinho.id}>
                 <legend>Turnos disponíveis</legend>
-                {TURNOS.map((turno) => (
-                  <label key={turno.id} className="turno-checkbox">
-                    <input
-                      type="checkbox"
-                      checked={carrinho.turnoIds.includes(turno.id)}
-                      onChange={() => handleAlternarTurno(carrinho, turno.id)}
-                    />
-                    {turno.horaInicio}–{turno.horaFim}
-                  </label>
-                ))}
+                <div className="turnos-toggle">
+                  {TURNOS.map((turno) => (
+                    <button
+                      key={turno.id}
+                      type="button"
+                      aria-pressed={carrinho.turnoIds.includes(turno.id)}
+                      onClick={() => handleAlternarTurno(carrinho, turno.id)}
+                    >
+                      {turno.horaInicio}–{turno.horaFim}
+                    </button>
+                  ))}
+                </div>
               </fieldset>
 
-              {erroPorCarrinho[carrinho.id] && <p role="alert">{erroPorCarrinho[carrinho.id]}</p>}
+              {erroPorCarrinho[carrinho.id] && (
+                <p role="alert" className="aviso aviso--erro aviso--linha" style={{ marginTop: "0.75rem" }}>
+                  {erroPorCarrinho[carrinho.id]}
+                </p>
+              )}
             </li>
           ))}
         </ul>

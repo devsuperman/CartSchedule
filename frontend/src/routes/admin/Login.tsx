@@ -38,19 +38,35 @@ export default function Login() {
   }
 
   return (
-    <form onSubmit={handleSubmit}>
-      <h1>Login do administrador</h1>
-      <label>
+    <form onSubmit={handleSubmit} className="painel pilha estreita">
+      <h1>Entrar como administrador</h1>
+      <label className="campo">
         Usuário
-        <input value={usuario} onChange={(e) => setUsuario(e.target.value)} required autoFocus />
+        <input
+          value={usuario}
+          onChange={(e) => setUsuario(e.target.value)}
+          autoComplete="username"
+          required
+          autoFocus
+        />
       </label>
-      <label>
+      <label className="campo">
         Senha
-        <input type="password" value={senha} onChange={(e) => setSenha(e.target.value)} required />
+        <input
+          type="password"
+          value={senha}
+          onChange={(e) => setSenha(e.target.value)}
+          autoComplete="current-password"
+          required
+        />
       </label>
-      {erro && <p role="alert">{erro}</p>}
-      <button type="submit" disabled={enviando}>
-        {enviando ? "Entrando..." : "Entrar"}
+      {erro && (
+        <p role="alert" className="aviso aviso--erro">
+          {erro}
+        </p>
+      )}
+      <button type="submit" className="btn--primario" disabled={enviando}>
+        {enviando ? "Entrando…" : "Entrar"}
       </button>
     </form>
   );

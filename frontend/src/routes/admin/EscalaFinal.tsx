@@ -3,6 +3,7 @@ import { useParams } from "react-router-dom";
 import { apiFetch } from "../../api/client";
 import { DIAS_SEMANA } from "../../constants/diasSemana";
 import { TURNOS } from "../../constants/turnos";
+import { formatarMes } from "../../utils/formatacao";
 
 /** Contrato de GET /api/admin/escalas/{mes}/grade (TECHNICAL_SPEC.md, tarefa F2-BE-07). */
 interface AprovadoGrade {
@@ -67,24 +68,35 @@ export default function EscalaFinal() {
   }, [mes]);
 
   if (!mes) {
-    return <p role="alert">Mês da escala não informado na URL.</p>;
+    return (
+      <p role="alert" className="aviso aviso--erro">
+        Mês da escala não informado na URL.
+      </p>
+    );
   }
 
   if (carregando) {
-    return <p>Carregando escala final...</p>;
+    return <p className="carregando">Carregando escala final…</p>;
   }
 
   if (erro) {
-    return <p role="alert">{erro}</p>;
+    return (
+      <p role="alert" className="aviso aviso--erro">
+        {erro}
+      </p>
+    );
   }
 
   const listaCelulas = celulas ?? [];
 
   if (listaCelulas.length === 0) {
     return (
-      <div>
-        <h1>Escala final — {mes}</h1>
-        <p>Nenhuma solicitação aprovada ainda para este mês.</p>
+      <div className="pilha">
+        <h1>Escala final</h1>
+        <div className="estado-vazio painel">
+          <strong>Nada aprovado em {formatarMes(mes)}</strong>
+          Aprove pedidos na revisão da escala para montar a grade.
+        </div>
       </div>
     );
   }
@@ -107,41 +119,62 @@ export default function EscalaFinal() {
   }
 
   return (
-    <div>
-      <h1>Escala final — {mes}</h1>
+    <div className="pilha">
+      <div className="pagina-titulo">
+        <h1>Escala final</h1>
+        <p className="subtitulo">
+          {formatarMes(mes)}. Células em vermelho têm mais de 2 pessoas.
+        </p>
+      </div>
 
       {carrinhos.map((carrinho) => (
-        <section key={carrinho.carrinhoId} className="escala-final__carrinho">
+        <section key={carrinho.carrinhoId} className="pilha">
           <h2>{carrinho.carrinhoNome}</h2>
-          <table className="escala-final__tabela">
-            <thead>
-              <tr>
-                <th>Turno</th>
-                {DIAS_SEMANA.map((dia) => (
-                  <th key={dia.valor}>{dia.label}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {TURNOS.map((turno) => (
-                <tr key={turno.id}>
-                  <th scope="row">
-                    {turno.horaInicio}–{turno.horaFim}
-                  </th>
-                  {DIAS_SEMANA.map((dia) => {
-                    const aprovados = aprovadosDaCelula(carrinho.carrinhoId, dia.valor, turno.id);
-                    return (
-                      <td key={dia.valor}>
-                        {aprovados.length === 0
-                          ? "—"
-                          : aprovados.map((a) => a.publicadorNome).join(", ")}
-                      </td>
-                    );
-                  })}
+          <div className="tabela-wrap">
+            <table className="escala">
+              <thead>
+                <tr>
+                  <th scope="col">Turno</th>
+                  {DIAS_SEMANA.map((dia) => (
+                    <th key={dia.valor} scope="col">
+                      {dia.label}
+                    </th>
+                  ))}
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {TURNOS.map((turno) => (
+                  <tr key={turno.id}>
+                    <th scope="row">
+                      {turno.horaInicio}–{turno.horaFim}
+                    </th>
+                    {DIAS_SEMANA.map((dia) => {
+                      const aprovados = aprovadosDaCelula(carrinho.carrinhoId, dia.valor, turno.id);
+                      const excedente = aprovados.length > 2;
+                      const classe =
+                        aprovados.length === 0
+                          ? "escala__vazia"
+                          : excedente
+                            ? "escala__excedente"
+                            : undefined;
+                      return (
+                        <td key={dia.valor} className={classe}>
+                          {aprovados.length === 0 ? (
+                            <span aria-label="Sem ninguém">—</span>
+                          ) : (
+                            aprovados.map((a) => <span key={a.publicadorId}>{a.publicadorNome}</span>)
+                          )}
+                          {excedente && (
+                            <span className="escala__aviso">{aprovados.length} pessoas</span>
+                          )}
+                        </td>
+                      );
+                    })}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </section>
       ))}
     </div>

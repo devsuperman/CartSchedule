@@ -3,6 +3,7 @@ import { useParams } from "react-router-dom";
 import { apiFetch, ApiError } from "../../api/client";
 import { DIAS_SEMANA, DiaSemana } from "../../constants/diasSemana";
 import { TURNOS } from "../../constants/turnos";
+import { formatarMes } from "../../utils/formatacao";
 
 /** Contrato de GET /api/carrinhos (TECHNICAL_SPEC.md §2.1, tarefa F1-BE-02). */
 interface Carrinho {
@@ -123,20 +124,32 @@ export default function AdicionarSolicitacao() {
   }
 
   if (!mes) {
-    return <p role="alert">Escala não informada na URL.</p>;
+    return (
+      <p role="alert" className="aviso aviso--erro">
+        Escala não informada na URL.
+      </p>
+    );
   }
 
   return (
-    <div>
-      <h1>Adicionar solicitação — escala {mes}</h1>
-      <p>A solicitação é criada diretamente como Aprovada.</p>
+    <div className="pilha estreita">
+      <div className="pagina-titulo">
+        <h1>Adicionar solicitação</h1>
+        <p className="subtitulo">
+          Escala de {formatarMes(mes)}. O pedido entra direto como aprovado.
+        </p>
+      </div>
 
-      {carregandoCarrinhos && <p>Carregando carrinhos...</p>}
-      {erroCarrinhos && <p role="alert">{erroCarrinhos}</p>}
+      {carregandoCarrinhos && <p className="carregando">Carregando carrinhos…</p>}
+      {erroCarrinhos && (
+        <p role="alert" className="aviso aviso--erro">
+          {erroCarrinhos}
+        </p>
+      )}
 
       {!carregandoCarrinhos && !erroCarrinhos && (
-        <form onSubmit={handleSubmit}>
-          <label className="form-field">
+        <form onSubmit={handleSubmit} className="painel pilha">
+          <label className="campo">
             Nome do publicador
             <input
               value={nome}
@@ -145,6 +158,9 @@ export default function AdicionarSolicitacao() {
               required
               autoFocus
             />
+            <span className="campo__ajuda">
+              Se o nome já existir, o pedido vai para o mesmo publicador. Se for novo, ele é criado.
+            </span>
             <datalist id="nomes-vistos">
               {nomesVistos.map((n) => (
                 <option key={n} value={n} />
@@ -152,7 +168,7 @@ export default function AdicionarSolicitacao() {
             </datalist>
           </label>
 
-          <label className="form-field">
+          <label className="campo">
             Carrinho
             <select
               value={carrinhoId}
@@ -170,7 +186,7 @@ export default function AdicionarSolicitacao() {
             </select>
           </label>
 
-          <label className="form-field">
+          <label className="campo">
             Dia da semana
             <select
               value={diaSemana}
@@ -188,7 +204,7 @@ export default function AdicionarSolicitacao() {
             </select>
           </label>
 
-          <label className="form-field">
+          <label className="campo">
             Turno
             <select
               value={turnoId}
@@ -207,11 +223,19 @@ export default function AdicionarSolicitacao() {
             </select>
           </label>
 
-          {erroEnvio && <p role="alert">{erroEnvio}</p>}
-          {confirmacao && <p className="form-success">{confirmacao}</p>}
+          {erroEnvio && (
+            <p role="alert" className="aviso aviso--erro">
+              {erroEnvio}
+            </p>
+          )}
+          {confirmacao && (
+            <p role="status" className="aviso aviso--sucesso">
+              {confirmacao}
+            </p>
+          )}
 
-          <button type="submit" disabled={enviando}>
-            {enviando ? "Adicionando..." : "Adicionar solicitação"}
+          <button type="submit" className="btn--primario" disabled={enviando}>
+            {enviando ? "Adicionando…" : "Adicionar solicitação"}
           </button>
         </form>
       )}

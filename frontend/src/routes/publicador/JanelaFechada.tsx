@@ -10,16 +10,19 @@ import { Link } from "react-router-dom";
  */
 export default function JanelaFechada() {
   return (
-    <div className="janela-fechada">
+    <div className="janela-fechada painel estreita">
       <h1>Envio fechado</h1>
-      <p className="janela-fechada__mensagem">Envio fechado. Abre novamente no dia 15.</p>
-      <p className="janela-fechada__detalhe">
-        As solicitações para a escala do mês seguinte podem ser enviadas do dia 15 ao dia 25 de
-        cada mês. Fora desse período, aguarde a próxima abertura da janela de envio.
+      <p className="janela-fechada__dia" aria-hidden="true">
+        15
       </p>
-      <p>
-        <Link to="/historico">Ver meu histórico de solicitações</Link>
+      <p>Novos pedidos abrem novamente no dia 15.</p>
+      <p className="subtitulo">
+        Os pedidos para a escala do mês seguinte podem ser enviados do dia 15 ao dia 25 de cada
+        mês.
       </p>
+      <Link to="/historico" className="btn--link">
+        Ver meu histórico
+      </Link>
     </div>
   );
 }
