@@ -117,6 +117,9 @@ todas são intencionais, confirmadas no `PLANNING.md`:
 # Tudo via Docker (web :3000, api :5000, db :5432)
 cp .env.example .env && docker compose up --build
 
+# Produção (servidor único, HTTPS via Caddy; guia em deploy/README.md)
+docker compose -f docker-compose.prod.yml up -d --build
+
 # Backend (precisa de PostgreSQL acessível; config via appsettings/user-secrets/env)
 cd backend/src/CartSchedule.Api && dotnet run     # migrations + seed dos turnos no startup; GET /health
 dotnet build backend/CartSchedule.Api.slnx

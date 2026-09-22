@@ -1,0 +1,6 @@
+# Caddy emite e renova o certificado HTTPS (Let's Encrypt) sozinho para o
+# domínio em DOMINIO (.env). O DNS do domínio precisa apontar para o servidor.
+{$DOMINIO} {
+	encode gzip
+	reverse_proxy web:80
+}
