@@ -6,6 +6,12 @@ import { useJanela } from "../../hooks/useJanela";
 import { TURNOS } from "../../constants/turnos";
 import { DIAS_SEMANA, type DiaSemana } from "../../constants/diasSemana";
 import { formatarDia, formatarMes, formatarTurno } from "../../utils/formatacao";
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { cn } from "@/lib/utils";
 
 /** Contrato de GET /api/carrinhos (TECHNICAL_SPEC.md, tarefa F1-BE-02). */
 interface Carrinho {
@@ -191,78 +197,91 @@ export default function NovaSolicitacao() {
   const totalEmOutrosCarrinhos = pendentes.filter((i) => i.carrinhoId !== carrinhoId).length;
 
   return (
-    <section className="pilha">
-      <div className="pagina-titulo">
+    <section className="flex flex-col gap-4">
+      <div className="flex flex-col gap-1.5">
         <h1>Nova solicitação</h1>
         {janela?.mesAlvo && (
-          <p className="subtitulo">
+          <p className="text-muted-foreground">
             Escala de {formatarMes(janela.mesAlvo)}. Cada dia escolhido vale para todas as
             semanas do mês.
           </p>
         )}
       </div>
 
-      <div className="painel pilha">
-        <label className="campo">
+      <Card>
+        <Label className="flex flex-col items-start gap-1.5">
           Seu nome
-          <input
+          <Input
             value={nome}
             onChange={(e) => setNome(e.target.value)}
             autoComplete="name"
             required
           />
-          <span className="campo__ajuda">Fica salvo neste aparelho para as próximas vezes.</span>
-        </label>
-      </div>
+          <span className="text-sm font-normal text-muted-foreground">
+            Fica salvo neste aparelho para as próximas vezes.
+          </span>
+        </Label>
+      </Card>
 
-      {carregandoCarrinhos && <p className="carregando">Carregando carrinhos…</p>}
+      {carregandoCarrinhos && <p className="text-muted-foreground">Carregando carrinhos…</p>}
       {erroCarrinhos && (
-        <p role="alert" className="aviso aviso--erro">
-          {erroCarrinhos}
-        </p>
+        <Alert variant="destructive">
+          <AlertDescription>{erroCarrinhos}</AlertDescription>
+        </Alert>
       )}
 
       {!carregandoCarrinhos && !erroCarrinhos && carrinhos.length === 0 && (
-        <div className="estado-vazio painel">
-          <strong>Nenhum carrinho disponível</strong>
+        <Card className="items-center gap-2 py-10 text-center text-muted-foreground">
+          <strong className="block text-[1.1rem] text-foreground">Nenhum carrinho disponível</strong>
           Volte mais tarde, quando o administrador cadastrar os carrinhos.
-        </div>
+        </Card>
       )}
 
       {!carregandoCarrinhos && carrinhos.length > 0 && (
-        <div className="painel pilha">
-          <fieldset className="pilha">
-            <legend>Carrinho</legend>
-            <div className="seletor-carrinhos">
+        <Card className="gap-4">
+          <fieldset className="flex flex-col gap-3">
+            <legend className="mb-1 font-semibold">Carrinho</legend>
+            <div className="flex flex-wrap gap-2">
               {carrinhos.map((c) => (
-                <button
+                <Button
                   key={c.id}
                   type="button"
+                  variant="outline"
                   aria-pressed={c.id === carrinhoId}
+                  className={cn(
+                    "aria-pressed:border-secondary aria-pressed:bg-secondary aria-pressed:text-secondary-foreground",
+                  )}
                   onClick={() => setCarrinhoId(c.id)}
                 >
                   {c.nome}
-                </button>
+                </Button>
               ))}
             </div>
           </fieldset>
 
           {turnosDisponiveis.length === 0 ? (
-            <p className="aviso aviso--info">Este carrinho não tem turnos disponíveis.</p>
+            <Alert>
+              <AlertDescription>Este carrinho não tem turnos disponíveis.</AlertDescription>
+            </Alert>
           ) : (
             <>
-              <p className="campo__ajuda">
+              <p className="text-sm text-muted-foreground">
                 Toque nos horários em que você quer trabalhar em {carrinhoSelecionado?.nome}.
               </p>
-              <div className="grade-wrap">
-                <table className="grade">
+              <div className="overflow-x-auto">
+                <table className="w-full border-separate border-spacing-1 tabular-nums">
                   <thead>
                     <tr>
                       <th scope="col">
                         <span className="sr-only">Turno</span>
                       </th>
                       {DIAS_SEMANA.map((d) => (
-                        <th key={d.valor} scope="col" abbr={d.label}>
+                        <th
+                          key={d.valor}
+                          scope="col"
+                          abbr={d.label}
+                          className="p-1 text-center text-sm font-semibold text-muted-foreground"
+                        >
                           {d.curto}
                         </th>
                       ))}
@@ -273,19 +292,29 @@ export default function NovaSolicitacao() {
                       const disponivel = turnosDisponiveis.some((t) => t.id === turno.id);
                       return (
                         <tr key={turno.id}>
-                          <th scope="row">
+                          <th
+                            scope="row"
+                            className="whitespace-nowrap pr-2 text-left text-sm font-semibold"
+                          >
                             {turno.horaInicio}–{turno.horaFim}
                           </th>
                           {DIAS_SEMANA.map((d) => {
                             const marcado = pendentesDoCarrinho(d.valor, turno.id);
                             return (
-                              <td key={d.valor}>
+                              <td key={d.valor} className="p-0">
                                 <button
                                   type="button"
                                   aria-pressed={marcado}
                                   aria-label={`${d.label}, ${formatarTurno(turno.id)}`}
                                   disabled={!disponivel}
                                   onClick={() => handleAlternarCelula(d.valor, turno.id)}
+                                  className={cn(
+                                    "min-h-12 w-full min-w-11 rounded-lg border border-border text-xl leading-none transition-colors",
+                                    disponivel
+                                      ? "bg-muted/40 hover:bg-muted"
+                                      : "cursor-not-allowed border-transparent bg-[repeating-linear-gradient(135deg,var(--color-background),var(--color-background)_5px,var(--color-muted)_5px,var(--color-muted)_10px)]",
+                                    marcado && "border-primary bg-primary text-primary-foreground hover:bg-primary",
+                                  )}
                                 >
                                   {marcado ? "✓" : ""}
                                 </button>
@@ -299,67 +328,74 @@ export default function NovaSolicitacao() {
                 </table>
               </div>
               {totalEmOutrosCarrinhos > 0 && (
-                <p className="grade__outro">
+                <p className="text-[0.8rem] text-muted-foreground">
                   Você também escolheu {totalEmOutrosCarrinhos} horário(s) em outros carrinhos.
                 </p>
               )}
             </>
           )}
-        </div>
+        </Card>
       )}
 
       {confirmacao && (
-        <p role="status" className="aviso aviso--sucesso">
-          {confirmacao} Acompanhe em <Link to="/historico">Meu histórico</Link>.
-        </p>
+        <Alert variant="success">
+          <AlertDescription>
+            {confirmacao} Acompanhe em <Link to="/historico">Meu histórico</Link>.
+          </AlertDescription>
+        </Alert>
       )}
 
       {resultados && (
-        <ul className="pilha" style={{ listStyle: "none", padding: 0, margin: 0 }}>
+        <ul className="flex list-none flex-col gap-2 p-0">
           {resultados.map((r) => (
-            <li
-              key={r.chaveLocal}
-              role={r.sucesso ? "status" : "alert"}
-              className={`aviso ${r.sucesso ? "aviso--sucesso" : "aviso--erro"}`}
-            >
-              {r.mensagem}
+            <li key={r.chaveLocal}>
+              <Alert variant={r.sucesso ? "success" : "destructive"}>
+                <AlertDescription>{r.mensagem}</AlertDescription>
+              </Alert>
             </li>
           ))}
         </ul>
       )}
 
       {pendentes.length > 0 && (
-        <div className="pedido" aria-label="Resumo do pedido">
+        <div
+          className="sticky bottom-0 flex flex-col gap-3 rounded-lg border border-border-strong bg-card p-4 shadow-[0_-6px_16px_rgba(27,42,58,0.08)]"
+          aria-label="Resumo do pedido"
+        >
           <h2>
             {pendentes.length === 1 ? "1 horário escolhido" : `${pendentes.length} horários escolhidos`}
           </h2>
-          <ul className="pedido__lista">
+          <ul className="flex list-none flex-col gap-1.5 p-0">
             {pendentes.map((item) => (
-              <li key={item.chaveLocal}>
+              <li key={item.chaveLocal} className="flex items-center justify-between gap-3">
                 <span>
                   <strong>{nomeCarrinho(item.carrinhoId)}</strong>, {formatarDia(item.diaSemana)},{" "}
                   {formatarTurno(item.turnoId)}
                 </span>
-                <button
+                <Button
                   type="button"
-                  className="btn--pequeno"
+                  variant="outline"
+                  size="sm"
                   onClick={() => handleRemover(item.chaveLocal)}
                 >
                   Remover
-                </button>
+                </Button>
               </li>
             ))}
           </ul>
-          <div className="pedido__acoes">
-            <button
+          <div className="flex flex-wrap items-center gap-3">
+            <Button
               type="button"
-              className="btn--primario"
               onClick={() => void handleEnviar()}
               disabled={enviando || nomeVazio}
             >
               {enviando ? "Enviando…" : "Enviar solicitações"}
-            </button>
-            {nomeVazio && <span className="campo__ajuda">Digite seu nome para enviar.</span>}
+            </Button>
+            {nomeVazio && (
+              <span className="min-w-40 flex-1 text-sm text-muted-foreground">
+                Digite seu nome para enviar.
+              </span>
+            )}
           </div>
         </div>
       )}

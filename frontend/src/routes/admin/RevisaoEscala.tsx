@@ -6,9 +6,14 @@ import {
   formatarMes,
   formatarTurno,
   STATUS,
-  STATUS_CLASSES,
+  STATUS_BADGE_VARIANT,
   STATUS_LABELS,
 } from "../../utils/formatacao";
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { cn } from "@/lib/utils";
 
 /** Contrato de GET /api/admin/escalas/{mes}/solicitacoes (TECHNICAL_SPEC.md, tarefa F2-BE-04). */
 interface SolicitacaoAgrupada {
@@ -125,23 +130,23 @@ export default function RevisaoEscala() {
   }
 
   if (carregando) {
-    return <p className="carregando">Carregando solicitações…</p>;
+    return <p className="text-muted-foreground">Carregando solicitações…</p>;
   }
 
   if (erroCarregamento) {
     return (
-      <p role="alert" className="aviso aviso--erro">
-        {erroCarregamento}
-      </p>
+      <Alert variant="destructive">
+        <AlertDescription>{erroCarregamento}</AlertDescription>
+      </Alert>
     );
   }
 
   if (!dados || dados.grupos.length === 0) {
     return (
-      <div className="estado-vazio painel">
-        <strong>Nenhum pedido nesta escala</strong>
+      <Card className="items-center gap-2 py-10 text-center text-muted-foreground">
+        <strong className="block text-[1.1rem] text-foreground">Nenhum pedido nesta escala</strong>
         Quando publicadores enviarem pedidos, eles aparecem aqui.
-      </div>
+      </Card>
     );
   }
 
@@ -150,35 +155,35 @@ export default function RevisaoEscala() {
   const excedentes = dados.grupos.filter((g) => g.excedente).length;
 
   return (
-    <section className="pilha">
-      <div className="pagina-titulo">
+    <section className="flex flex-col gap-4">
+      <div className="flex flex-col gap-1.5">
         <h1>Revisão da escala</h1>
-        <p className="subtitulo">
+        <p className="text-muted-foreground">
           {formatarMes(dados.mes)}. O limite é de 2 pessoas por vaga, mas você decide quando ajustar.
         </p>
       </div>
 
-      <dl className="resumo">
-        <div>
-          <dt>Recebidos</dt>
-          <dd>{todas.length}</dd>
-        </div>
-        <div>
-          <dt>Pendentes</dt>
-          <dd>{contar(STATUS.Pendente)}</dd>
-        </div>
-        <div>
-          <dt>Aprovados</dt>
-          <dd>{contar(STATUS.Aprovada)}</dd>
-        </div>
-        <div>
-          <dt>Rejeitados</dt>
-          <dd>{contar(STATUS.Rejeitada)}</dd>
-        </div>
-        <div>
-          <dt>Vagas com excesso</dt>
-          <dd>{excedentes}</dd>
-        </div>
+      <dl className="grid grid-cols-[repeat(auto-fit,minmax(7rem,1fr))] gap-3">
+        <Card className="gap-1 p-3">
+          <dt className="text-sm text-muted-foreground">Recebidos</dt>
+          <dd className="m-0 text-[1.6rem] font-bold tabular-nums">{todas.length}</dd>
+        </Card>
+        <Card className="gap-1 p-3">
+          <dt className="text-sm text-muted-foreground">Pendentes</dt>
+          <dd className="m-0 text-[1.6rem] font-bold tabular-nums">{contar(STATUS.Pendente)}</dd>
+        </Card>
+        <Card className="gap-1 p-3">
+          <dt className="text-sm text-muted-foreground">Aprovados</dt>
+          <dd className="m-0 text-[1.6rem] font-bold tabular-nums">{contar(STATUS.Aprovada)}</dd>
+        </Card>
+        <Card className="gap-1 p-3">
+          <dt className="text-sm text-muted-foreground">Rejeitados</dt>
+          <dd className="m-0 text-[1.6rem] font-bold tabular-nums">{contar(STATUS.Rejeitada)}</dd>
+        </Card>
+        <Card className="gap-1 p-3">
+          <dt className="text-sm text-muted-foreground">Vagas com excesso</dt>
+          <dd className="m-0 text-[1.6rem] font-bold tabular-nums">{excedentes}</dd>
+        </Card>
       </dl>
 
       {dados.grupos.map((grupo) => {
@@ -189,60 +194,68 @@ export default function RevisaoEscala() {
         return (
           <div
             key={`${grupo.carrinhoId}-${grupo.diaSemana}-${grupo.turnoId}`}
-            className={`vaga${grupo.excedente ? " vaga--excedente" : ""}`}
+            className={cn(
+              "overflow-hidden rounded-lg border border-border bg-card",
+              grupo.excedente && "border-destructive shadow-[inset_4px_0_0_var(--color-destructive)]",
+            )}
           >
-            <div className="vaga__cabecalho">
+            <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 p-4">
               <div>
                 <h2>{grupo.carrinhoNome}</h2>
-                <span className="vaga__quando">
+                <span className="text-muted-foreground tabular-nums">
                   {formatarDia(grupo.diaSemana)}, {formatarTurno(grupo.turnoId)}
                 </span>
               </div>
               {grupo.excedente && (
-                <span className="chip chip--excedente">{ativos} pedidos para 2 vagas</span>
+                <Badge variant="rejeitada">{ativos} pedidos para 2 vagas</Badge>
               )}
             </div>
-            <ul className="vaga__lista">
+            <ul className="list-none border-t border-border p-0">
               {grupo.solicitacoes.map((solicitacao) => (
-                <li key={solicitacao.id}>
-                  <div className="vaga__pessoa">
+                <li
+                  key={solicitacao.id}
+                  className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 border-t border-border p-4 first:border-t-0"
+                >
+                  <div className="flex flex-col">
                     <strong>{solicitacao.publicadorNome}</strong>
-                    <span className="vaga__apoio">
+                    <span className="text-sm text-muted-foreground">
                       {solicitacao.totalNaEscala}{" "}
                       {solicitacao.totalNaEscala === 1 ? "pedido" : "pedidos"} nesta escala
                       {solicitacao.origem !== 1 &&
                         `, adicionado pelo ${ORIGEM_LABELS[solicitacao.origem]?.toLowerCase() ?? "sistema"}`}
                     </span>
                   </div>
-                  <div className="vaga__acoes">
-                    <span className={`chip ${STATUS_CLASSES[solicitacao.status] ?? ""}`}>
+                  <div className="flex items-center gap-2">
+                    <Badge variant={STATUS_BADGE_VARIANT[solicitacao.status]}>
                       {STATUS_LABELS[solicitacao.status] ?? "Desconhecido"}
-                    </span>
+                    </Badge>
                     {solicitacao.status === STATUS_PENDENTE && (
                       <>
-                        <button
+                        <Button
                           type="button"
-                          className="btn--aprovar btn--pequeno"
+                          variant="success"
+                          size="sm"
                           disabled={processando[solicitacao.id] === true}
                           onClick={() => decidir(solicitacao.id, "aprovar")}
                         >
                           Aprovar
-                        </button>
-                        <button
+                        </Button>
+                        <Button
                           type="button"
-                          className="btn--perigo btn--pequeno"
+                          variant="destructive"
+                          size="sm"
                           disabled={processando[solicitacao.id] === true}
                           onClick={() => decidir(solicitacao.id, "rejeitar")}
                         >
                           Rejeitar
-                        </button>
+                        </Button>
                       </>
                     )}
                   </div>
                   {errosAcao[solicitacao.id] && (
-                    <p role="alert" className="aviso aviso--erro aviso--linha" style={{ flexBasis: "100%" }}>
-                      {errosAcao[solicitacao.id]}
-                    </p>
+                    <Alert variant="destructive" className="basis-full py-2 text-[0.95rem]">
+                      <AlertDescription>{errosAcao[solicitacao.id]}</AlertDescription>
+                    </Alert>
                   )}
                 </li>
               ))}

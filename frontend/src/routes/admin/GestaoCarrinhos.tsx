@@ -1,6 +1,13 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { apiFetch, ApiError } from "../../api/client";
 import { TURNOS } from "../../constants/turnos";
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { cn } from "@/lib/utils";
 
 /**
  * Contrato de GET/POST /api/admin/carrinhos e GET/PUT /api/admin/carrinhos/{id}/turnos
@@ -135,89 +142,100 @@ export default function GestaoCarrinhos() {
   }
 
   return (
-    <section className="pilha">
-      <div className="pagina-titulo">
+    <section className="flex flex-col gap-4">
+      <div className="flex flex-col gap-1.5">
         <h1>Carrinhos</h1>
-        <p className="subtitulo">
+        <p className="text-muted-foreground">
           Escolha quais turnos cada carrinho oferece. Desativar um carrinho ou remover um turno não
           altera pedidos que já existem.
         </p>
       </div>
 
-      <form onSubmit={handleCriarCarrinho} className="painel pilha">
-        <div className="form-inline">
-          <label className="campo">
-            Novo carrinho
-            <input
-              value={novoNome}
-              onChange={(e) => setNovoNome(e.target.value)}
-              placeholder="Ex.: Carrinho 1"
-              required
-            />
-          </label>
-          <button type="submit" className="btn--primario" disabled={criando}>
-            {criando ? "Criando…" : "Criar carrinho"}
-          </button>
-        </div>
-        {erroCriacao && (
-          <p role="alert" className="aviso aviso--erro">
-            {erroCriacao}
-          </p>
-        )}
-      </form>
+      <Card asChild>
+        <form onSubmit={handleCriarCarrinho} className="flex flex-col gap-4">
+          <div className="flex flex-wrap items-end gap-3">
+            <Label className="flex min-w-48 flex-1 flex-col items-start gap-1.5">
+              Novo carrinho
+              <Input
+                value={novoNome}
+                onChange={(e) => setNovoNome(e.target.value)}
+                placeholder="Ex.: Carrinho 1"
+                required
+              />
+            </Label>
+            <Button type="submit" disabled={criando}>
+              {criando ? "Criando…" : "Criar carrinho"}
+            </Button>
+          </div>
+          {erroCriacao && (
+            <Alert variant="destructive">
+              <AlertDescription>{erroCriacao}</AlertDescription>
+            </Alert>
+          )}
+        </form>
+      </Card>
 
-      {carregando && <p className="carregando">Carregando carrinhos…</p>}
+      {carregando && <p className="text-muted-foreground">Carregando carrinhos…</p>}
       {erroLista && (
-        <p role="alert" className="aviso aviso--erro">
-          {erroLista}
-        </p>
+        <Alert variant="destructive">
+          <AlertDescription>{erroLista}</AlertDescription>
+        </Alert>
       )}
 
       {!carregando && !erroLista && carrinhos && carrinhos.length === 0 && (
-        <div className="estado-vazio painel">
-          <strong>Nenhum carrinho cadastrado</strong>
+        <Card className="items-center gap-2 py-10 text-center text-muted-foreground">
+          <strong className="block text-[1.1rem] text-foreground">Nenhum carrinho cadastrado</strong>
           Crie o primeiro carrinho acima para liberar pedidos.
-        </div>
+        </Card>
       )}
 
       {!carregando && !erroLista && carrinhos && carrinhos.length > 0 && (
-        <ul className="lista-cartoes">
+        <ul className="flex list-none flex-col gap-3 p-0">
           {carrinhos.map((carrinho) => (
-            <li key={carrinho.id} className="painel carrinho-item">
-              <div className="carrinho-item__cabecalho">
-                <h2>{carrinho.nome}</h2>
-                <label>
-                  <input
-                    type="checkbox"
-                    checked={carrinho.ativo}
-                    disabled={salvandoId === carrinho.id}
-                    onChange={() => handleAlternarAtivo(carrinho)}
-                  />
-                  Ativo
-                </label>
-              </div>
-
-              <fieldset disabled={salvandoId === carrinho.id}>
-                <legend>Turnos disponíveis</legend>
-                <div className="turnos-toggle">
-                  {TURNOS.map((turno) => (
-                    <button
-                      key={turno.id}
-                      type="button"
-                      aria-pressed={carrinho.turnoIds.includes(turno.id)}
-                      onClick={() => handleAlternarTurno(carrinho, turno.id)}
-                    >
-                      {turno.horaInicio}–{turno.horaFim}
-                    </button>
-                  ))}
+            <li key={carrinho.id}>
+              <Card>
+                <div className="flex items-center justify-between gap-4">
+                  <h2>{carrinho.nome}</h2>
+                  <Label className="font-normal">
+                    <Checkbox
+                      checked={carrinho.ativo}
+                      disabled={salvandoId === carrinho.id}
+                      onCheckedChange={() => handleAlternarAtivo(carrinho)}
+                    />
+                    Ativo
+                  </Label>
                 </div>
-              </fieldset>
 
-              {erroPorCarrinho[carrinho.id] && (
-                <p role="alert" className="aviso aviso--erro aviso--linha" style={{ marginTop: "0.75rem" }}>
-                  {erroPorCarrinho[carrinho.id]}
-                </p>
-              )}
+                <fieldset disabled={salvandoId === carrinho.id} className="min-w-0">
+                  <legend className="mb-2 font-semibold">Turnos disponíveis</legend>
+                  <div className="flex flex-wrap gap-2 tabular-nums">
+                    {TURNOS.map((turno) => {
+                      const habilitado = carrinho.turnoIds.includes(turno.id);
+                      return (
+                        <Button
+                          key={turno.id}
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          aria-pressed={habilitado}
+                          className={cn(
+                            habilitado && "border-primary bg-accent text-accent-foreground",
+                          )}
+                          onClick={() => handleAlternarTurno(carrinho, turno.id)}
+                        >
+                          {turno.horaInicio}–{turno.horaFim}
+                        </Button>
+                      );
+                    })}
+                  </div>
+                </fieldset>
+
+                {erroPorCarrinho[carrinho.id] && (
+                  <Alert variant="destructive" className="py-2 text-[0.95rem]">
+                    <AlertDescription>{erroPorCarrinho[carrinho.id]}</AlertDescription>
+                  </Alert>
+                )}
+              </Card>
             </li>
           ))}
         </ul>

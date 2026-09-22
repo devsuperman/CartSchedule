@@ -1,4 +1,7 @@
 import { Link } from "react-router-dom";
+import { Card } from "@/components/ui/card";
+import { buttonVariants } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 /**
  * Tela informativa exibida ao publicador quando a janela de envio está
@@ -10,19 +13,19 @@ import { Link } from "react-router-dom";
  */
 export default function JanelaFechada() {
   return (
-    <div className="janela-fechada painel estreita">
+    <Card className="mx-auto w-full max-w-[34rem] items-center gap-3 py-10 text-center">
       <h1>Envio fechado</h1>
-      <p className="janela-fechada__dia" aria-hidden="true">
+      <p className="text-6xl leading-none font-bold text-primary tabular-nums" aria-hidden="true">
         15
       </p>
       <p>Novos pedidos abrem novamente no dia 15.</p>
-      <p className="subtitulo">
+      <p className="text-muted-foreground">
         Os pedidos para a escala do mês seguinte podem ser enviados do dia 15 ao dia 25 de cada
         mês.
       </p>
-      <Link to="/historico" className="btn--link">
+      <Link to="/historico" className={cn(buttonVariants({ variant: "outline" }), "mt-2")}>
         Ver meu histórico
       </Link>
-    </div>
+    </Card>
   );
 }

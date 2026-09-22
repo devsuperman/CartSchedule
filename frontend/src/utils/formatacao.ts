@@ -31,9 +31,9 @@ export const STATUS_LABELS: Record<number, string> = {
   [STATUS.Cancelada]: "Cancelada",
 };
 
-export const STATUS_CLASSES: Record<number, string> = {
-  [STATUS.Pendente]: "chip--pendente",
-  [STATUS.Aprovada]: "chip--aprovada",
-  [STATUS.Rejeitada]: "chip--rejeitada",
-  [STATUS.Cancelada]: "chip--cancelada",
+export const STATUS_BADGE_VARIANT: Record<number, "pendente" | "aprovada" | "rejeitada" | "cancelada"> = {
+  [STATUS.Pendente]: "pendente",
+  [STATUS.Aprovada]: "aprovada",
+  [STATUS.Rejeitada]: "rejeitada",
+  [STATUS.Cancelada]: "cancelada",
 };
