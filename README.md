@@ -132,6 +132,12 @@ docker compose up --build
   mudar o host/porta, ajuste-a e também `Cors__FrontendOrigin`, e rode
   `docker compose up --build`.
 
+## Produção (AWS)
+
+Deploy em servidor único (AWS Lightsail) com HTTPS automático via Caddy,
+usando `docker-compose.prod.yml`. Passo a passo em
+[`deploy/README.md`](./deploy/README.md).
+
 ## Status
 
 Implementados (Fases 0, 1 e 2): fundação, fluxo do publicador, painel do

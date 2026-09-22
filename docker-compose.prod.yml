@@ -1,0 +1,62 @@
+# Produção num único servidor (ex.: AWS Lightsail). Ver deploy/README.md.
+#   docker compose -f docker-compose.prod.yml up -d --build
+# Só o Caddy (80/443) fica exposto; banco, API e nginx ficam na rede interna.
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: cartschedule
+      POSTGRES_USER: cartschedule
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?defina POSTGRES_PASSWORD no .env}
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U cartschedule -d cartschedule"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  api:
+    build: ./backend
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      ConnectionStrings__Default: "Host=db;Database=cartschedule;Username=cartschedule;Password=${POSTGRES_PASSWORD}"
+      Admin__Usuario: ${ADMIN_USUARIO:?defina ADMIN_USUARIO no .env}
+      Admin__SenhaHash: ${ADMIN_SENHA_HASH:?defina ADMIN_SENHA_HASH no .env}
+      Jwt__ChaveSecreta: ${JWT_CHAVE_SECRETA:?defina JWT_CHAVE_SECRETA no .env}
+      Cors__FrontendOrigin: https://${DOMINIO:?defina DOMINIO no .env}
+
+  web:
+    build:
+      context: ./frontend
+      args:
+        # Vazio = chamadas relativas (/api/...), servidas pelo mesmo domínio via nginx.
+        VITE_API_URL: ""
+    restart: unless-stopped
+    depends_on:
+      - api
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    depends_on:
+      - web
+    environment:
+      DOMINIO: ${DOMINIO:?defina DOMINIO no .env}
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+
+volumes:
+  db-data:
+  caddy-data:
+  caddy-config:
