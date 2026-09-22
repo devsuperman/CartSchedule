@@ -111,6 +111,37 @@ todas são intencionais, confirmadas no `PLANNING.md`:
   (domínio, `AppDbContext`, scaffolding) precisa estar mergeada antes de
   qualquer slice de Fase 1/2.
 
+## Comandos
+
+```bash
+# Tudo via Docker (web :3000, api :5000, db :5432)
+cp .env.example .env && docker compose up --build
+
+# Backend (precisa de PostgreSQL acessível; config via appsettings/user-secrets/env)
+cd backend/src/CartSchedule.Api && dotnet run     # migrations + seed dos turnos no startup; GET /health
+dotnet build backend/CartSchedule.Api.slnx
+dotnet ef migrations add <Nome> -o Infrastructure/Migrations   # rodar dentro de CartSchedule.Api
+
+# Frontend
+cd frontend && npm install
+VITE_API_URL=http://localhost:5000 npm run dev -- --port 3000   # 3000 = origem CORS padrão da API
+npm run build   # tsc -b && vite build
+npm run lint    # oxlint
+```
+
+Não há projeto de testes (backend nem frontend) por enquanto — validar com
+build/lint e rodando a aplicação.
+
+## Armadilhas
+
+- CORS da API libera só `Cors__FrontendOrigin` (padrão `http://localhost:3000`);
+  o Vite serve em 5173 por padrão — use `--port 3000` ou ajuste a variável.
+- `VITE_API_URL` é embutida no bundle **em build time**; mudar exige rebuild.
+- `ADMIN_SENHA_HASH` (hash do `PasswordHasher` do ASP.NET) contém `$`: no
+  `.env` do compose, escape cada `$` como `$$`.
+- No container da API as variáveis viram `ConnectionStrings__Default`,
+  `Admin__Usuario`, `Admin__SenhaHash`, `Jwt__ChaveSecreta`.
+
 ## Variáveis de ambiente sensíveis
 
 `POSTGRES_PASSWORD`, `ADMIN_USUARIO`, `ADMIN_SENHA_HASH`,

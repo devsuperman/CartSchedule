@@ -1,7 +1,18 @@
 import { useEffect, useState } from "react";
 import { apiFetch, ApiError } from "../../api/client";
-import { DIAS_SEMANA } from "../../constants/diasSemana";
-import { TURNOS } from "../../constants/turnos";
+import { Link } from "react-router-dom";
+import {
+  formatarDia,
+  formatarMes,
+  formatarTurno,
+  STATUS,
+  STATUS_BADGE_VARIANT,
+  STATUS_LABELS,
+} from "../../utils/formatacao";
+import { Card } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 /** Contrato de GET /api/solicitacoes (uma solicitação do publicador autenticado via token). */
 interface Solicitacao {
@@ -16,25 +27,9 @@ interface Solicitacao {
   criadoEm: string;
 }
 
-const STATUS_PENDENTE = 1;
-const STATUS_APROVADA = 2;
-const STATUS_REJEITADA = 3;
-const STATUS_CANCELADA = 4;
-
-const STATUS_LABELS: Record<number, string> = {
-  [STATUS_PENDENTE]: "Pendente",
-  [STATUS_APROVADA]: "Aprovada",
-  [STATUS_REJEITADA]: "Rejeitada",
-  [STATUS_CANCELADA]: "Cancelada",
-};
-
-function formatarMesReferencia(iso: string): string {
-  const data = new Date(`${iso}T00:00:00`);
-  if (Number.isNaN(data.getTime())) {
-    return iso;
-  }
-  return data.toLocaleDateString("pt-BR", { month: "long", year: "numeric" });
-}
+const STATUS_PENDENTE = STATUS.Pendente;
+const STATUS_APROVADA = STATUS.Aprovada;
+const STATUS_CANCELADA = STATUS.Cancelada;
 
 function formatarDataHora(iso: string): string {
   const data = new Date(iso);
@@ -42,15 +37,6 @@ function formatarDataHora(iso: string): string {
     return iso;
   }
   return data.toLocaleString("pt-BR");
-}
-
-function labelDiaSemana(diaSemana: number): string {
-  return DIAS_SEMANA.find((d) => d.valor === diaSemana)?.label ?? `Dia ${diaSemana}`;
-}
-
-function labelTurno(turnoId: number): string {
-  const turno = TURNOS.find((t) => t.id === turnoId);
-  return turno ? `${turno.horaInicio}–${turno.horaFim}` : `Turno ${turnoId}`;
 }
 
 export default function Historico() {
@@ -122,73 +108,86 @@ export default function Historico() {
     }
   }
 
-  return (
-    <section>
-      <h1>Meu histórico de solicitações</h1>
+  const porMes = new Map<string, Solicitacao[]>();
+  for (const solicitacao of solicitacoes ?? []) {
+    const lista = porMes.get(solicitacao.escalaMesReferencia) ?? [];
+    lista.push(solicitacao);
+    porMes.set(solicitacao.escalaMesReferencia, lista);
+  }
 
-      {carregando && <p>Carregando histórico...</p>}
+  return (
+    <section className="flex flex-col gap-4">
+      <div className="flex flex-col gap-1.5">
+        <h1>Meu histórico</h1>
+        <p className="text-muted-foreground">
+          Você pode cancelar um pedido pendente ou aprovado a qualquer momento.
+        </p>
+      </div>
+
+      {carregando && <p className="text-muted-foreground">Carregando histórico…</p>}
 
       {!carregando && erroCarregamento && (
-        <p role="alert" className="historico__erro">
-          {erroCarregamento}
-        </p>
+        <Alert variant="destructive">
+          <AlertDescription>{erroCarregamento}</AlertDescription>
+        </Alert>
       )}
 
       {!carregando && !erroCarregamento && solicitacoes && solicitacoes.length === 0 && (
-        <p>Nenhuma solicitação enviada ainda.</p>
+        <Card className="items-center gap-2 py-10 text-center text-muted-foreground">
+          <strong className="block text-[1.1rem] text-foreground">
+            Você ainda não fez nenhum pedido
+          </strong>
+          <Link to="/">Escolher horários</Link>
+        </Card>
       )}
 
-      {!carregando && !erroCarregamento && solicitacoes && solicitacoes.length > 0 && (
-        <table className="historico__tabela">
-          <thead>
-            <tr>
-              <th>Mês</th>
-              <th>Carrinho</th>
-              <th>Dia</th>
-              <th>Turno</th>
-              <th>Status</th>
-              <th>Enviado em</th>
-              <th aria-label="Ações"></th>
-            </tr>
-          </thead>
-          <tbody>
-            {solicitacoes.map((solicitacao) => {
+      {[...porMes.entries()].map(([mes, lista]) => (
+        <div key={mes} className="flex flex-col gap-4">
+          <h2 className="mt-2 text-base font-normal text-muted-foreground capitalize">
+            {formatarMes(mes)}
+          </h2>
+          <ul className="flex list-none flex-col gap-3 p-0">
+            {lista.map((solicitacao) => {
               const podeCancelar =
                 solicitacao.status === STATUS_PENDENTE || solicitacao.status === STATUS_APROVADA;
               const erroCancelamento = errosCancelamento[solicitacao.id];
 
               return (
-                <tr key={solicitacao.id}>
-                  <td>{formatarMesReferencia(solicitacao.escalaMesReferencia)}</td>
-                  <td>{solicitacao.carrinhoNome}</td>
-                  <td>{labelDiaSemana(solicitacao.diaSemana)}</td>
-                  <td>{labelTurno(solicitacao.turnoId)}</td>
-                  <td>{STATUS_LABELS[solicitacao.status] ?? `Status ${solicitacao.status}`}</td>
-                  <td>{formatarDataHora(solicitacao.criadoEm)}</td>
-                  <td>
-                    {podeCancelar && (
-                      <>
-                        <button
+                <li key={solicitacao.id}>
+                  <Card className="grid grid-cols-[1fr_auto] items-center gap-x-4 gap-y-1 p-4 sm:p-5">
+                    <span className="text-[1.05rem] font-bold">{solicitacao.carrinhoNome}</span>
+                    <span className="row-span-2 flex flex-col items-end gap-2">
+                      <Badge variant={STATUS_BADGE_VARIANT[solicitacao.status]}>
+                        {STATUS_LABELS[solicitacao.status] ?? `Status ${solicitacao.status}`}
+                      </Badge>
+                      {podeCancelar && (
+                        <Button
                           type="button"
+                          variant="destructive"
+                          size="sm"
                           onClick={() => void cancelarSolicitacao(solicitacao.id)}
                           disabled={cancelandoId === solicitacao.id}
                         >
-                          {cancelandoId === solicitacao.id ? "Cancelando..." : "Cancelar"}
-                        </button>
-                        {erroCancelamento && (
-                          <p role="alert" className="historico__erro historico__erro--linha">
-                            {erroCancelamento}
-                          </p>
-                        )}
-                      </>
+                          {cancelandoId === solicitacao.id ? "Cancelando…" : "Cancelar pedido"}
+                        </Button>
+                      )}
+                    </span>
+                    <span className="text-sm text-muted-foreground">
+                      {formatarDia(solicitacao.diaSemana)}, {formatarTurno(solicitacao.turnoId)}. Enviado em{" "}
+                      {formatarDataHora(solicitacao.criadoEm)}
+                    </span>
+                    {erroCancelamento && (
+                      <Alert variant="destructive" className="col-span-full py-2 text-[0.95rem]">
+                        <AlertDescription>{erroCancelamento}</AlertDescription>
+                      </Alert>
                     )}
-                  </td>
-                </tr>
+                  </Card>
+                </li>
               );
             })}
-          </tbody>
-        </table>
-      )}
+          </ul>
+        </div>
+      ))}
     </section>
   );
 }

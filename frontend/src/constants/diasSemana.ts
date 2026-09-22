@@ -9,10 +9,10 @@ export const DiaSemana = {
 
 export type DiaSemana = (typeof DiaSemana)[keyof typeof DiaSemana];
 
-export const DIAS_SEMANA: readonly { valor: DiaSemana; label: string }[] = [
-  { valor: DiaSemana.Segunda, label: "Segunda-feira" },
-  { valor: DiaSemana.Terca, label: "Terça-feira" },
-  { valor: DiaSemana.Quarta, label: "Quarta-feira" },
-  { valor: DiaSemana.Quinta, label: "Quinta-feira" },
-  { valor: DiaSemana.Sexta, label: "Sexta-feira" },
+export const DIAS_SEMANA: readonly { valor: DiaSemana; label: string; curto: string }[] = [
+  { valor: DiaSemana.Segunda, label: "Segunda-feira", curto: "Seg" },
+  { valor: DiaSemana.Terca, label: "Terça-feira", curto: "Ter" },
+  { valor: DiaSemana.Quarta, label: "Quarta-feira", curto: "Qua" },
+  { valor: DiaSemana.Quinta, label: "Quinta-feira", curto: "Qui" },
+  { valor: DiaSemana.Sexta, label: "Sexta-feira", curto: "Sex" },
 ];
