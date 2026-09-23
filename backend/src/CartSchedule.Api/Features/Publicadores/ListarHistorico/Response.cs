@@ -8,5 +8,4 @@ public record ListarHistoricoResponse(
     int DiaSemana,
     int TurnoId,
     int Status,
-    int Origem,
-    DateTimeOffset CriadoEm);
+    int Origem);
