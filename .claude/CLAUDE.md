@@ -1,6 +1,8 @@
 # CartSchedule — Contexto para Agentes
 
 Sistema web para organizar o uso de carrinhos de trabalho ao longo do mês.
+Na interface o sistema se chama **"Escala TPL"** — "CartSchedule" é só o
+nome interno (repo, namespaces, pastas); não renomear o código.
 Publicadores solicitam `(carrinho, dia da semana, turno)` em que querem
 trabalhar; um administrador aprova/rejeita e monta a escala mensal final
 (máx. 2 pessoas por combinação).
@@ -77,18 +79,22 @@ todas são intencionais, confirmadas no `PLANNING.md`:
    afetado pela janela).
 7. **Administrador não é limitado pela janela** — pode ver/aprovar/rejeitar/
    adicionar em qualquer escala (passada, atual, futura) a qualquer momento.
-8. **Cancelamento pelo publicador**: só pode cancelar uma solicitação sua
-   (Pendente ou Aprovada) **com a janela aberta e se ela for da escala do
-   mês-alvo** — validado também no backend. Fora da janela, a tela inicial
-   mostra um aviso no lugar do botão "Solicitar Nova Escala" e a lista fica
-   só leitura. O admin não tem "cancelar": ele pode reverter a decisão a
-   qualquer momento (Aprovada ↔ Rejeitada); Cancelada não é reativada.
+8. **Exclusão pelo publicador** (não existe "cancelar" nem status
+   Cancelada): só pode excluir uma solicitação sua (Pendente ou Aprovada)
+   **com a janela aberta e se ela for da escala do mês-alvo** — validado
+   também no backend (`DELETE /api/solicitacoes/{id}`, apaga o registro).
+   Fora da janela, a tela inicial mostra um aviso no lugar do botão
+   "Solicitar Nova Escala" e a lista fica só leitura. O admin não exclui:
+   ele pode reverter a decisão a qualquer momento (Aprovada ↔ Rejeitada).
    Recusas por janela fechada vêm com `codigo: "JANELA_FECHADA"` no
    ProblemDetails — o frontend decide por esse código, nunca por "qualquer 400".
 9. **Adição manual do admin**: nasce direto como `APROVADA`. Publicador por
    nome livre — se o nome bater exatamente com um existente, reusa o
    registro; senão, cria um novo (pequenas diferenças de grafia podem
    gerar registros distintos — é uma consequência aceita, não um bug).
+9a. **Carrinho** tem `Nome`, `Descricao` (opcional, exibida ao publicador
+    abaixo do nome no wizard) e `Ativo`; o admin pode editar nome e
+    descrição a qualquer momento.
 10. **Remover turno de um carrinho / desativar carrinho**: nunca altera ou
     remove `Solicitacao` já existentes — só afeta novos envios a partir dali.
 11. **Um único administrador**, sem múltiplos papéis/permissões — login

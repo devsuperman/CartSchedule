@@ -68,13 +68,13 @@ backend/
       Features/
         Publicadores/
           ConsultarJanela/           # GET  /api/janela
-          ListarCarrinhosDisponiveis/# GET  /api/carrinhos  (com turnos habilitados por carrinho)
+          ListarCarrinhosDisponiveis/# GET  /api/carrinhos  (id, nome, descricao, turnos habilitados por carrinho)
           CriarSolicitacao/          # POST /api/solicitacoes
-          ListarHistorico/           # GET  /api/solicitacoes?publicadorId=...
-          CancelarSolicitacao/       # POST /api/solicitacoes/{id}/cancelar
+          ListarHistorico/           # GET  /api/solicitacoes  (header X-Publicador-Token; sem data/hora do envio na resposta)
+          ExcluirSolicitacao/        # DELETE /api/solicitacoes/{id}  (apaga o registro; não há status Cancelada)
         Administradores/
           Login/                    # POST /api/admin/login
-          GerenciarCarrinhos/       # GET/POST/PUT /api/admin/carrinhos
+          GerenciarCarrinhos/       # GET/POST/PUT /api/admin/carrinhos  (nome, descricao opcional, ativo)
           GerenciarTurnosDoCarrinho/# GET/PUT       /api/admin/carrinhos/{id}/turnos (turnos em si são fixos, ver 2.4)
           RevisarEscala/
             ListarSolicitacoesAgrupadas/ # GET  /api/admin/escalas/{mes}/solicitacoes
@@ -143,7 +143,7 @@ partir da data atual do servidor, toda vez que uma requisição chega
 - Dia do mês entre 15 e 25 (inclusive) → janela aberta; escala-alvo = mês seguinte ao atual.
 - Fora desse intervalo → janela fechada.
 
-Requests recusados por a janela estar fechada (`CriarSolicitacao`, `CancelarSolicitacao`
+Requests recusados por a janela estar fechada (`CriarSolicitacao`, `ExcluirSolicitacao`
 do publicador) respondem 400 com a extensão `codigo: "JANELA_FECHADA"` no ProblemDetails
 (`JanelaDeEnvio.CodigoJanelaFechada`); o frontend usa esse código — e não o status 400,
 compartilhado com outros erros — para mostrar a tela de janela fechada. Uma falha ao
@@ -205,15 +205,15 @@ frontend/
         InicioPublicador.tsx      # tela inicial: histórico de mês atual + próximo; botão "Solicitar Nova Escala" (janela aberta) ou aviso de envio fechado
         SolicitarEscala.tsx       # decide entre JanelaFechada e o wizard, conforme useJanela()
         JanelaFechada.tsx         # tela exibida fora da janela de envio
-        wizard/                   # formulário em 4 etapas: nome → dia da semana → carrinho → turno
+        wizard/                   # formulário em 4 etapas: nome → dia da semana → carrinho (nome + descrição) → turno
         components/
-          SolicitacaoCard.tsx     # card de uma solicitação (status + cancelar, só com janela aberta e no mês-alvo)
+          SolicitacaoCard.tsx     # card de uma solicitação (status + excluir, só com janela aberta e no mês-alvo; sem data/hora)
           ErroJanela.tsx          # erro ao consultar /api/janela, com "tentar novamente"
       admin/
         Login.tsx
         RevisaoEscala.tsx         # solicitações agrupadas por carrinho/dia/turno + desempate
         AdicionarSolicitacao.tsx  # adição manual
-        GestaoCarrinhos.tsx       # cadastro de carrinhos e associação com os 6 turnos fixos
+        GestaoCarrinhos.tsx       # cadastro/edição de carrinhos (nome, descrição) e associação com os 6 turnos fixos
         EscalaFinal.tsx           # grade final do mês
     hooks/
       usePublicadorToken.ts       # lê/gera o token e o nome salvos no localStorage
@@ -228,7 +228,7 @@ frontend/
 
 ### 3.3 Duas áreas da aplicação
 
-- **Área do Publicador** (`/`): fluxo mobile-first (a maioria acessa pelo celular) — nome, carrinho, dia da semana, turno, envio, histórico com cancelamento. Sem login.
+- **Área do Publicador** (`/`): fluxo mobile-first (a maioria acessa pelo celular) — nome, carrinho, dia da semana, turno, envio, histórico com exclusão. Sem login.
 - **Área do Administrador** (`/admin/*`): protegida por login (JWT armazenado no cliente); painel de revisão de escala, gestão de carrinhos (com associação aos turnos fixos) e escala final.
 
 ## 4. Banco de Dados — PostgreSQL
@@ -238,11 +238,11 @@ Tabelas espelhando o modelo de dados do `PLANNING.md` (seção 9):
 | Tabela | Colunas principais |
 |---|---|
 | `publicadores` | `id` (uuid/token), `nome` |
-| `carrinhos` | `id`, `nome`, `ativo` |
+| `carrinhos` | `id`, `nome`, `descricao` (opcional, até 500), `ativo` |
 | `turnos` | `id`, `hora_inicio`, `hora_fim` — **tabela com dado fixo (seed)**, sempre as mesmas 6 linhas, sem endpoint de criação/edição |
 | `carrinho_turnos` | `carrinho_id`, `turno_id` (PK composta) |
 | `escalas` | `id`, `mes_referencia` (ex: `2026-10-01`, primeiro dia do mês) |
-| `solicitacoes` | `id`, `publicador_id`, `escala_id`, `carrinho_id`, `dia_semana`, `turno_id`, `status`, `origem`, `criado_em`, `decidido_em` |
+| `solicitacoes` | `id`, `publicador_id`, `escala_id`, `carrinho_id`, `dia_semana`, `turno_id`, `status` (1=Pendente, 2=Aprovada, 3=Rejeitada — não há Cancelada), `origem`, `criado_em`, `decidido_em` |
 
 Índices/constraints relevantes:
 - Único: `(publicador_id, escala_id, carrinho_id, dia_semana, turno_id)` em `solicitacoes` (regra 10 — bloqueio de duplicidade).
