@@ -85,7 +85,7 @@ export function Layout({ children }: PropsWithChildren) {
       </a>
       <header className="bg-secondary text-secondary-foreground">
         <div className="mx-auto flex max-w-4xl flex-wrap items-end gap-x-8 px-4 pt-3">
-          <span className="pb-3 text-[1.15rem] font-bold">CartSchedule</span>
+          <span className="pb-3 text-[1.15rem] font-bold">Escala TPL</span>
           <Navegacao admin={admin} />
         </div>
       </header>
