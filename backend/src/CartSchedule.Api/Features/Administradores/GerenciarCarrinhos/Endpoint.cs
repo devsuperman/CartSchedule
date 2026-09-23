@@ -7,7 +7,7 @@ using Microsoft.EntityFrameworkCore;
 namespace CartSchedule.Api.Features.Administradores.GerenciarCarrinhos;
 
 /// <summary>
-/// CRUD de Carrinho (nome, ativo) para o administrador. A associação com os turnos fixos
+/// CRUD de Carrinho (nome, descrição opcional, ativo) para o administrador. A associação com os turnos fixos
 /// do sistema é responsabilidade do slice GerenciarTurnosDoCarrinho — aqui, TurnoIds é
 /// apenas um campo de leitura de conveniência.
 /// </summary>
@@ -36,6 +36,7 @@ public static class Endpoint
             .Select(c => new CarrinhoResponse(
                 c.Id,
                 c.Nome,
+                c.Descricao,
                 c.Ativo,
                 c.CarrinhoTurnos.Select(ct => ct.TurnoId).ToList()))
             .ToListAsync();
@@ -49,13 +50,15 @@ public static class Endpoint
         var carrinho = new Carrinho
         {
             Nome = request.Nome,
+            Descricao = NormalizarDescricao(request.Descricao),
             Ativo = true,
         };
 
         db.Carrinhos.Add(carrinho);
         await db.SaveChangesAsync();
 
-        var response = new CarrinhoResponse(carrinho.Id, carrinho.Nome, carrinho.Ativo, []);
+        var response = new CarrinhoResponse(
+            carrinho.Id, carrinho.Nome, carrinho.Descricao, carrinho.Ativo, []);
 
         return TypedResults.Created($"/api/admin/carrinhos/{carrinho.Id}", response);
     }
@@ -73,6 +76,7 @@ public static class Endpoint
         }
 
         carrinho.Nome = request.Nome;
+        carrinho.Descricao = NormalizarDescricao(request.Descricao);
         carrinho.Ativo = request.Ativo;
 
         await db.SaveChangesAsync();
@@ -80,9 +84,17 @@ public static class Endpoint
         var response = new CarrinhoResponse(
             carrinho.Id,
             carrinho.Nome,
+            carrinho.Descricao,
             carrinho.Ativo,
             carrinho.CarrinhoTurnos.Select(ct => ct.TurnoId).ToList());
 
         return TypedResults.Ok(response);
     }
+
+    /// <summary>
+    /// Descrição em branco (ou só espaços) é gravada como null; caso contrário, sem
+    /// espaços nas pontas.
+    /// </summary>
+    private static string? NormalizarDescricao(string? descricao) =>
+        string.IsNullOrWhiteSpace(descricao) ? null : descricao.Trim();
 }

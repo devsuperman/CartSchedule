@@ -45,13 +45,25 @@ export function EtapaCarrinho({ carrinhos, carregando, erro, valor, onSelecionar
           role="radio"
           aria-checked={valor === c.id}
           className={cn(
-            "w-full justify-start text-left text-base",
+            // Altura automática + whitespace-normal: a descrição pode quebrar linha em telas
+            // estreitas (o botão padrão é de uma linha só, h-12 + whitespace-nowrap).
+            "h-auto min-h-12 w-full flex-col items-start justify-center gap-0.5 whitespace-normal py-3 text-left text-base",
             valor === c.id &&
               "border-primary bg-primary text-primary-foreground hover:bg-primary/90",
           )}
           onClick={() => onSelecionar(c.id)}
         >
-          {c.nome}
+          <span className="break-words">{c.nome}</span>
+          {c.descricao?.trim() && (
+            <span
+              className={cn(
+                "break-words text-sm font-normal",
+                valor === c.id ? "text-primary-foreground/90" : "text-muted-foreground",
+              )}
+            >
+              {c.descricao}
+            </span>
+          )}
         </Button>
       ))}
     </div>
