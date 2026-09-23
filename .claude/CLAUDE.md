@@ -77,8 +77,14 @@ todas são intencionais, confirmadas no `PLANNING.md`:
    afetado pela janela).
 7. **Administrador não é limitado pela janela** — pode ver/aprovar/rejeitar/
    adicionar em qualquer escala (passada, atual, futura) a qualquer momento.
-8. **Cancelamento pelo publicador**: pode cancelar qualquer solicitação
-   sua (Pendente ou Aprovada) a qualquer momento, sem restrição de prazo.
+8. **Cancelamento pelo publicador**: só pode cancelar uma solicitação sua
+   (Pendente ou Aprovada) **com a janela aberta e se ela for da escala do
+   mês-alvo** — validado também no backend. Fora da janela, a tela inicial
+   mostra um aviso no lugar do botão "Solicitar Nova Escala" e a lista fica
+   só leitura. O admin não tem "cancelar": ele pode reverter a decisão a
+   qualquer momento (Aprovada ↔ Rejeitada); Cancelada não é reativada.
+   Recusas por janela fechada vêm com `codigo: "JANELA_FECHADA"` no
+   ProblemDetails — o frontend decide por esse código, nunca por "qualquer 400".
 9. **Adição manual do admin**: nasce direto como `APROVADA`. Publicador por
    nome livre — se o nome bater exatamente com um existente, reusa o
    registro; senão, cria um novo (pequenas diferenças de grafia podem

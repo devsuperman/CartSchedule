@@ -10,6 +10,12 @@ namespace CartSchedule.Api.Shared;
 /// </summary>
 public static class JanelaDeEnvio
 {
+    /// <summary>
+    /// Valor da extensão "codigo" do ProblemDetails quando um request é recusado por estar
+    /// fora da janela — o frontend decide por ele, nunca pelo status HTTP ou pelo texto.
+    /// </summary>
+    public const string CodigoJanelaFechada = "JANELA_FECHADA";
+
     private const int DiaAbertura = 15;
     private const int DiaFechamento = 25;
 

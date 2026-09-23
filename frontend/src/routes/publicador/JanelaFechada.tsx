@@ -23,8 +23,8 @@ export default function JanelaFechada() {
         Os pedidos para a escala do mês seguinte podem ser enviados do dia 15 ao dia 25 de cada
         mês.
       </p>
-      <Link to="/historico" className={cn(buttonVariants({ variant: "outline" }), "mt-2")}>
-        Ver meu histórico
+      <Link to="/" className={cn(buttonVariants({ variant: "outline" }), "mt-2")}>
+        Voltar para o início
       </Link>
     </Card>
   );

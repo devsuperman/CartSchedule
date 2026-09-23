@@ -1,13 +1,16 @@
 using CartSchedule.Api.Domain.Enums;
 using CartSchedule.Api.Infrastructure;
+using CartSchedule.Api.Shared;
 using Microsoft.EntityFrameworkCore;
 
 namespace CartSchedule.Api.Features.Publicadores.CancelarSolicitacao;
 
 /// <summary>
-/// POST /api/solicitacoes/{id}/cancelar — regras 8/12 (PLANNING.md): o publicador pode
-/// cancelar qualquer solicitação sua (Pendente ou Aprovada), a qualquer momento, sem
-/// restrição de prazo. Identificação via header X-Publicador-Token (GUID = Publicador.Id).
+/// POST /api/solicitacoes/{id}/cancelar — regra 8 (PLANNING.md): o publicador só pode
+/// cancelar uma solicitação sua (Pendente ou Aprovada) enquanto a janela de envio está
+/// aberta e apenas se ela for da escala do mês-alvo. Fora disso, só o administrador mexe
+/// na solicitação (aprovando/rejeitando). Identificação via header X-Publicador-Token
+/// (GUID = Publicador.Id).
 /// </summary>
 public static class Endpoint
 {
@@ -23,7 +26,9 @@ public static class Endpoint
                     statusCode: StatusCodes.Status400BadRequest);
             }
 
-            var solicitacao = await db.Solicitacoes.FirstOrDefaultAsync(s => s.Id == id);
+            var solicitacao = await db.Solicitacoes
+                .Include(s => s.Escala)
+                .FirstOrDefaultAsync(s => s.Id == id);
 
             if (solicitacao is null)
             {
@@ -42,6 +47,24 @@ public static class Endpoint
                 return Results.Problem(
                     detail: "Só é possível cancelar solicitações Pendentes ou Aprovadas.",
                     statusCode: StatusCodes.Status409Conflict);
+            }
+
+            var janela = JanelaDeEnvio.CalcularParaHoje();
+            if (!janela.Aberta)
+            {
+                return Results.Problem(
+                    title: "Janela de envio fechada",
+                    detail: "Solicitações só podem ser canceladas entre os dias 15 e 25 do mês. Fora desse período, fale com o administrador.",
+                    statusCode: StatusCodes.Status400BadRequest,
+                    extensions: new Dictionary<string, object?> { ["codigo"] = JanelaDeEnvio.CodigoJanelaFechada });
+            }
+
+            if (solicitacao.Escala.MesReferencia != janela.MesAlvo)
+            {
+                return Results.Problem(
+                    title: "Solicitação fora da escala em aberto",
+                    detail: "Só é possível cancelar solicitações da escala do próximo mês. Para as demais, fale com o administrador.",
+                    statusCode: StatusCodes.Status400BadRequest);
             }
 
             solicitacao.Status = StatusSolicitacao.Cancelada;

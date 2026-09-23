@@ -45,7 +45,10 @@ const ORIGEM_LABELS: Record<number, string> = {
   2: "Administrador",
 };
 
-const STATUS_PENDENTE = STATUS.Pendente;
+// O admin pode rever a decisão a qualquer momento (Aprovada <-> Rejeitada); Cancelada foi
+// desistência do publicador e não é reativada.
+const PODE_APROVAR: readonly number[] = [STATUS.Pendente, STATUS.Rejeitada];
+const PODE_REJEITAR: readonly number[] = [STATUS.Pendente, STATUS.Aprovada];
 
 function mensagemErro(erro: unknown, fallback: string): string {
   return erro instanceof ApiError ? erro.message : fallback;
@@ -229,27 +232,27 @@ export default function RevisaoEscala() {
                     <Badge variant={STATUS_BADGE_VARIANT[solicitacao.status]}>
                       {STATUS_LABELS[solicitacao.status] ?? "Desconhecido"}
                     </Badge>
-                    {solicitacao.status === STATUS_PENDENTE && (
-                      <>
-                        <Button
-                          type="button"
-                          variant="success"
-                          size="sm"
-                          disabled={processando[solicitacao.id] === true}
-                          onClick={() => decidir(solicitacao.id, "aprovar")}
-                        >
-                          Aprovar
-                        </Button>
-                        <Button
-                          type="button"
-                          variant="destructive"
-                          size="sm"
-                          disabled={processando[solicitacao.id] === true}
-                          onClick={() => decidir(solicitacao.id, "rejeitar")}
-                        >
-                          Rejeitar
-                        </Button>
-                      </>
+                    {PODE_APROVAR.includes(solicitacao.status) && (
+                      <Button
+                        type="button"
+                        variant="success"
+                        size="sm"
+                        disabled={processando[solicitacao.id] === true}
+                        onClick={() => decidir(solicitacao.id, "aprovar")}
+                      >
+                        Aprovar
+                      </Button>
+                    )}
+                    {PODE_REJEITAR.includes(solicitacao.status) && (
+                      <Button
+                        type="button"
+                        variant="destructive"
+                        size="sm"
+                        disabled={processando[solicitacao.id] === true}
+                        onClick={() => decidir(solicitacao.id, "rejeitar")}
+                      >
+                        Rejeitar
+                      </Button>
                     )}
                   </div>
                   {errosAcao[solicitacao.id] && (

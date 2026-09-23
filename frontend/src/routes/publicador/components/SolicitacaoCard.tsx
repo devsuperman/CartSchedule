@@ -1,0 +1,87 @@
+import { Card } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import {
+  formatarDia,
+  formatarTurno,
+  STATUS,
+  STATUS_BADGE_VARIANT,
+  STATUS_LABELS,
+} from "../../../utils/formatacao";
+
+/** Contrato de GET /api/solicitacoes (uma solicitação do publicador autenticado via token). */
+export interface Solicitacao {
+  id: number;
+  escalaMesReferencia: string;
+  carrinhoId: number;
+  carrinhoNome: string;
+  diaSemana: number;
+  turnoId: number;
+  status: number;
+  origem: number;
+  criadoEm: string;
+}
+
+function formatarDataHora(iso: string): string {
+  const data = new Date(iso);
+  if (Number.isNaN(data.getTime())) {
+    return iso;
+  }
+  return data.toLocaleString("pt-BR");
+}
+
+interface SolicitacaoCardProps {
+  solicitacao: Solicitacao;
+  /** Janela aberta e solicitação da escala do mês-alvo — decidido pela tela, que conhece a janela. */
+  cancelamentoPermitido: boolean;
+  cancelando: boolean;
+  erro?: string;
+  onCancelar: (id: number) => void;
+}
+
+/** Card de uma solicitação do publicador: dados + badge de status + botão de cancelar,
+ * quando Pendente/Aprovada e o cancelamento é permitido — só com a janela aberta e para a
+ * escala do mês-alvo (PLANNING.md regra 8). Fora disso, só o administrador mexe no pedido. */
+export function SolicitacaoCard({
+  solicitacao,
+  cancelamentoPermitido,
+  cancelando,
+  erro,
+  onCancelar,
+}: SolicitacaoCardProps) {
+  const podeCancelar =
+    cancelamentoPermitido &&
+    (solicitacao.status === STATUS.Pendente || solicitacao.status === STATUS.Aprovada);
+
+  return (
+    <Card className="grid grid-cols-[1fr_auto] items-center gap-x-4 gap-y-1 p-4 sm:p-5">
+      <span className="text-[1.05rem] font-bold">{solicitacao.carrinhoNome}</span>
+      <span className="row-span-2 flex flex-col items-end gap-2">
+        <Badge variant={STATUS_BADGE_VARIANT[solicitacao.status]}>
+          {STATUS_LABELS[solicitacao.status] ?? `Status ${solicitacao.status}`}
+        </Badge>
+        {podeCancelar && (
+          <Button
+            type="button"
+            variant="destructive"
+            size="sm"
+            onClick={() => onCancelar(solicitacao.id)}
+            disabled={cancelando}
+          >
+            {cancelando ? "Cancelando…" : "Cancelar pedido"}
+          </Button>
+        )}
+      </span>
+      <span className="text-sm text-muted-foreground">
+        {formatarDia(solicitacao.diaSemana)}, {formatarTurno(solicitacao.turnoId)}. Enviado em{" "}
+        {formatarDataHora(solicitacao.criadoEm)}
+      </span>
+      {erro && (
+        <Alert variant="destructive" className="col-span-full py-2 text-[0.95rem]">
+          <AlertDescription>{erro}</AlertDescription>
+        </Alert>
+      )}
+    </Card>
+  );
+}
