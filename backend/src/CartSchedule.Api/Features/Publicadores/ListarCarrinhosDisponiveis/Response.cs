@@ -5,4 +5,4 @@ namespace CartSchedule.Api.Features.Publicadores.ListarCarrinhosDisponiveis;
 /// dos 6 turnos fixos localmente (constants/turnos.ts) e faz o join por id
 /// (TECHNICAL_SPEC.md §2.4), evitando uma segunda chamada à API.
 /// </summary>
-public record CarrinhoDisponivelResponse(int Id, string Nome, List<int> TurnoIds);
+public record CarrinhoDisponivelResponse(int Id, string Nome, string? Descricao, List<int> TurnoIds);
