@@ -15,10 +15,11 @@ import { EtapaDiaSemana } from "./EtapaDiaSemana";
 import { EtapaCarrinho } from "./EtapaCarrinho";
 import { EtapaTurno } from "./EtapaTurno";
 
-/** Contrato de GET /api/carrinhos (TECHNICAL_SPEC.md, tarefa F1-BE-02). */
+/** Contrato de GET /api/carrinhos (TECHNICAL_SPEC.md, tarefas F1-BE-02/F5-BE-01). */
 export interface Carrinho {
   id: number;
   nome: string;
+  descricao: string | null;
   turnoIds: number[];
 }
 
