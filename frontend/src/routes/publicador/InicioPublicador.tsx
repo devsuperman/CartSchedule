@@ -1,0 +1,171 @@
+import { useEffect, useState } from "react";
+import { Link, Navigate } from "react-router-dom";
+import { apiFetch, ApiError } from "../../api/client";
+import { useJanela } from "../../hooks/useJanela";
+import { usePublicadorToken } from "../../hooks/usePublicadorToken";
+import { formatarMes, STATUS } from "../../utils/formatacao";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { SolicitacaoCard, type Solicitacao } from "./components/SolicitacaoCard";
+import { ErroJanela } from "./components/ErroJanela";
+
+function primeiroDiaDoMesAtualIso(): string {
+  const agora = new Date();
+  return `${agora.getFullYear()}-${String(agora.getMonth() + 1).padStart(2, "0")}-01`;
+}
+
+/**
+ * Rota "/": tela inicial do publicador. Mostra os pedidos do mês atual e do próximo
+ * (mesAlvo). Com a janela aberta, há um botão para solicitar uma nova escala e os pedidos
+ * do mês-alvo podem ser cancelados; com ela fechada, um aviso toma o lugar do botão e a
+ * lista fica só para leitura (PLANNING.md regra 8). Se o publicador nunca fez nenhuma
+ * solicitação e a janela está aberta, redireciona automaticamente para "/solicitar" —
+ * sem precisar clicar em nada (fluxo de primeiro acesso).
+ *
+ * Meses mais antigos não têm mais tela própria: essa é uma simplificação de produto
+ * deliberada, não uma violação da regra de histórico "sempre acessível" do
+ * PLANNING.md — os dados continuam no banco, só não há mais UI para eles.
+ */
+export default function InicioPublicador() {
+  // Gera o token no primeiro acesso antes do GET /api/solicitacoes abaixo — sem ele o
+  // backend responde 400 e o redirecionamento de primeiro acesso nunca acontece.
+  usePublicadorToken();
+  const {
+    janela,
+    carregando: carregandoJanela,
+    erro: erroJanela,
+    tentarNovamente: tentarJanelaNovamente,
+  } = useJanela();
+  const [solicitacoes, setSolicitacoes] = useState<Solicitacao[] | null>(null);
+  const [carregandoSolicitacoes, setCarregandoSolicitacoes] = useState(true);
+  const [erro, setErro] = useState<string | null>(null);
+  const [cancelandoId, setCancelandoId] = useState<number | null>(null);
+  const [errosCancelamento, setErrosCancelamento] = useState<Record<number, string>>({});
+
+  useEffect(() => {
+    let cancelado = false;
+
+    apiFetch<Solicitacao[]>("/api/solicitacoes")
+      .then((resposta) => {
+        if (!cancelado) setSolicitacoes(resposta);
+      })
+      .catch((err: unknown) => {
+        if (!cancelado) {
+          setErro(err instanceof ApiError ? err.message : "Não foi possível carregar seu histórico.");
+        }
+      })
+      .finally(() => {
+        if (!cancelado) setCarregandoSolicitacoes(false);
+      });
+
+    return () => {
+      cancelado = true;
+    };
+  }, []);
+
+  async function cancelarSolicitacao(id: number) {
+    setCancelandoId(id);
+    setErrosCancelamento((prev) => {
+      const { [id]: _removido, ...resto } = prev;
+      return resto;
+    });
+
+    try {
+      await apiFetch(`/api/solicitacoes/${id}/cancelar`, { method: "POST" });
+      setSolicitacoes((prev) =>
+        prev ? prev.map((s) => (s.id === id ? { ...s, status: STATUS.Cancelada } : s)) : prev,
+      );
+    } catch (err) {
+      const mensagem =
+        err instanceof ApiError ? err.message : "Não foi possível cancelar a solicitação. Tente novamente.";
+      setErrosCancelamento((prev) => ({ ...prev, [id]: mensagem }));
+    } finally {
+      setCancelandoId(null);
+    }
+  }
+
+  // Espera os dois carregamentos (rodam em paralelo) antes de decidir qualquer coisa,
+  // para não mostrar a Home vazia por uma fração de segundo antes de redirecionar.
+  if (carregandoJanela || carregandoSolicitacoes) {
+    return (
+      <p className="text-muted-foreground" role="status">
+        Carregando…
+      </p>
+    );
+  }
+
+  if (janela?.aberta && solicitacoes && solicitacoes.length === 0) {
+    return <Navigate to="/solicitar" replace />;
+  }
+
+  const mesesRelevantes = new Set(
+    [primeiroDiaDoMesAtualIso(), janela?.mesAlvo].filter((v): v is string => Boolean(v)),
+  );
+  const relevantes = (solicitacoes ?? []).filter((s) => mesesRelevantes.has(s.escalaMesReferencia));
+
+  const porMes = new Map<string, Solicitacao[]>();
+  for (const s of relevantes) {
+    const lista = porMes.get(s.escalaMesReferencia) ?? [];
+    lista.push(s);
+    porMes.set(s.escalaMesReferencia, lista);
+  }
+
+  return (
+    <section className="flex flex-col gap-4">
+      <div className="flex flex-col gap-1.5">
+        <h1>Minhas escalas</h1>
+        <p className="text-muted-foreground">Pedidos deste mês e do próximo.</p>
+      </div>
+
+      {erroJanela || !janela ? (
+        <ErroJanela onTentarNovamente={tentarJanelaNovamente} />
+      ) : janela.aberta ? (
+        <Button asChild size="lg" className="w-full">
+          <Link to="/solicitar">Solicitar Nova Escala</Link>
+        </Button>
+      ) : (
+        <Alert>
+          <AlertTitle>Envio de pedidos fechado</AlertTitle>
+          <AlertDescription>
+            Os pedidos podem ser enviados do dia 15 ao dia 25 de cada mês. Fora desse período,
+            para cancelar um pedido, fale com o administrador.
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {erro && (
+        <Alert variant="destructive">
+          <AlertDescription>{erro}</AlertDescription>
+        </Alert>
+      )}
+
+      {!erro && relevantes.length === 0 && (
+        <Card className="items-center gap-2 py-10 text-center text-muted-foreground">
+          Nenhum pedido seu neste mês ou no próximo ainda.
+        </Card>
+      )}
+
+      {[...porMes.entries()].map(([mes, lista]) => (
+        <div key={mes} className="flex flex-col gap-4">
+          <h2 className="mt-2 text-base font-normal text-muted-foreground capitalize">
+            {formatarMes(mes)}
+          </h2>
+          <ul className="flex list-none flex-col gap-3 p-0">
+            {lista.map((s) => (
+              <li key={s.id}>
+                <SolicitacaoCard
+                  solicitacao={s}
+                  cancelamentoPermitido={janela?.aberta === true && mes === janela.mesAlvo}
+                  cancelando={cancelandoId === s.id}
+                  erro={errosCancelamento[s.id]}
+                  onCancelar={cancelarSolicitacao}
+                />
+              </li>
+            ))}
+          </ul>
+        </div>
+      ))}
+    </section>
+  );
+}

@@ -37,7 +37,8 @@ public static class Endpoint
             return Results.Problem(
                 title: "Janela de envio fechada",
                 detail: "O envio de novas solicitações só é permitido entre os dias 15 e 25 do mês.",
-                statusCode: StatusCodes.Status400BadRequest);
+                statusCode: StatusCodes.Status400BadRequest,
+                extensions: new Dictionary<string, object?> { ["codigo"] = JanelaDeEnvio.CodigoJanelaFechada });
         }
 
         var turnoPertenceAoCarrinho = await db.CarrinhoTurnos

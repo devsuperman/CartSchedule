@@ -143,6 +143,13 @@ partir da data atual do servidor, toda vez que uma requisição chega
 - Dia do mês entre 15 e 25 (inclusive) → janela aberta; escala-alvo = mês seguinte ao atual.
 - Fora desse intervalo → janela fechada.
 
+Requests recusados por a janela estar fechada (`CriarSolicitacao`, `CancelarSolicitacao`
+do publicador) respondem 400 com a extensão `codigo: "JANELA_FECHADA"` no ProblemDetails
+(`JanelaDeEnvio.CodigoJanelaFechada`); o frontend usa esse código — e não o status 400,
+compartilhado com outros erros — para mostrar a tela de janela fechada. Uma falha ao
+consultar `GET /api/janela` nunca é tratada como janela fechada: a interface mostra o erro
+com opção de tentar de novo.
+
 A entidade `Escala` (mês de referência) é criada **sob demanda** (lazy) na primeira vez que é referenciada — seja pelo primeiro envio de um publicador, seja pela primeira ação do administrador naquele mês.
 
 ### 2.6 Persistência
@@ -195,9 +202,13 @@ frontend/
       administradores.ts
     routes/
       publicador/
-        NovaSolicitacao.tsx       # formulário: nome, carrinho, dia da semana, turno
-        Historico.tsx             # lista + cancelamento
+        InicioPublicador.tsx      # tela inicial: histórico de mês atual + próximo; botão "Solicitar Nova Escala" (janela aberta) ou aviso de envio fechado
+        SolicitarEscala.tsx       # decide entre JanelaFechada e o wizard, conforme useJanela()
         JanelaFechada.tsx         # tela exibida fora da janela de envio
+        wizard/                   # formulário em 4 etapas: nome → dia da semana → carrinho → turno
+        components/
+          SolicitacaoCard.tsx     # card de uma solicitação (status + cancelar, só com janela aberta e no mês-alvo)
+          ErroJanela.tsx          # erro ao consultar /api/janela, com "tentar novamente"
       admin/
         Login.tsx
         RevisaoEscala.tsx         # solicitações agrupadas por carrinho/dia/turno + desempate

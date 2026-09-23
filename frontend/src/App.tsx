@@ -9,22 +9,11 @@ import GestaoCarrinhos from "./routes/admin/GestaoCarrinhos";
 import RevisaoEscala from "./routes/admin/RevisaoEscala";
 import AdicionarSolicitacao from "./routes/admin/AdicionarSolicitacao";
 import EscalaFinal from "./routes/admin/EscalaFinal";
-import NovaSolicitacao from "./routes/publicador/NovaSolicitacao";
-import Historico from "./routes/publicador/Historico";
-import JanelaFechada from "./routes/publicador/JanelaFechada";
+import InicioPublicador from "./routes/publicador/InicioPublicador";
+import SolicitarEscala from "./routes/publicador/SolicitarEscala";
 
 function mesParam(mesAlvoIso: string): string {
   return mesAlvoIso.slice(0, 7);
-}
-
-function PublicadorHome() {
-  const { janela, carregando } = useJanela();
-
-  if (carregando) {
-    return <p className="text-muted-foreground">Carregando…</p>;
-  }
-
-  return janela?.aberta ? <NovaSolicitacao /> : <JanelaFechada />;
 }
 
 function AdminHome() {
@@ -96,8 +85,8 @@ export default function App() {
     <BrowserRouter>
       <Layout>
         <Routes>
-          <Route path="/" element={<PublicadorHome />} />
-          <Route path="/historico" element={<Historico />} />
+          <Route path="/" element={<InicioPublicador />} />
+          <Route path="/solicitar" element={<SolicitarEscala />} />
           <Route path="/admin/login" element={<Login />} />
           <Route
             path="/admin"

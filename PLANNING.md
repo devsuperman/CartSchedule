@@ -69,7 +69,7 @@ semana, por turno**.
 6. Pode repetir os passos 3–5 para pedir mais de uma combinação na mesma escala (ex: Carrinho A / Segunda / Manhã **e** Carrinho B / Quinta / Tarde). O mês/escala já está implícito (é sempre o mês seguinte, definido automaticamente pela janela aberta).
 7. Revisa e **envia** as solicitações.
 8. A qualquer momento (mesmo fora da janela de envio), pode acessar a tela de **histórico** e ver o status de cada solicitação que enviou: *Pendente*, *Aprovada*, *Rejeitada* ou *Cancelada*.
-9. Nessa mesma tela de histórico, pode **cancelar** qualquer solicitação sua — esteja ela Pendente ou já Aprovada — a qualquer momento.
+9. Nessa mesma tela de histórico, pode **cancelar** uma solicitação sua — esteja ela Pendente ou já Aprovada — **somente enquanto a janela de envio estiver aberta e apenas para a escala do mês-alvo**. Fora disso, só o administrador altera a solicitação.
 
 Regra de duplicidade: o mesmo publicador não pode enviar duas vezes a
 mesma combinação `(escala, carrinho, dia da semana, turno)`.
@@ -133,7 +133,8 @@ mesma combinação `(escala, carrinho, dia da semana, turno)`.
 9. **Identificação do publicador**: não há cadastro com login e senha — o nome é informado livremente, tanto no envio do publicador quanto na adição manual pelo administrador.
 10. **Bloqueio de duplicidade (único bloqueio automático do sistema)**: um publicador não pode ter duas solicitações para a mesma combinação `(escala, carrinho, dia da semana, turno)`. Ao tentar enviar uma solicitação idêntica a uma já existente sua, o sistema recusa o novo envio. Vale tanto para o envio normal do publicador quanto para uma adição manual feita pelo administrador em nome dele. Este é o único bloqueio automático de todo o sistema — o limite de 2 por trinca (regras 1 e 3) **não** é bloqueado, apenas sinalizado.
 11. **Histórico de solicitações**: o publicador deve conseguir consultar as solicitações que ele mesmo enviou (e o status de cada uma — pendente/aprovada/rejeitada/cancelada), sem precisar de cadastro formal. Essa consulta fica **sempre disponível**, mesmo fora da janela de envio (dia 26 ao dia 14). A forma de identificá-lo para isso será definida na fase de implementação.
-12. **Cancelamento pelo publicador**: através da tela de histórico, o publicador pode cancelar qualquer solicitação sua, esteja ela Pendente ou já Aprovada, **a qualquer momento e sem restrição de prazo** — inclusive depois que o mês da escala já começou ou já terminou. Uma solicitação Aprovada que é cancelada libera a vaga que ocupava na trinca `(carrinho, dia da semana, turno)`.
+12. **Cancelamento pelo publicador**: através da tela de histórico, o publicador pode cancelar uma solicitação sua, esteja ela Pendente ou já Aprovada, **somente enquanto a janela de envio estiver aberta (dia 15 ao 25) e apenas se ela for da escala do mês-alvo** — solicitações do mês corrente ou de meses passados não podem mais ser canceladas por ele. Fora da janela, a tela inicial não oferece o envio nem o cancelamento e orienta o publicador a falar com o administrador. O bloqueio vale também no backend. Uma solicitação Aprovada que é cancelada libera a vaga que ocupava na trinca `(carrinho, dia da semana, turno)`.
+12a. **Decisão do administrador é reversível**: o administrador pode, a qualquer momento, rejeitar uma solicitação já Aprovada ou aprovar uma já Rejeitada (é assim que ele tira alguém da escala — não há ação de "cancelar" para o administrador). Uma solicitação Cancelada pelo publicador não pode ser reativada.
 13. **Critério de desempate exclusivo do administrador**: quando há mais de 2 solicitações para a mesma trinca, a escolha de quais aprovar é inteiramente do administrador — o sistema não sugere nem aplica nenhum critério. Como apoio (não como critério imposto), o sistema mostra quantas solicitações (pendentes + aprovadas) cada publicador envolvido já tem na mesma escala (regra 16).
 14. **Sem notificações**: o sistema não envia avisos (e-mail, push, etc.) ao publicador sobre o status de suas solicitações; ele consulta o histórico quando quiser.
 15. **Um único administrador**: não há necessidade de múltiplos administradores nem de controle de acesso por diferentes papéis administrativos.
@@ -150,9 +151,12 @@ PENDENTE ──(admin aprova)──► APROVADA
     │
     ├──(admin rejeita)──► REJEITADA
     │
-    └──(publicador cancela)──► CANCELADA
+    └──(publicador cancela, só com a janela aberta e na escala do mês-alvo)──► CANCELADA
 
-APROVADA ──(publicador cancela)──► CANCELADA
+APROVADA ──(admin rejeita)──► REJEITADA
+REJEITADA ──(admin aprova)──► APROVADA
+
+APROVADA ──(publicador cancela, só com a janela aberta e na escala do mês-alvo)──► CANCELADA
 
 (criada pelo Administrador entra direto como APROVADA)
 ```
@@ -160,7 +164,7 @@ APROVADA ──(publicador cancela)──► CANCELADA
 - **Pendente**: recém-enviada por um publicador, aguardando decisão do administrador.
 - **Aprovada**: confere vaga na escala mensal (respeitando o limite de 2). Toda solicitação criada manualmente pelo administrador já nasce neste estado.
 - **Rejeitada**: não entra na escala (seja por excesso na trinca, seja por outro motivo do administrador).
-- **Cancelada**: o próprio publicador cancelou, pela tela de histórico (estando Pendente ou Aprovada). Não entra/deixa de entrar na escala.
+- **Cancelada**: o próprio publicador cancelou, pela tela de histórico (estando Pendente ou Aprovada, com a janela aberta e na escala do mês-alvo). Não entra/deixa de entrar na escala. Estado final: o administrador não reativa.
 
 ## 9. Modelo de Dados (entidades sugeridas)
 
@@ -209,7 +213,7 @@ APROVADA ──(publicador cancela)──► CANCELADA
 
 ## 10. Roadmap Sugerido
 
-- **Fase 1 — Solicitação do publicador**: formulário (nome, carrinho, dia da semana — sempre Segunda a Sexta —, turno — um dos 6 turnos fixos, restrito aos configurados para o carrinho escolhido) disponível apenas durante a janela automática (dia 15 ao dia 25 do mês), sempre direcionado à escala do mês seguinte, com bloqueio de solicitações duplicadas e tela de histórico próprio (sempre disponível, com opção de cancelamento), sem cadastro formal.
+- **Fase 1 — Solicitação do publicador**: formulário (nome, carrinho, dia da semana — sempre Segunda a Sexta —, turno — um dos 6 turnos fixos, restrito aos configurados para o carrinho escolhido) disponível apenas durante a janela automática (dia 15 ao dia 25 do mês), sempre direcionado à escala do mês seguinte, com bloqueio de solicitações duplicadas e tela de histórico próprio (sempre disponível, com opção de cancelamento só durante a janela e para a escala do mês-alvo), sem cadastro formal.
 - **Fase 2 — Painel do administrador**: cadastro de carrinhos e configuração de quais dos 6 turnos fixos cada carrinho tem disponível; listagem/contagem de solicitações por escala, agrupamento por `(carrinho, dia, turno)` com sinalização visual de excesso (mais de 2, sem bloqueio automático desse limite) e contagem de apoio ao desempate por publicador; aprovação/rejeição livre (critério de desempate exclusivo do administrador); e adição manual de solicitações (com criação de publicador por nome livre) a qualquer escala.
 - **Fase 3 — Escala mensal**: geração e visualização da grade final (Carrinho × Dia da semana × Turno) a partir das solicitações aprovadas.
 - **Fase 4 — Melhorias futuras (opcionais)**: exportação da escala (PDF/Excel/impressão) e relatórios/histórico consolidado de escalas passadas.

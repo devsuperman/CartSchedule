@@ -25,10 +25,7 @@ function Navegacao({ admin }: { admin: boolean }) {
         aria-label="Principal"
       >
         <NavLink to="/" end className={navLinkClasses}>
-          Solicitar
-        </NavLink>
-        <NavLink to="/historico" className={navLinkClasses}>
-          Meu histórico
+          Início
         </NavLink>
       </nav>
     );
