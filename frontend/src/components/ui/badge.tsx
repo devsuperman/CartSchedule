@@ -15,7 +15,6 @@ const badgeVariants = cva(
         pendente: "bg-warning-muted text-warning",
         aprovada: "bg-success-muted text-success",
         rejeitada: "bg-destructive-muted text-destructive",
-        cancelada: "bg-muted text-muted-foreground",
       },
     },
     defaultVariants: {
