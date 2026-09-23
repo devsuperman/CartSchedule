@@ -10,13 +10,15 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { cn } from "@/lib/utils";
 
 /**
- * Contrato de GET/POST /api/admin/carrinhos e GET/PUT /api/admin/carrinhos/{id}/turnos
- * (TECHNICAL_SPEC.md §2.1, tarefas F2-BE-02/F2-BE-03). `turnoIds` no carrinho é só uma
- * conveniência de leitura — sempre re-sincronizado após uma alteração de turnos.
+ * Contrato de GET/POST/PUT /api/admin/carrinhos e GET/PUT /api/admin/carrinhos/{id}/turnos
+ * (TECHNICAL_SPEC.md §2.1, tarefas F2-BE-02/F2-BE-03/F5-BE-01). `turnoIds` no carrinho é só
+ * uma conveniência de leitura — sempre re-sincronizado após uma alteração de turnos.
+ * `descricao` é opcional (o backend grava texto em branco como null).
  */
 interface Carrinho {
   id: number;
   nome: string;
+  descricao: string | null;
   ativo: boolean;
   turnoIds: number[];
 }
@@ -39,11 +41,16 @@ export default function GestaoCarrinhos() {
   const [erroLista, setErroLista] = useState<string | null>(null);
 
   const [novoNome, setNovoNome] = useState("");
+  const [novaDescricao, setNovaDescricao] = useState("");
   const [criando, setCriando] = useState(false);
   const [erroCriacao, setErroCriacao] = useState<string | null>(null);
 
   const [salvandoId, setSalvandoId] = useState<number | null>(null);
   const [erroPorCarrinho, setErroPorCarrinho] = useState<Record<number, string>>({});
+
+  const [editandoId, setEditandoId] = useState<number | null>(null);
+  const [nomeEdicao, setNomeEdicao] = useState("");
+  const [descricaoEdicao, setDescricaoEdicao] = useState("");
 
   useEffect(() => {
     carregarCarrinhos();
@@ -84,10 +91,11 @@ export default function GestaoCarrinhos() {
     try {
       const criado = await apiFetch<Carrinho>("/api/admin/carrinhos", {
         method: "POST",
-        body: JSON.stringify({ nome }),
+        body: JSON.stringify({ nome, descricao: novaDescricao.trim() || null }),
       });
       setCarrinhos((atual) => [...(atual ?? []), criado]);
       setNovoNome("");
+      setNovaDescricao("");
     } catch (erro) {
       setErroCriacao(mensagemErro(erro, "Não foi possível criar o carrinho."));
     } finally {
@@ -95,22 +103,62 @@ export default function GestaoCarrinhos() {
     }
   }
 
-  async function handleAlternarAtivo(carrinho: Carrinho) {
+  /** PUT /api/admin/carrinhos/{id} sempre recebe o cadastro inteiro (nome, descrição,
+   * ativo) — quem chama repassa os valores atuais do que não quer mudar. */
+  async function atualizarCarrinho(
+    carrinho: Carrinho,
+    dados: { nome: string; descricao: string | null; ativo: boolean },
+  ): Promise<boolean> {
     limparErroCarrinho(carrinho.id);
     setSalvandoId(carrinho.id);
     try {
       const atualizado = await apiFetch<Carrinho>(`/api/admin/carrinhos/${carrinho.id}`, {
         method: "PUT",
-        body: JSON.stringify({ nome: carrinho.nome, ativo: !carrinho.ativo }),
+        body: JSON.stringify(dados),
       });
       setCarrinhos((atual) =>
         (atual ?? []).map((item) => (item.id === atualizado.id ? atualizado : item)),
       );
+      return true;
     } catch (erro) {
       definirErroCarrinho(carrinho.id, mensagemErro(erro, "Não foi possível atualizar o carrinho."));
+      return false;
     } finally {
       setSalvandoId(null);
     }
+  }
+
+  function handleAlternarAtivo(carrinho: Carrinho) {
+    atualizarCarrinho(carrinho, {
+      nome: carrinho.nome,
+      descricao: carrinho.descricao,
+      ativo: !carrinho.ativo,
+    });
+  }
+
+  function handleIniciarEdicao(carrinho: Carrinho) {
+    limparErroCarrinho(carrinho.id);
+    setEditandoId(carrinho.id);
+    setNomeEdicao(carrinho.nome);
+    setDescricaoEdicao(carrinho.descricao ?? "");
+  }
+
+  function handleCancelarEdicao(carrinho: Carrinho) {
+    limparErroCarrinho(carrinho.id);
+    setEditandoId(null);
+  }
+
+  async function handleSalvarEdicao(event: FormEvent, carrinho: Carrinho) {
+    event.preventDefault();
+    const nome = nomeEdicao.trim();
+    if (!nome) return;
+
+    const salvou = await atualizarCarrinho(carrinho, {
+      nome,
+      descricao: descricaoEdicao.trim() || null,
+      ativo: carrinho.ativo,
+    });
+    if (salvou) setEditandoId(null);
   }
 
   async function handleAlternarTurno(carrinho: Carrinho, turnoId: number) {
@@ -160,7 +208,17 @@ export default function GestaoCarrinhos() {
                 value={novoNome}
                 onChange={(e) => setNovoNome(e.target.value)}
                 placeholder="Ex.: Carrinho 1"
+                maxLength={200}
                 required
+              />
+            </Label>
+            <Label className="flex min-w-48 flex-1 flex-col items-start gap-1.5">
+              Descrição (opcional)
+              <Input
+                value={novaDescricao}
+                onChange={(e) => setNovaDescricao(e.target.value)}
+                placeholder="Ex.: em frente à estação central"
+                maxLength={500}
               />
             </Label>
             <Button type="submit" disabled={criando}>
@@ -194,9 +252,66 @@ export default function GestaoCarrinhos() {
           {carrinhos.map((carrinho) => (
             <li key={carrinho.id}>
               <Card>
-                <div className="flex items-center justify-between gap-4">
-                  <h2>{carrinho.nome}</h2>
-                  <Label className="font-normal">
+                <div className="flex items-start justify-between gap-4">
+                  {editandoId === carrinho.id ? (
+                    <form
+                      onSubmit={(e) => handleSalvarEdicao(e, carrinho)}
+                      className="flex min-w-0 flex-1 flex-col gap-3"
+                    >
+                      <Label className="flex flex-col items-start gap-1.5">
+                        Nome
+                        <Input
+                          value={nomeEdicao}
+                          onChange={(e) => setNomeEdicao(e.target.value)}
+                          maxLength={200}
+                          required
+                          autoFocus
+                        />
+                      </Label>
+                      <Label className="flex flex-col items-start gap-1.5">
+                        Descrição (opcional)
+                        <Input
+                          value={descricaoEdicao}
+                          onChange={(e) => setDescricaoEdicao(e.target.value)}
+                          maxLength={500}
+                        />
+                      </Label>
+                      <div className="flex flex-wrap gap-2">
+                        <Button type="submit" size="sm" disabled={salvandoId === carrinho.id}>
+                          {salvandoId === carrinho.id ? "Salvando…" : "Salvar"}
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          disabled={salvandoId === carrinho.id}
+                          onClick={() => handleCancelarEdicao(carrinho)}
+                        >
+                          Cancelar edição
+                        </Button>
+                      </div>
+                    </form>
+                  ) : (
+                    <div className="flex min-w-0 flex-1 flex-col gap-1">
+                      <h2 className="break-words">{carrinho.nome}</h2>
+                      {carrinho.descricao && (
+                        <p className="break-words text-muted-foreground">{carrinho.descricao}</p>
+                      )}
+                      <div>
+                        <Button
+                          type="button"
+                          variant="link"
+                          size="sm"
+                          className="h-auto px-0 py-1"
+                          disabled={salvandoId === carrinho.id}
+                          onClick={() => handleIniciarEdicao(carrinho)}
+                        >
+                          Editar
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                  <Label className="shrink-0 font-normal">
                     <Checkbox
                       checked={carrinho.ativo}
                       disabled={salvandoId === carrinho.id}
