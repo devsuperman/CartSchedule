@@ -63,12 +63,12 @@ semana, por turno**.
    identificação é simples e o sistema deve poupar o publicador de
    redigitar o nome a cada nova visita (a forma técnica de fazer isso
    será definida na fase de implementação).
-3. Seleciona o **dia da semana** em que quer trabalhar — dias em que nenhum carrinho tem turno aparecem desabilitados.
-4. Seleciona o **carrinho** que deseja usar (vê o nome e, abaixo dele, a descrição do carrinho, quando houver) — só aparecem os carrinhos que têm algum turno naquele dia.
+3. Seleciona o **carrinho** que deseja usar (vê o nome e, abaixo dele, a descrição do carrinho, quando houver) — só aparecem os carrinhos que têm algum turno configurado.
+4. Seleciona o **dia da semana** em que quer trabalhar — dias em que o carrinho escolhido não tem turno aparecem desabilitados.
 5. Seleciona o **turno** desejado — apenas entre os turnos que o administrador configurou como disponíveis **para aquele carrinho naquele dia da semana** (carrinhos diferentes, e dias diferentes do mesmo carrinho, podem ter turnos diferentes).
 6. Pode repetir os passos 3–5 para pedir mais de uma combinação na mesma escala (ex: Carrinho A / Segunda / Manhã **e** Carrinho B / Quinta / Tarde). O mês/escala já está implícito (é sempre o mês seguinte, definido automaticamente pela janela aberta).
 7. Revisa e **envia** as solicitações.
-8. A qualquer momento (mesmo fora da janela de envio), pode acessar a tela de **histórico** e ver o status de cada solicitação que enviou: *Pendente*, *Aprovada* ou *Rejeitada* (sem data/hora do envio).
+8. A qualquer momento (mesmo fora da janela de envio), pode acessar a tela de **histórico** e ver o status de cada solicitação que enviou: *Pendente*, *Aprovada* ou *Rejeitada* (sem data/hora do envio). Cada pedido mostra em destaque o dia da semana, depois o turno e por último o carrinho (nome e descrição), e a lista segue essa mesma ordem.
 9. Nessa mesma tela de histórico, pode **excluir** uma solicitação sua — esteja ela Pendente ou já Aprovada — **somente enquanto a janela de envio estiver aberta e apenas para a escala do mês-alvo**. A exclusão apaga o registro (não existe status "Cancelada"). Fora disso, só o administrador altera a solicitação.
 
 Regra de duplicidade: o mesmo publicador não pode enviar duas vezes a

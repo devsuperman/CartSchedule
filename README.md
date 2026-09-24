@@ -30,9 +30,9 @@ commit, não com IA como ajuda pontual.
 
 - **Publicador** (`/`): sem cadastro nem senha. Um token anônimo (GUID) é
   gerado no navegador, salvo em `localStorage` e enviado no header
-  `X-Publicador-Token`. Escolhe nome, dia, carrinho e turno, e acompanha o
-  status (Pendente, Aprovada, Rejeitada) no histórico, agrupado por dia da
-  semana. Com a janela aberta, pode excluir pedidos seus da escala do
+  `X-Publicador-Token`. Escolhe nome, carrinho, dia e turno, e acompanha o
+  status (Pendente, Aprovada, Rejeitada) no histórico, ordenado por dia da
+  semana, turno e carrinho. Com a janela aberta, pode excluir pedidos seus da escala do
   mês-alvo.
 - **Administrador** (`/admin`): login único (usuário/senha via variáveis de
   ambiente, JWT curto). Configura carrinhos e seus turnos por dia da semana, revisa as

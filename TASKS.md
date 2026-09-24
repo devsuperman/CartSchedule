@@ -436,20 +436,25 @@ do contrato acima. Nenhuma tarefa compartilha arquivos (`Program.cs` e
 
 ## Fase 7 — Ajustes de leitura do publicador
 
-Depende da Fase 6 mergeada. Só apresentação e documentação — nenhuma regra
-de negócio nem contrato de API muda (`Program.cs` e `App.tsx` intocados).
+Depende da Fase 6 mergeada. Ajustes de apresentação — nenhuma regra de
+negócio muda (`Program.cs` e `App.tsx` intocados). Único ajuste de contrato,
+aditivo: `GET /api/solicitacoes` ganha `carrinhoDescricao: string | null`.
 
 | ID | Entrega | Critério de aceite |
 |---|---|---|
 | F7-FE-01 | `wizard/SolicitacaoWizard.tsx` | Mês-alvo ("Escala de outubro de 2026") em destaque no topo de **todas** as etapas do wizard. |
-| F7-FE-02 | `routes/publicador/InicioPublicador.tsx` | Dentro de cada mês, pedidos agrupados por dia da semana (Segunda → Sexta) e ordenados por turno e depois por carrinho; meses do mais recente para o mais antigo. Ordenação só no frontend. |
+| F7-FE-02 | `routes/publicador/InicioPublicador.tsx` | Dentro de cada mês, pedidos ordenados por dia da semana (Segunda → Sexta), depois turno e depois carrinho; meses do mais recente para o mais antigo. Ordenação só no frontend. |
 | F7-DOC-01 | `README.md` | Declara que o projeto é AI Native e corrige trechos desatualizados (exclusão em vez de cancelamento, turnos por dia). |
+| F7-FE-03 | `wizard/*` | Ordem das etapas: nome → **carrinho** → dia → turno. Só aparecem carrinhos com algum turno configurado; dias sem turno no carrinho escolhido ficam desabilitados; trocar o carrinho limpa dia/turno incompatíveis. |
+| F7-BE-01 | `Features/Publicadores/ListarHistorico/` | `GET /api/solicitacoes` devolve `carrinhoDescricao` (null quando o carrinho não tem descrição). |
+| F7-FE-04 | `components/SolicitacaoCard.tsx`, `InicioPublicador.tsx` | Card do histórico: dia da semana em destaque, depois turno, por último carrinho (nome + descrição). Sem título por dia na lista (o card já destaca o dia). |
 
-As 3 tarefas não compartilham arquivos e podem rodar em paralelo.
+Nenhuma tarefa compartilha arquivos (`F7-FE-04` só depende do contrato
+acima e ajusta a lista do `F7-FE-02` depois dele); podem rodar em paralelo.
 
 ### Verificação da Fase 7
 
-`npm test`, `npm run lint`, `npm run build`.
+`npm test`, `npm run lint`, `npm run build` e `dotnet test`.
 
 ---
 
@@ -478,5 +483,6 @@ e validadas:
 - **Fase 6**: até **5 agentes** — `F6-BE-01` primeiro (migration), depois
   `F6-BE-02`/`F6-BE-03`; as 3 tarefas FE podem rodar desde o início
   (contrato fixado no próprio TASKS.md).
-- **Fase 7**: até **3 agentes** — `F7-FE-01`, `F7-FE-02` e `F7-DOC-01`
-  em arquivos distintos.
+- **Fase 7**: até **3 agentes** por rodada — primeiro `F7-FE-01`,
+  `F7-FE-02` e `F7-DOC-01`; depois `F7-FE-03`, `F7-BE-01` e `F7-FE-04`,
+  em arquivos distintos (docs atualizadas à parte).

@@ -70,7 +70,7 @@ backend/
           ConsultarJanela/           # GET  /api/janela
           ListarCarrinhosDisponiveis/# GET  /api/carrinhos  (id, nome, descricao, disponibilidades dia×turno por carrinho)
           CriarSolicitacao/          # POST /api/solicitacoes
-          ListarHistorico/           # GET  /api/solicitacoes  (header X-Publicador-Token; sem data/hora do envio na resposta)
+          ListarHistorico/           # GET  /api/solicitacoes  (header X-Publicador-Token; carrinhoNome + carrinhoDescricao; sem data/hora do envio na resposta)
           ExcluirSolicitacao/        # DELETE /api/solicitacoes/{id}  (apaga o registro; não há status Cancelada)
         Administradores/
           Login/                    # POST /api/admin/login
@@ -211,7 +211,7 @@ frontend/
         InicioPublicador.tsx      # tela inicial: histórico de mês atual + próximo; botão "Solicitar Nova Escala" (janela aberta) ou aviso de envio fechado
         SolicitarEscala.tsx       # decide entre JanelaFechada e o wizard, conforme useJanela()
         JanelaFechada.tsx         # tela exibida fora da janela de envio
-        wizard/                   # formulário em 4 etapas: nome → dia da semana → carrinho (nome + descrição) → turno
+        wizard/                   # formulário em 4 etapas: nome → carrinho (nome + descrição) → dia da semana → turno
         components/
           SolicitacaoCard.tsx     # card de uma solicitação (status + excluir, só com janela aberta e no mês-alvo; sem data/hora)
           ErroJanela.tsx          # erro ao consultar /api/janela, com "tentar novamente"
