@@ -43,7 +43,7 @@ beforeEach(() => {
   mockApiFetch.mockReset();
   mockApiFetch.mockImplementation(async (path, init) => {
     if (path === "/api/admin/escalas/2026-10/solicitacoes") return structuredClone(RESPOSTA);
-    if (init?.method === "DELETE") return undefined;
+    if (init?.method === "DELETE" || init?.method === "PUT") return undefined;
     throw new Error(`chamada inesperada: ${path}`);
   });
 });
@@ -127,5 +127,57 @@ describe("RevisaoEscala", () => {
     await user.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Excluir" }));
 
     expect(within(linhaDe("Bia")).getByText("Solicitação não encontrada.")).toBeInTheDocument();
+  });
+
+  describe("editar nome", () => {
+    it("o lápis abre o modal preenchido; salvar renomeia todas as linhas do publicador", async () => {
+      const user = await renderTela();
+
+      await user.click(screen.getAllByRole("button", { name: "Editar nome de Ana" })[0]);
+      const dialogo = screen.getByRole("dialog");
+      expect(within(dialogo).getByRole("heading", { name: "Editar nome" })).toBeInTheDocument();
+      expect(dialogo).toHaveTextContent("Muda o nome em todos os pedidos desta pessoa.");
+      const campo = within(dialogo).getByRole("textbox", { name: "Nome do publicador" });
+      expect(campo).toHaveValue("Ana");
+
+      await user.clear(campo);
+      await user.type(campo, "Ana Souza");
+      await user.click(within(dialogo).getByRole("button", { name: "Salvar" }));
+
+      expect(mockApiFetch).toHaveBeenCalledWith("/api/admin/publicadores/ana", {
+        method: "PUT",
+        body: JSON.stringify({ nome: "Ana Souza" }),
+      });
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+      expect(screen.getAllByText("Ana Souza")).toHaveLength(2);
+      expect(screen.queryByText("Ana")).not.toBeInTheDocument();
+    });
+
+    it("Cancelar não chama a API", async () => {
+      const user = await renderTela();
+
+      await user.click(screen.getByRole("button", { name: "Editar nome de Bia" }));
+      await user.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Cancelar" }));
+
+      expect(mockApiFetch).not.toHaveBeenCalledWith(expect.stringContaining("/publicadores/"), expect.anything());
+      expect(screen.getByText("Bia")).toBeInTheDocument();
+    });
+
+    it("erro da API aparece dentro do modal", async () => {
+      mockApiFetch.mockImplementation(async (path, init) => {
+        if (path === "/api/admin/escalas/2026-10/solicitacoes") return structuredClone(RESPOSTA);
+        if (init?.method === "PUT") throw new ApiError(404, "Publicador não encontrado.");
+        throw new Error(`chamada inesperada: ${path}`);
+      });
+      const user = await renderTela();
+
+      await user.click(screen.getByRole("button", { name: "Editar nome de Bia" }));
+      const dialogo = screen.getByRole("dialog");
+      await user.type(within(dialogo).getByRole("textbox", { name: "Nome do publicador" }), "trix");
+      await user.click(within(dialogo).getByRole("button", { name: "Salvar" }));
+
+      expect(await within(dialogo).findByText("Publicador não encontrado.")).toBeInTheDocument();
+      expect(screen.getByText("Bia")).toBeInTheDocument();
+    });
   });
 });

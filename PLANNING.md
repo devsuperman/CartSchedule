@@ -59,11 +59,13 @@ semana, por turno**.
 ## 5. Fluxo do Publicador
 
 1. Acessa o site durante a janela de envio (dias 15 a 25 do mês).
-2. Informa seu **nome**. Não há cadastro/login com senha — a
-   identificação é simples e o sistema deve poupar o publicador de
-   redigitar o nome a cada nova visita: quem já informou o nome antes
-   vai direto à escolha do carrinho e só volta a esta etapa (para
-   alterar o nome) se tocar em **Voltar**.
+2. No **primeiro acesso** (janela aberta ou fechada), antes de qualquer
+   outra coisa, informa seu **nome**. Não há cadastro/login com senha — o
+   nome fica salvo no aparelho e não é pedido de novo. A partir daí o site
+   mostra **"Olá, {primeiro nome}"** no cabeçalho; tocando nele, o
+   publicador corrige o nome a qualquer momento, e a correção vale na hora
+   também para o administrador. O formulário de solicitação não pede o
+   nome.
 3. Seleciona o **carrinho** que deseja usar (vê o nome e, abaixo dele, a descrição do carrinho, quando houver) — só aparecem os carrinhos que têm algum turno configurado.
 4. Seleciona o **dia da semana** em que quer trabalhar — dias em que o carrinho escolhido não tem turno nem aparecem.
 5. Seleciona o **turno** desejado — apenas entre os turnos que o administrador configurou como disponíveis **para aquele carrinho naquele dia da semana** (carrinhos diferentes, e dias diferentes do mesmo carrinho, podem ter turnos diferentes).
@@ -97,6 +99,8 @@ mesma combinação `(escala, carrinho, dia da semana, turno)`.
    - Grupo **vazio** (0 solicitações) → ignorado, nem aparece como pendência.
    - Grupo com **1 ou 2** solicitações → dentro do limite, nada a fazer.
    - Grupo com **mais de 2** solicitações → sinalizado como **excedente**; o administrador escolhe quem sai e exclui essas solicitações.
+   Ao lado do nome de cada publicador há um lápis para **corrigir o nome**
+   dele (vale para todos os pedidos daquela pessoa).
 6. Não há aprovação nem rejeição: toda solicitação já conta na escala. Para cada grupo excedente, o administrador **exclui** (com confirmação — é definitivo) as solicitações que decidir tirar. **O critério de desempate é de uso exclusivo do administrador** — o sistema não sugere nem impõe nenhum critério (ordem de chegada, prioridade, etc.); a escolha de quem fica é inteiramente sua. Para ajudá-lo nessa decisão, o sistema mostra, ao lado de cada publicador do grupo, **quantas solicitações esse publicador já tem na mesma escala** (contando todas as trincas, não só a que está em desempate).
 7. **A qualquer momento**, o administrador também pode **adicionar
    manualmente** uma nova solicitação a qualquer escala:
@@ -105,7 +109,9 @@ mesma combinação `(escala, carrinho, dia da semana, turno)`.
      naquele dia da semana (mesma restrição que vale para o publicador, ver item 2).
    - Informa o nome do publicador — pode escolher um publicador já
      cadastrado **ou digitar um nome novo livremente** (o sistema cria
-     o publicador automaticamente se ele ainda não existir).
+     o publicador automaticamente se ele ainda não existir). Se houver
+     mais de um publicador com exatamente esse nome, usa sempre o que
+     fez o pedido mais antigo.
    - Vale a mesma **regra de duplicidade** do envio normal (regra 10):
      o sistema não permite criar uma solicitação manual idêntica a
      uma que aquele publicador já tenha na mesma escala.
@@ -133,7 +139,7 @@ mesma combinação `(escala, carrinho, dia da semana, turno)`.
 6. **Janela de envio automática**: publicadores só enviam solicitações do dia 15 ao dia 25 do mês corrente, sempre para a escala do mês seguinte. Fora disso, o envio fica fechado para eles.
 7. **Administrador sem restrição de janela**: pode gerenciar (ver, excluir, adicionar) qualquer escala a qualquer momento, independentemente da janela de envio. A partir do dia 25, esse é o período esperado para os ajustes finais antes do mês seguinte começar.
 8. **Sem limite** de quantas trincas um mesmo publicador pode ter em uma escala — pode trabalhar em vários carrinhos/dias/turnos livremente.
-9. **Identificação do publicador**: não há cadastro com login e senha — o nome é informado livremente, tanto no envio do publicador quanto na adição manual pelo administrador.
+9. **Identificação do publicador**: não há cadastro com login e senha — o nome é informado livremente, pelo publicador no primeiro acesso ou na adição manual pelo administrador. O nome pode ser corrigido a qualquer momento pelo próprio publicador ("Olá, Fulano") ou pelo administrador (na revisão da escala); a correção vale para todos os pedidos daquela pessoa. Se depois o publicador enviar um pedido ou editar o nome, prevalece o nome salvo no aparelho dele. **Nomes repetidos são permitidos** (não é bloqueio — a regra 10 continua sendo o único).
 10. **Bloqueio de duplicidade (único bloqueio automático do sistema)**: um publicador não pode ter duas solicitações para a mesma combinação `(escala, carrinho, dia da semana, turno)`. Ao tentar enviar uma solicitação idêntica a uma já existente sua, o sistema recusa o novo envio. Vale tanto para o envio normal do publicador quanto para uma adição manual feita pelo administrador em nome dele. Este é o único bloqueio automático de todo o sistema — o limite de 2 por trinca (regras 1 e 3) **não** é bloqueado, apenas sinalizado.
 11. **Histórico de solicitações**: o publicador deve conseguir consultar as solicitações que ele mesmo enviou, sem precisar de cadastro formal. Essa consulta fica **sempre disponível**, mesmo fora da janela de envio (dia 26 ao dia 14). A forma de identificá-lo para isso será definida na fase de implementação.
 12. **Exclusão pelo publicador**: através da tela de histórico, o publicador pode excluir uma solicitação sua **somente enquanto a janela de envio estiver aberta (dia 15 ao 25) e apenas se ela for da escala do mês-alvo** — solicitações do mês corrente ou de meses passados não podem mais ser excluídas por ele. A exclusão **apaga o registro** — o sistema não guarda solicitações canceladas/excluídas, e o publicador pode voltar a pedir a mesma trinca depois. Fora da janela, a tela inicial não oferece o envio nem a exclusão e orienta o publicador a falar com o administrador. O bloqueio vale também no backend. Uma solicitação excluída libera a vaga que ocupava na trinca `(carrinho, dia da semana, turno)`.

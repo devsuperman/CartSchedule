@@ -16,6 +16,8 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
+import { PencilIcon } from "lucide-react";
+import { ModalEditarNome, type PublicadorEmEdicao } from "./components/ModalEditarNome";
 
 /** Contrato de GET /api/admin/escalas/{mes}/solicitacoes (TECHNICAL_SPEC.md, tarefa F2-BE-04). */
 interface SolicitacaoAgrupada {
@@ -79,7 +81,8 @@ interface Exclusao {
  * Revisão da escala pelo administrador. Não há aprovação: todo pedido já conta na escala
  * (PLANNING.md regra 12a). Grupos com mais de 2 pedidos são sinalizados, nunca bloqueados
  * (regras 1/3), e o admin tira quem ele decidir com "Excluir" — definitivo, por isso pede
- * confirmação num modal.
+ * confirmação num modal. O lápis ao lado do nome corrige o nome do publicador (em todos os
+ * pedidos dele).
  */
 export default function RevisaoEscala() {
   const { mes } = useParams<{ mes: string }>();
@@ -89,6 +92,7 @@ export default function RevisaoEscala() {
   const [confirmando, setConfirmando] = useState<Exclusao | null>(null);
   const [excluindo, setExcluindo] = useState(false);
   const [errosExclusao, setErrosExclusao] = useState<Record<number, string>>({});
+  const [editandoNome, setEditandoNome] = useState<PublicadorEmEdicao | null>(null);
 
   useEffect(() => {
     if (!mes) {
@@ -122,6 +126,23 @@ export default function RevisaoEscala() {
       cancelado = true;
     };
   }, [mes]);
+
+  function renomearNaTela(publicadorId: string, nome: string) {
+    setDados((atual) =>
+      atual
+        ? {
+            ...atual,
+            grupos: atual.grupos.map((grupo) => ({
+              ...grupo,
+              solicitacoes: grupo.solicitacoes.map((s) =>
+                s.publicadorId === publicadorId ? { ...s, publicadorNome: nome } : s,
+              ),
+            })),
+          }
+        : atual,
+    );
+    setEditandoNome(null);
+  }
 
   async function excluir(id: number) {
     setExcluindo(true);
@@ -213,7 +234,21 @@ export default function RevisaoEscala() {
                   className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 border-t border-border p-4 first:border-t-0"
                 >
                   <div className="flex flex-col">
-                    <strong>{solicitacao.publicadorNome}</strong>
+                    <span className="flex items-center gap-1">
+                      <strong>{solicitacao.publicadorNome}</strong>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="size-8 p-0"
+                        aria-label={`Editar nome de ${solicitacao.publicadorNome}`}
+                        onClick={() =>
+                          setEditandoNome({ id: solicitacao.publicadorId, nome: solicitacao.publicadorNome })
+                        }
+                      >
+                        <PencilIcon aria-hidden />
+                      </Button>
+                    </span>
                     <span className="text-sm text-muted-foreground">
                       {solicitacao.totalNaEscala}{" "}
                       {solicitacao.totalNaEscala === 1 ? "pedido" : "pedidos"} nesta escala
@@ -272,6 +307,8 @@ export default function RevisaoEscala() {
           )}
         </DialogContent>
       </Dialog>
+
+      <ModalEditarNome publicador={editandoNome} onFechar={() => setEditandoNome(null)} onSalvo={renomearNaTela} />
     </section>
   );
 }

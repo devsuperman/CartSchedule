@@ -1,6 +1,7 @@
 import { BrowserRouter, Link, Navigate, Route, Routes } from "react-router-dom";
 import { Layout } from "./components/Layout";
 import { RequireAdminAuth } from "./components/RequireAdminAuth";
+import { ExigeNome } from "./components/ExigeNome";
 import { useJanela } from "./hooks/useJanela";
 import { formatarMes } from "./utils/formatacao";
 import { Card } from "@/components/ui/card";
@@ -11,6 +12,7 @@ import AdicionarSolicitacao from "./routes/admin/AdicionarSolicitacao";
 import EscalaFinal from "./routes/admin/EscalaFinal";
 import InicioPublicador from "./routes/publicador/InicioPublicador";
 import SolicitarEscala from "./routes/publicador/SolicitarEscala";
+import Nome from "./routes/publicador/Nome";
 
 function mesParam(mesAlvoIso: string): string {
   return mesAlvoIso.slice(0, 7);
@@ -85,8 +87,23 @@ export default function App() {
     <BrowserRouter>
       <Layout>
         <Routes>
-          <Route path="/" element={<InicioPublicador />} />
-          <Route path="/solicitar" element={<SolicitarEscala />} />
+          <Route path="/nome" element={<Nome />} />
+          <Route
+            path="/"
+            element={
+              <ExigeNome>
+                <InicioPublicador />
+              </ExigeNome>
+            }
+          />
+          <Route
+            path="/solicitar"
+            element={
+              <ExigeNome>
+                <SolicitarEscala />
+              </ExigeNome>
+            }
+          />
           <Route path="/admin/login" element={<Login />} />
           <Route
             path="/admin"

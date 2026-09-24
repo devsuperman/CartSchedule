@@ -1,6 +1,6 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { MemoryRouter } from "react-router-dom";
+import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { apiFetch, ApiError } from "../../../api/client";
 import { PUBLICADOR_NOME_STORAGE_KEY } from "../../../api/client";
@@ -42,7 +42,7 @@ async function continuar(user: ReturnType<typeof userEvent.setup>) {
   await user.click(screen.getByRole("button", { name: "Continuar" }));
 }
 
-/** Com o nome já salvo no localStorage, o wizard abre direto na etapa do carrinho. */
+/** Espera a primeira etapa (carrinho) com os carrinhos carregados. */
 async function irParaEtapaDoCarrinho() {
   await screen.findByText("Em qual carrinho?");
   // Espera os carrinhos chegarem.
@@ -185,51 +185,29 @@ describe("SolicitacaoWizard — mês-alvo", () => {
   });
 });
 
-describe("SolicitacaoWizard — nome do publicador", () => {
-  it("com nome salvo, abre direto na etapa do carrinho", async () => {
+describe("SolicitacaoWizard — 3 etapas, sem o nome", () => {
+  it("abre no carrinho, em 3 passos, sem pedir o nome", async () => {
     renderWizard();
     await irParaEtapaDoCarrinho();
+
+    expect(screen.getByText("Passo 1 de 3")).toBeInTheDocument();
     expect(screen.queryByRole("textbox", { name: "Seu nome" })).not.toBeInTheDocument();
   });
 
-  it("permite trocar o nome tocando em Voltar", async () => {
-    const user = renderWizard();
+  it("Voltar na primeira etapa sai para a tela inicial", async () => {
+    render(
+      <MemoryRouter initialEntries={["/solicitar"]}>
+        <Routes>
+          <Route path="/" element={<p>Tela inicial</p>} />
+          <Route path="/solicitar" element={<SolicitacaoWizard mesAlvo="2026-10-01" />} />
+        </Routes>
+      </MemoryRouter>,
+    );
+    const user = userEvent.setup();
     await irParaEtapaDoCarrinho();
 
     await user.click(screen.getByRole("button", { name: "Voltar" }));
-    const campo = screen.getByRole("textbox", { name: "Seu nome" });
-    expect(campo).toHaveValue("Bia");
-    await user.clear(campo);
-    await user.type(campo, "Ana");
-    await continuar(user);
 
-    await irParaEtapaDoCarrinho();
-    await escolherCarrinho(user, /Carrinho 01/);
-    await user.click(screen.getByRole("radio", { name: /Terça-feira/ }));
-    await continuar(user);
-    await user.click(screen.getByRole("radio", { name: "10:00–12:00" }));
-    await user.click(screen.getByRole("button", { name: "Salvar" }));
-
-    await waitFor(() =>
-      expect(mockApiFetch).toHaveBeenCalledWith("/api/solicitacoes", expect.objectContaining({ method: "POST" })),
-    );
-    const [, opcoes] = mockApiFetch.mock.calls.find(([path]) => path === "/api/solicitacoes")!;
-    expect(JSON.parse(opcoes!.body as string)).toMatchObject({ nome: "Ana" });
-    expect(localStorage.getItem(PUBLICADOR_NOME_STORAGE_KEY)).toBe("Ana");
-  });
-
-  it("sem nome salvo, pede o nome sem textos de apoio", async () => {
-    localStorage.removeItem(PUBLICADOR_NOME_STORAGE_KEY);
-    const user = renderWizard();
-
-    expect(screen.getByText("Qual é o seu nome?")).toBeInTheDocument();
-    const campo = screen.getByRole("textbox", { name: "Seu nome" });
-    expect(campo).toHaveValue("");
-    expect(screen.queryByText(/Fica salvo/)).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Continuar" })).toBeDisabled();
-
-    await user.type(campo, "Bia");
-    await continuar(user);
-    await irParaEtapaDoCarrinho();
+    expect(screen.getByText("Tela inicial")).toBeInTheDocument();
   });
 });

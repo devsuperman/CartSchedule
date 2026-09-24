@@ -1,7 +1,10 @@
 import type { PropsWithChildren } from "react";
-import { NavLink, useLocation, useNavigate } from "react-router-dom";
+import { Link, NavLink, useLocation, useNavigate } from "react-router-dom";
+import { PencilIcon } from "lucide-react";
 import { useAdminAuth } from "../hooks/useAdminAuth";
 import { useJanela } from "../hooks/useJanela";
+import { usePublicadorToken } from "../hooks/usePublicadorToken";
+import type { OrigemNome } from "../routes/publicador/Nome";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -9,6 +12,29 @@ function navLinkClasses({ isActive }: { isActive: boolean }) {
   return cn(
     "border-b-[3px] border-transparent px-2.5 pb-[0.7rem] pt-2 text-[0.95rem] font-semibold text-secondary-foreground/70 no-underline transition-colors hover:text-secondary-foreground focus-visible:shadow-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent",
     isActive && "border-accent text-secondary-foreground",
+  );
+}
+
+/** "Olá, {primeiro nome}" no canto do cabeçalho do publicador; tocar abre a edição do nome
+ * (rota /nome), que depois volta para a tela atual. Some sem nome e na própria /nome. */
+function Saudacao() {
+  const { nome } = usePublicadorToken();
+  const { pathname } = useLocation();
+  const primeiroNome = nome.trim().split(/\s+/)[0];
+
+  if (!primeiroNome || pathname === "/nome") return null;
+
+  const origem: OrigemNome = { de: pathname };
+  return (
+    <Link
+      to="/nome"
+      state={origem}
+      aria-label={`Olá, ${primeiroNome}. Alterar nome`}
+      className="mb-[0.55rem] ml-auto flex max-w-[45%] items-center gap-1.5 rounded-md px-2 py-1 text-[0.95rem] font-semibold text-secondary-foreground/90 underline decoration-secondary-foreground/40 underline-offset-4 hover:bg-secondary-foreground/10 hover:text-secondary-foreground focus-visible:ring-2 focus-visible:ring-accent"
+    >
+      <span className="truncate">Olá, {primeiroNome}</span>
+      <PencilIcon aria-hidden className="size-3.5 shrink-0" />
+    </Link>
   );
 }
 
@@ -27,6 +53,7 @@ function Navegacao({ admin }: { admin: boolean }) {
         <NavLink to="/" end className={navLinkClasses}>
           Início
         </NavLink>
+        <Saudacao />
       </nav>
     );
   }

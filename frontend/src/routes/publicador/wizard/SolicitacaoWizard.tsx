@@ -10,7 +10,6 @@ import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import JanelaFechada from "../JanelaFechada";
 import { WizardProgresso } from "./WizardProgresso";
-import { EtapaNome } from "./EtapaNome";
 import { EtapaDiaSemana } from "./EtapaDiaSemana";
 import { EtapaCarrinho } from "./EtapaCarrinho";
 import { EtapaTurno } from "./EtapaTurno";
@@ -40,14 +39,13 @@ interface SolicitacaoCriadaResponse {
   turnoId: number;
 }
 
-type Etapa = 1 | 2 | 3 | 4;
-const TOTAL_ETAPAS = 4;
+type Etapa = 1 | 2 | 3;
+const TOTAL_ETAPAS = 3;
 
 const TITULOS: Record<Etapa, string> = {
-  1: "Qual é o seu nome?",
-  2: "Em qual carrinho?",
-  3: "Em qual dia da semana?",
-  4: "Em qual turno?",
+  1: "Em qual carrinho?",
+  2: "Em qual dia da semana?",
+  3: "Em qual turno?",
 };
 
 interface SolicitacaoWizardProps {
@@ -57,19 +55,17 @@ interface SolicitacaoWizardProps {
 }
 
 /**
- * Formulário de solicitação em 4 etapas (PLANNING.md §5): nome → carrinho → dia da semana
- * → turno, uma pergunta por tela, com um botão grande de confirmação no rodapé. Quem já
- * tem nome salvo começa na etapa do carrinho (volta ao nome pelo botão Voltar). Cada
+ * Formulário de solicitação em 3 etapas (PLANNING.md §5): carrinho → dia da semana → turno,
+ * uma pergunta por tela, com um botão grande de confirmação no rodapé. O nome não é pedido
+ * aqui: ele é informado no primeiro acesso (rota /nome) e vai junto no envio. "Voltar" na
+ * primeira etapa sai do wizard para a tela inicial. Cada
  * Etapa* é "burra" (recebe valor + callback, sem estado próprio); este componente guarda
  * todo o estado e faz o submit final.
  */
 export function SolicitacaoWizard({ mesAlvo }: SolicitacaoWizardProps) {
   const navigate = useNavigate();
-  const { nome, setNome } = usePublicadorToken();
-
-  // Com nome já salvo, o wizard abre direto no carrinho; o nome só é alterado se o
-  // publicador tocar em Voltar. Decidido só na montagem: editar o nome depois não pula etapa.
-  const [etapa, setEtapa] = useState<Etapa>(() => (nome.trim() !== "" ? 2 : 1));
+  const { nome } = usePublicadorToken();
+  const [etapa, setEtapa] = useState<Etapa>(1);
   const [diaSemana, setDiaSemana] = useState<DiaSemana | null>(null);
   const [carrinhoId, setCarrinhoId] = useState<number | null>(null);
   const [turnoId, setTurnoId] = useState<number | null>(null);
@@ -155,18 +151,15 @@ export function SolicitacaoWizard({ mesAlvo }: SolicitacaoWizardProps) {
     }
   }
 
-  const podeAvancar =
-    etapa === 1
-      ? nome.trim() !== ""
-      : etapa === 2
-        ? carrinhoId != null
-        : etapa === 3
-          ? diaSemana != null
-          : turnoId != null;
+  const podeAvancar = etapa === 1 ? carrinhoId != null : etapa === 2 ? diaSemana != null : turnoId != null;
 
   function voltar() {
     setErroSalvar(null);
-    setEtapa((e) => (e > 1 ? ((e - 1) as Etapa) : e));
+    if (etapa === 1) {
+      navigate("/");
+      return;
+    }
+    setEtapa((e) => (e - 1) as Etapa);
   }
 
   async function salvar() {
@@ -208,8 +201,6 @@ export function SolicitacaoWizard({ mesAlvo }: SolicitacaoWizardProps) {
   function renderEtapa() {
     switch (etapa) {
       case 1:
-        return <EtapaNome nome={nome} onChange={setNome} />;
-      case 2:
         return (
           <EtapaCarrinho
             carrinhos={carrinhosComTurno}
@@ -219,7 +210,7 @@ export function SolicitacaoWizard({ mesAlvo }: SolicitacaoWizardProps) {
             onSelecionar={selecionarCarrinho}
           />
         );
-      case 3:
+      case 2:
         return (
           <EtapaDiaSemana
             valor={diaSemana}
@@ -227,7 +218,7 @@ export function SolicitacaoWizard({ mesAlvo }: SolicitacaoWizardProps) {
             onSelecionar={selecionarDia}
           />
         );
-      case 4:
+      case 3:
         return (
           <EtapaTurno
             turnos={turnosDisponiveis}
@@ -264,11 +255,9 @@ export function SolicitacaoWizard({ mesAlvo }: SolicitacaoWizardProps) {
       )}
 
       <footer className="sticky bottom-0 flex gap-3 bg-background pt-2 pb-1">
-        {etapa > 1 && (
-          <Button type="button" variant="outline" size="lg" onClick={voltar} disabled={salvando}>
-            Voltar
-          </Button>
-        )}
+        <Button type="button" variant="outline" size="lg" onClick={voltar} disabled={salvando}>
+          Voltar
+        </Button>
         <Button
           type="button"
           size="lg"

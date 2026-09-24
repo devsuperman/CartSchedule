@@ -71,6 +71,7 @@ backend/
           CriarSolicitacao/          # POST /api/solicitacoes
           ListarHistorico/           # GET  /api/solicitacoes  (header X-Publicador-Token; carrinhoNome + carrinhoDescricao; sem data/hora do envio na resposta)
           ExcluirSolicitacao/        # DELETE /api/solicitacoes/{id}  (apaga o registro; não há status)
+          AtualizarNome/             # PUT    /api/publicador  (header X-Publicador-Token; 204; não cria o publicador se ainda não existe; sem janela)
         Administradores/
           Login/                    # POST /api/admin/login
           GerenciarCarrinhos/       # GET/POST/PUT /api/admin/carrinhos  (nome, descricao opcional, ativo)
@@ -80,6 +81,7 @@ backend/
             ExcluirSolicitacao/          # DELETE /api/admin/solicitacoes/{id}  (sem aprovação: o admin exclui; 204/404, sem janela)
             AdicionarSolicitacaoManual/  # POST /api/admin/escalas/{mes}/solicitacoes
           ObterEscalaFinal/         # GET  /api/admin/escalas/{mes}/grade
+          RenomearPublicador/       # PUT  /api/admin/publicadores/{id}  (204/404; nomes repetidos permitidos)
 ```
 
 Cada slice de `Features/` segue o mesmo padrão de arquivos:
@@ -102,12 +104,12 @@ Cada slice de `Features/` segue o mesmo padrão de arquivos:
 Resolve as regras 9, 10 e 11 do `PLANNING.md` (sem login, mas com
 bloqueio de duplicidade e histórico):
 
-- No primeiro acesso, o frontend gera um **identificador anônimo de dispositivo** (`publicadorToken`, um GUID) e salva no `localStorage`, junto com o nome informado.
+- No primeiro acesso, o frontend gera um **identificador anônimo de dispositivo** (`publicadorToken`, um GUID) e salva no `localStorage`. Antes de qualquer tela do publicador, a guarda `ExigeNome` leva à rota `/nome`, onde ele informa o nome (também salvo no `localStorage`). O nome vai ao backend junto com cada pedido (`POST /api/solicitacoes` cria/atualiza o `Publicador`) e, quando editado em `/nome` ("Olá, Fulano" no cabeçalho), por `PUT /api/publicador`.
 - Esse token é enviado em todo request do publicador (ex: header `X-Publicador-Token`).
 - No backend, a entidade `Publicador` é identificada por esse token (chave técnica), com o `nome` como um campo editável associado a ele.
 - O bloqueio de duplicidade (regra 10) e o histórico (regra 11) usam esse `publicadorToken` para saber quais solicitações são "do mesmo publicador".
 - Ao usar a adição manual, o administrador escolhe entre os nomes de publicadores já vistos pelo sistema (autocomplete) ou digita um nome novo:
-  - Se o nome digitado **coincidir exatamente** com um `Publicador` já existente, a solicitação é associada a esse mesmo registro — inclusive aparecerá no histórico daquele publicador quando ele acessar pelo próprio celular.
+  - Se o nome digitado **coincidir exatamente** com um `Publicador` já existente (havendo homônimos, o de pedido mais antigo, desempate pelo `Id`), a solicitação é associada a esse mesmo registro — inclusive aparecerá no histórico daquele publicador quando ele acessar pelo próprio celular.
   - Caso contrário (nome novo, ou grafia diferente de um nome existente), o backend cria um `Publicador` novo com um token gerado no servidor. Isso é uma consequência aceita da regra de negócio 9 (sem verificação/bloqueio de nomes duplicados) — pequenas diferenças de grafia podem gerar registros distintos para a mesma pessoa; a escala final não é afetada, pois é montada pelos nomes, não pelo token.
 
 ### 2.4 Turnos e dias da semana fixos (dados de seed)
@@ -231,18 +233,19 @@ frontend/
         InicioPublicador.tsx      # tela inicial: histórico de mês atual + próximo; botão "Solicitar Nova Escala" (janela aberta) ou aviso de envio fechado
         SolicitarEscala.tsx       # decide entre JanelaFechada e o wizard, conforme useJanela()
         JanelaFechada.tsx         # tela exibida fora da janela de envio
-        wizard/                   # formulário em 4 etapas: nome → carrinho (nome + descrição) → dia da semana → turno
+        Nome.tsx                  # rota /nome: nome no primeiro acesso e edição ("Olá, Fulano")
+        wizard/                   # formulário em 3 etapas: carrinho (nome + descrição) → dia da semana → turno
         components/
           SolicitacaoCard.tsx     # card de uma solicitação (excluir, só com janela aberta e no mês-alvo; sem status nem data/hora)
           ErroJanela.tsx          # erro ao consultar /api/janela, com "tentar novamente"
       admin/
         Login.tsx
-        RevisaoEscala.tsx         # solicitações agrupadas por carrinho/dia/turno + desempate
+        RevisaoEscala.tsx         # solicitações agrupadas por carrinho/dia/turno + desempate; excluir e editar nome do publicador
         AdicionarSolicitacao.tsx  # adição manual
         GestaoCarrinhos.tsx       # cadastro/edição de carrinhos (nome, descrição) e associação com os 6 turnos fixos
         EscalaFinal.tsx           # grade final do mês
     hooks/
-      usePublicadorToken.ts       # lê/gera o token e o nome salvos no localStorage
+      usePublicadorToken.ts       # lê/gera o token; nome no localStorage, compartilhado entre telas (useSyncExternalStore)
       useJanela.ts
       useAdminAuth.ts             # guarda o JWT (em memória ou sessionStorage) e protege rotas /admin
     components/                   # componentes reutilizáveis de UI
@@ -254,7 +257,7 @@ frontend/
 
 ### 3.3 Duas áreas da aplicação
 
-- **Área do Publicador** (`/`): fluxo mobile-first (a maioria acessa pelo celular) — nome, carrinho, dia da semana, turno, envio, histórico com exclusão. Sem login.
+- **Área do Publicador** (`/`): fluxo mobile-first (a maioria acessa pelo celular) — nome (só no primeiro acesso), carrinho, dia da semana, turno, envio, histórico com exclusão. Sem login.
 - **Área do Administrador** (`/admin/*`): protegida por login (JWT armazenado no cliente); painel de revisão de escala, gestão de carrinhos (com associação aos turnos fixos) e escala final.
 
 ## 4. Banco de Dados — PostgreSQL

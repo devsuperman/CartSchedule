@@ -532,7 +532,27 @@ tirar alguém é excluir o registro de vez (publicador, como antes, ou admin).
 
 ---
 
-## Backlog (Fase 12 — opcional, fora do escopo inicial)
+## Fase 12 — Nome do publicador
+
+O nome sai do wizard: é pedido uma vez, no primeiro acesso, e fica visível
+como "Olá, Fulano". Publicador e admin podem corrigi-lo.
+
+| ID | Entrega | Critério de aceite |
+|---|---|---|
+| F12-BE-01 | `Features/Publicadores/AtualizarNome/`, `Program.cs` | `PUT /api/publicador` (header `X-Publicador-Token`, `{ nome }` obrigatório, máx. 200, trim): atualiza o nome se o publicador existe; se não, não cria. 204 nos dois casos; sem janela; limite de escrita do publicador. |
+| F12-BE-02 | `Features/Administradores/RenomearPublicador/`, `AdicionarSolicitacaoManual` | `PUT /api/admin/publicadores/{id}` (JWT): 204/404, vale em revisão e grade; nomes repetidos permitidos. Na adição manual, entre homônimos reusa o de pedido mais antigo (desempate pelo `Id`). |
+| F12-FE-01 | `routes/publicador/Nome.tsx`, `components/ExigeNome.tsx`, `App.tsx`, `hooks/usePublicadorToken.ts` | Sem nome salvo, `/` e `/solicitar` levam a `/nome` ("Qual é o seu nome?", placeholder "Nome e sobrenome", "Continuar" → `/`). Com nome, `/nome` é a edição ("Alterar nome", "Salvar"/"Cancelar"): salva no aparelho e no servidor e volta para a tela de origem; se o servidor falhar, avisa e fica. |
+| F12-FE-02 | `components/Layout.tsx` | "Olá, {primeiro nome}" à direita do cabeçalho do publicador (não no admin nem em `/nome`); leva a `/nome` e atualiza na hora quando o nome muda. |
+| F12-FE-03 | `wizard/SolicitacaoWizard.tsx` | Wizard em 3 etapas (carrinho → dia → turno), sem o nome; "Voltar" na primeira etapa vai para `/`. |
+| F12-FE-04 | `routes/admin/RevisaoEscala.tsx`, `routes/admin/components/ModalEditarNome.tsx` | Lápis ao lado do nome abre "Editar nome" ("Muda o nome em todos os pedidos desta pessoa."); salvar renomeia todas as linhas do publicador; erro aparece no modal. |
+
+### Verificação da Fase 12
+
+`dotnet test`, `npm test`, `npm run lint`, `npm run build`.
+
+---
+
+## Backlog (Fase 13 — opcional, fora do escopo inicial)
 
 Não paralelizar ainda — só entra depois que Fases 0–4 estiverem completas
 e validadas:

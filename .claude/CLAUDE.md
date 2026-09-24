@@ -72,7 +72,10 @@ todas são intencionais, confirmadas no `PLANNING.md`:
    quanto para adição manual do admin. Tudo mais é sinalização, não bloqueio.
 5. **Sem cadastro/login para o publicador.** Identificação via token
    anônimo (GUID) gerado no frontend e salvo em `localStorage`, enviado no
-   header `X-Publicador-Token`. Nome é um campo livre e editável.
+   header `X-Publicador-Token`. Nome é um campo livre, pedido no primeiro
+   acesso (rota `/nome`, guarda `ExigeNome`) e fora do wizard; editável
+   pelo publicador ("Olá, Fulano" → `PUT /api/publicador`) e pelo admin
+   (`PUT /api/admin/publicadores/{id}`). Nomes repetidos são permitidos.
 6. **Janela de envio automática**, sem job/cron: calculada em tempo real a
    cada request a partir da data do servidor — dia do mês entre 15 e 25 →
    aberta, escala-alvo = mês seguinte; fora disso → fechada. Fora da
