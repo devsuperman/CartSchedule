@@ -543,6 +543,7 @@ como "Olá, Fulano". Publicador e admin podem corrigi-lo.
 | F12-BE-02 | `Features/Administradores/RenomearPublicador/`, `AdicionarSolicitacaoManual` | `PUT /api/admin/publicadores/{id}` (JWT): 204/404, vale em revisão e grade; nomes repetidos permitidos. Na adição manual, entre homônimos reusa o de pedido mais antigo (desempate pelo `Id`). |
 | F12-FE-01 | `routes/publicador/Nome.tsx`, `components/ExigeNome.tsx`, `App.tsx`, `hooks/usePublicadorToken.ts` | Sem nome salvo, `/` e `/solicitar` levam a `/nome` ("Qual é o seu nome?", placeholder "Nome e sobrenome", "Continuar" → `/`). Com nome, `/nome` é a edição ("Alterar nome", "Salvar"/"Cancelar"): salva no aparelho e no servidor e volta para a tela de origem; se o servidor falhar, avisa e fica. |
 | F12-FE-02 | `components/Layout.tsx` | "Olá, {primeiro nome}" à direita do cabeçalho do publicador (não no admin nem em `/nome`); leva a `/nome` e atualiza na hora quando o nome muda. |
+| F12-FE-05 | `components/Layout.tsx` | O publicador não tem menu (sai o "Início"); o título "Escala TPL" é um link para a tela inicial (no admin, para o painel). |
 | F12-FE-03 | `wizard/SolicitacaoWizard.tsx` | Wizard em 3 etapas (carrinho → dia → turno), sem o nome; "Voltar" na primeira etapa vai para `/`. |
 | F12-FE-04 | `routes/admin/RevisaoEscala.tsx`, `routes/admin/components/ModalEditarNome.tsx` | Lápis ao lado do nome abre "Editar nome" ("Muda o nome em todos os pedidos desta pessoa."); salvar renomeia todas as linhas do publicador; erro aparece no modal. |
 

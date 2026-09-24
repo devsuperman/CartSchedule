@@ -44,17 +44,13 @@ function Navegacao({ admin }: { admin: boolean }) {
   const navigate = useNavigate();
   const mes = janela?.mesAlvo.slice(0, 7);
 
+  // O publicador não tem menu: todas as telas dele já levam de volta ao início, e o título
+  // "Escala TPL" também é um link para lá.
   if (!admin) {
     return (
-      <nav
-        className="flex flex-1 flex-wrap items-end gap-1"
-        aria-label="Principal"
-      >
-        <NavLink to="/" end className={navLinkClasses}>
-          Início
-        </NavLink>
+      <div className="flex flex-1 items-end">
         <Saudacao />
-      </nav>
+      </div>
     );
   }
 
@@ -112,7 +108,12 @@ export function Layout({ children }: PropsWithChildren) {
       </a>
       <header className="bg-secondary text-secondary-foreground">
         <div className="mx-auto flex max-w-4xl flex-wrap items-end gap-x-8 px-4 pt-3">
-          <span className="pb-3 text-[1.15rem] font-bold">Escala TPL</span>
+          <Link
+            to={admin ? "/admin" : "/"}
+            className="rounded-sm pb-3 text-[1.15rem] font-bold text-secondary-foreground no-underline focus-visible:ring-2 focus-visible:ring-accent"
+          >
+            Escala TPL
+          </Link>
           <Navegacao admin={admin} />
         </div>
       </header>

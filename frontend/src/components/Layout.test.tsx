@@ -79,4 +79,13 @@ describe("Layout — Olá, Fulano", () => {
     renderizar(caminho);
     expect(screen.queryByRole("link", { name: /Olá/ })).not.toBeInTheDocument();
   });
+
+  it("o publicador não tem menu; o título leva à tela inicial", async () => {
+    localStorage.setItem(PUBLICADOR_NOME_STORAGE_KEY, "Ana");
+    const user = renderizar("/nome");
+
+    expect(screen.queryByRole("link", { name: "Início" })).not.toBeInTheDocument();
+    await user.click(screen.getByRole("link", { name: "Escala TPL" }));
+    expect(screen.getByRole("button", { name: "Trocar nome" })).toBeInTheDocument();
+  });
 });
