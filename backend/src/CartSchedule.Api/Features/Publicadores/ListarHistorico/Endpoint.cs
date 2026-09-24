@@ -36,8 +36,7 @@ public static class Endpoint
                     (int)s.DiaSemana,
                     s.TurnoId,
                     (int)s.Status,
-                    (int)s.Origem,
-                    s.CriadoEm))
+                    (int)s.Origem))
                 .ToListAsync();
 
             return Results.Ok(historico);

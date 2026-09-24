@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -20,38 +21,31 @@ export interface Solicitacao {
   turnoId: number;
   status: number;
   origem: number;
-  criadoEm: string;
-}
-
-function formatarDataHora(iso: string): string {
-  const data = new Date(iso);
-  if (Number.isNaN(data.getTime())) {
-    return iso;
-  }
-  return data.toLocaleString("pt-BR");
 }
 
 interface SolicitacaoCardProps {
   solicitacao: Solicitacao;
   /** Janela aberta e solicitação da escala do mês-alvo — decidido pela tela, que conhece a janela. */
-  cancelamentoPermitido: boolean;
-  cancelando: boolean;
+  exclusaoPermitida: boolean;
+  excluindo: boolean;
   erro?: string;
-  onCancelar: (id: number) => void;
+  onExcluir: (id: number) => void;
 }
 
-/** Card de uma solicitação do publicador: dados + badge de status + botão de cancelar,
- * quando Pendente/Aprovada e o cancelamento é permitido — só com a janela aberta e para a
- * escala do mês-alvo (PLANNING.md regra 8). Fora disso, só o administrador mexe no pedido. */
+/** Card de uma solicitação do publicador: dados + badge de status + botão de excluir,
+ * quando Pendente/Aprovada e a exclusão é permitida — só com a janela aberta e para a
+ * escala do mês-alvo (PLANNING.md regra 8). A exclusão pede confirmação no próprio card
+ * (nunca window.confirm). Fora disso, só o administrador mexe no pedido. */
 export function SolicitacaoCard({
   solicitacao,
-  cancelamentoPermitido,
-  cancelando,
+  exclusaoPermitida,
+  excluindo,
   erro,
-  onCancelar,
+  onExcluir,
 }: SolicitacaoCardProps) {
-  const podeCancelar =
-    cancelamentoPermitido &&
+  const [confirmando, setConfirmando] = useState(false);
+  const podeExcluir =
+    exclusaoPermitida &&
     (solicitacao.status === STATUS.Pendente || solicitacao.status === STATUS.Aprovada);
 
   return (
@@ -61,22 +55,38 @@ export function SolicitacaoCard({
         <Badge variant={STATUS_BADGE_VARIANT[solicitacao.status]}>
           {STATUS_LABELS[solicitacao.status] ?? `Status ${solicitacao.status}`}
         </Badge>
-        {podeCancelar && (
-          <Button
-            type="button"
-            variant="destructive"
-            size="sm"
-            onClick={() => onCancelar(solicitacao.id)}
-            disabled={cancelando}
-          >
-            {cancelando ? "Cancelando…" : "Cancelar pedido"}
+        {podeExcluir && !confirmando && (
+          <Button type="button" variant="destructive" size="sm" onClick={() => setConfirmando(true)}>
+            Excluir pedido
           </Button>
         )}
       </span>
       <span className="text-sm text-muted-foreground">
-        {formatarDia(solicitacao.diaSemana)}, {formatarTurno(solicitacao.turnoId)}. Enviado em{" "}
-        {formatarDataHora(solicitacao.criadoEm)}
+        {formatarDia(solicitacao.diaSemana)}, {formatarTurno(solicitacao.turnoId)}
       </span>
+      {podeExcluir && confirmando && (
+        <div className="col-span-full mt-2 flex flex-wrap items-center justify-end gap-2">
+          <span className="mr-auto text-[0.95rem] font-semibold">Excluir este pedido?</span>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => setConfirmando(false)}
+            disabled={excluindo}
+          >
+            Voltar
+          </Button>
+          <Button
+            type="button"
+            variant="destructive"
+            size="sm"
+            onClick={() => onExcluir(solicitacao.id)}
+            disabled={excluindo}
+          >
+            {excluindo ? "Excluindo…" : "Confirmar"}
+          </Button>
+        </div>
+      )}
       {erro && (
         <Alert variant="destructive" className="col-span-full py-2 text-[0.95rem]">
           <AlertDescription>{erro}</AlertDescription>

@@ -43,7 +43,7 @@ public static class Endpoint
             return Results.Ok(new ListarSolicitacoesAgrupadasResponse(mes, []));
         }
 
-        // Só Pendente/Aprovada entram na revisão — Rejeitada/Cancelada já estão resolvidas
+        // Só Pendente/Aprovada entram na revisão — Rejeitadas já estão resolvidas
         // e ficam fora (PLANNING.md regras 1-4).
         var solicitacoes = await db.Solicitacoes
             .AsNoTracking()

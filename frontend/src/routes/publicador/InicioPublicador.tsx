@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
 import { Link, Navigate } from "react-router-dom";
 import { apiFetch, ApiError } from "../../api/client";
-import { useJanela } from "../../hooks/useJanela";
+import { ehErroDeJanelaFechada, useJanela } from "../../hooks/useJanela";
 import { usePublicadorToken } from "../../hooks/usePublicadorToken";
-import { formatarMes, STATUS } from "../../utils/formatacao";
+import { formatarMes } from "../../utils/formatacao";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -18,7 +18,7 @@ function primeiroDiaDoMesAtualIso(): string {
 /**
  * Rota "/": tela inicial do publicador. Mostra os pedidos do mês atual e do próximo
  * (mesAlvo). Com a janela aberta, há um botão para solicitar uma nova escala e os pedidos
- * do mês-alvo podem ser cancelados; com ela fechada, um aviso toma o lugar do botão e a
+ * do mês-alvo podem ser excluídos; com ela fechada, um aviso toma o lugar do botão e a
  * lista fica só para leitura (PLANNING.md regra 8). Se o publicador nunca fez nenhuma
  * solicitação e a janela está aberta, redireciona automaticamente para "/solicitar" —
  * sem precisar clicar em nada (fluxo de primeiro acesso).
@@ -40,15 +40,21 @@ export default function InicioPublicador() {
   const [solicitacoes, setSolicitacoes] = useState<Solicitacao[] | null>(null);
   const [carregandoSolicitacoes, setCarregandoSolicitacoes] = useState(true);
   const [erro, setErro] = useState<string | null>(null);
-  const [cancelandoId, setCancelandoId] = useState<number | null>(null);
-  const [errosCancelamento, setErrosCancelamento] = useState<Record<number, string>>({});
+  // Decidido só na primeira carga: excluir o último pedido esvazia a lista, mas não deve
+  // mandar o publicador de volta para o wizard como se fosse o primeiro acesso.
+  const [primeiroAcesso, setPrimeiroAcesso] = useState(false);
+  const [excluindoId, setExcluindoId] = useState<number | null>(null);
+  const [errosExclusao, setErrosExclusao] = useState<Record<number, string>>({});
 
   useEffect(() => {
     let cancelado = false;
 
     apiFetch<Solicitacao[]>("/api/solicitacoes")
       .then((resposta) => {
-        if (!cancelado) setSolicitacoes(resposta);
+        if (!cancelado) {
+          setSolicitacoes(resposta);
+          setPrimeiroAcesso(resposta.length === 0);
+        }
       })
       .catch((err: unknown) => {
         if (!cancelado) {
@@ -64,24 +70,27 @@ export default function InicioPublicador() {
     };
   }, []);
 
-  async function cancelarSolicitacao(id: number) {
-    setCancelandoId(id);
-    setErrosCancelamento((prev) => {
+  async function excluirSolicitacao(id: number) {
+    setExcluindoId(id);
+    setErrosExclusao((prev) => {
       const { [id]: _removido, ...resto } = prev;
       return resto;
     });
 
     try {
-      await apiFetch(`/api/solicitacoes/${id}/cancelar`, { method: "POST" });
-      setSolicitacoes((prev) =>
-        prev ? prev.map((s) => (s.id === id ? { ...s, status: STATUS.Cancelada } : s)) : prev,
-      );
+      await apiFetch(`/api/solicitacoes/${id}`, { method: "DELETE" });
+      setSolicitacoes((prev) => (prev ? prev.filter((s) => s.id !== id) : prev));
     } catch (err) {
       const mensagem =
-        err instanceof ApiError ? err.message : "Não foi possível cancelar a solicitação. Tente novamente.";
-      setErrosCancelamento((prev) => ({ ...prev, [id]: mensagem }));
+        err instanceof ApiError ? err.message : "Não foi possível excluir a solicitação. Tente novamente.";
+      setErrosExclusao((prev) => ({ ...prev, [id]: mensagem }));
+      // A janela fechou enquanto a tela estava aberta (ex: virou o dia 26): reconsulta a
+      // janela para a tela passar ao modo só leitura, com o aviso no lugar do botão.
+      if (ehErroDeJanelaFechada(err)) {
+        tentarJanelaNovamente();
+      }
     } finally {
-      setCancelandoId(null);
+      setExcluindoId(null);
     }
   }
 
@@ -95,7 +104,7 @@ export default function InicioPublicador() {
     );
   }
 
-  if (janela?.aberta && solicitacoes && solicitacoes.length === 0) {
+  if (janela?.aberta && primeiroAcesso) {
     return <Navigate to="/solicitar" replace />;
   }
 
@@ -129,7 +138,7 @@ export default function InicioPublicador() {
           <AlertTitle>Envio de pedidos fechado</AlertTitle>
           <AlertDescription>
             Os pedidos podem ser enviados do dia 15 ao dia 25 de cada mês. Fora desse período,
-            para cancelar um pedido, fale com o administrador.
+            para excluir um pedido, fale com o administrador.
           </AlertDescription>
         </Alert>
       )}
@@ -156,10 +165,10 @@ export default function InicioPublicador() {
               <li key={s.id}>
                 <SolicitacaoCard
                   solicitacao={s}
-                  cancelamentoPermitido={janela?.aberta === true && mes === janela.mesAlvo}
-                  cancelando={cancelandoId === s.id}
-                  erro={errosCancelamento[s.id]}
-                  onCancelar={cancelarSolicitacao}
+                  exclusaoPermitida={janela?.aberta === true && mes === janela.mesAlvo}
+                  excluindo={excluindoId === s.id}
+                  erro={errosExclusao[s.id]}
+                  onExcluir={excluirSolicitacao}
                 />
               </li>
             ))}

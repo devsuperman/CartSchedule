@@ -21,19 +21,16 @@ export const STATUS = {
   Pendente: 1,
   Aprovada: 2,
   Rejeitada: 3,
-  Cancelada: 4,
 } as const;
 
 export const STATUS_LABELS: Record<number, string> = {
   [STATUS.Pendente]: "Pendente",
   [STATUS.Aprovada]: "Aprovada",
   [STATUS.Rejeitada]: "Rejeitada",
-  [STATUS.Cancelada]: "Cancelada",
 };
 
-export const STATUS_BADGE_VARIANT: Record<number, "pendente" | "aprovada" | "rejeitada" | "cancelada"> = {
+export const STATUS_BADGE_VARIANT: Record<number, "pendente" | "aprovada" | "rejeitada"> = {
   [STATUS.Pendente]: "pendente",
   [STATUS.Aprovada]: "aprovada",
   [STATUS.Rejeitada]: "rejeitada",
-  [STATUS.Cancelada]: "cancelada",
 };

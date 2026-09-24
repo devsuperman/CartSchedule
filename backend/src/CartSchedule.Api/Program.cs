@@ -6,7 +6,7 @@ using CartSchedule.Api.Features.Administradores.RevisarEscala.AdicionarSolicitac
 using CartSchedule.Api.Features.Administradores.RevisarEscala.AprovarSolicitacao;
 using CartSchedule.Api.Features.Administradores.RevisarEscala.ListarSolicitacoesAgrupadas;
 using CartSchedule.Api.Features.Administradores.RevisarEscala.RejeitarSolicitacao;
-using CartSchedule.Api.Features.Publicadores.CancelarSolicitacao;
+using CartSchedule.Api.Features.Publicadores.ExcluirSolicitacao;
 using CartSchedule.Api.Features.Publicadores.ConsultarJanela;
 using CartSchedule.Api.Features.Publicadores.CriarSolicitacao;
 using CartSchedule.Api.Features.Publicadores.ListarCarrinhosDisponiveis;
@@ -63,7 +63,7 @@ app.MapConsultarJanela();
 app.MapListarCarrinhosDisponiveis();
 app.MapCriarSolicitacao();
 app.MapListarHistorico();
-app.MapCancelarSolicitacao();
+app.MapExcluirSolicitacao();
 
 // Administradores (rotas protegidas por JWT, exceto o login)
 app.MapLogin();

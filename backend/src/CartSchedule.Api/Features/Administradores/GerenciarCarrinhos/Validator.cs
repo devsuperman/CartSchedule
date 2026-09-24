@@ -9,6 +9,9 @@ public class CriarCarrinhoRequestValidator : AbstractValidator<CriarCarrinhoRequ
         RuleFor(r => r.Nome)
             .NotEmpty()
             .MaximumLength(200);
+
+        RuleFor(r => r.Descricao)
+            .MaximumLength(500);
     }
 }
 
@@ -19,5 +22,8 @@ public class AtualizarCarrinhoRequestValidator : AbstractValidator<AtualizarCarr
         RuleFor(r => r.Nome)
             .NotEmpty()
             .MaximumLength(200);
+
+        RuleFor(r => r.Descricao)
+            .MaximumLength(500);
     }
 }

@@ -7,7 +7,7 @@ namespace CartSchedule.Api.Features.Administradores.RevisarEscala.RejeitarSolici
 
 /// <summary>
 /// Rejeita uma Solicitacao Pendente ou Aprovada (o admin pode rever a decisão a qualquer
-/// momento; Cancelada não é reativada). Nunca verifica/bloqueia o limite de 2 por trinca
+/// momento). Nunca verifica/bloqueia o limite de 2 por trinca
 /// (carrinho, dia, turno) — essa regra é só sinalização visual em outro slice
 /// (ListarSolicitacoesAgrupadas), nunca um bloqueio (PLANNING.md, regra 1/3).
 /// Admin não é limitado pela janela de envio (regra 7): funciona em qualquer escala.

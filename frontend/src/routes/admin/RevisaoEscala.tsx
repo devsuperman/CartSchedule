@@ -20,7 +20,7 @@ interface SolicitacaoAgrupada {
   id: number;
   publicadorId: string;
   publicadorNome: string;
-  status: number; // 1=Pendente,2=Aprovada,3=Rejeitada,4=Cancelada
+  status: number; // 1=Pendente,2=Aprovada,3=Rejeitada
   origem: number; // 1=Publicador,2=Administrador
   criadoEm: string;
   totalNaEscala: number;
@@ -45,8 +45,7 @@ const ORIGEM_LABELS: Record<number, string> = {
   2: "Administrador",
 };
 
-// O admin pode rever a decisão a qualquer momento (Aprovada <-> Rejeitada); Cancelada foi
-// desistência do publicador e não é reativada.
+// O admin pode rever a decisão a qualquer momento (Aprovada <-> Rejeitada).
 const PODE_APROVAR: readonly number[] = [STATUS.Pendente, STATUS.Rejeitada];
 const PODE_REJEITAR: readonly number[] = [STATUS.Pendente, STATUS.Aprovada];
 

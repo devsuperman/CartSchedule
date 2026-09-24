@@ -4,7 +4,7 @@ using Microsoft.EntityFrameworkCore;
 namespace CartSchedule.Api.Features.Publicadores.ListarCarrinhosDisponiveis;
 
 /// <summary>
-/// GET /api/carrinhos — lista os carrinhos ativos e os ids dos turnos que
+/// GET /api/carrinhos — lista os carrinhos ativos (nome, descrição) e os ids dos turnos que
 /// cada um tem habilitado. Rota pública, sem autenticação (TASKS.md F1-BE-02).
 /// </summary>
 public static class Endpoint
@@ -19,6 +19,7 @@ public static class Endpoint
                 .Select(c => new CarrinhoDisponivelResponse(
                     c.Id,
                     c.Nome,
+                    c.Descricao,
                     c.CarrinhoTurnos.Select(ct => ct.TurnoId).ToList()))
                 .ToListAsync();
 

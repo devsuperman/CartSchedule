@@ -29,6 +29,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
         {
             entity.ToTable("carrinhos");
             entity.Property(c => c.Nome).IsRequired().HasMaxLength(200);
+            entity.Property(c => c.Descricao).HasMaxLength(500);
         });
 
         modelBuilder.Entity<Turno>(entity =>

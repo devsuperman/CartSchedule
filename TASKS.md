@@ -240,7 +240,153 @@ de revisão (ex: link direto `/admin/escalas/:mes`).
 
 ---
 
-## Backlog (Fase 5 — opcional, fora do escopo inicial)
+## Fase 5 — Ajustes pós-uso (paralelizável)
+
+Depende das Fases 0–4 já mergeadas. Ajustes pedidos depois do primeiro uso
+real. As regras correspondentes já estão em `PLANNING.md` (regras 9, 11,
+12, 12a, 18, seção 8 e modelo de dados) e em `TECHNICAL_SPEC.md`.
+
+São **3 trilhas sem arquivos em comum** — podem rodar em agentes
+simultâneos:
+
+| Trilha | Tarefas | Arquivos que toca |
+|---|---|---|
+| A — Nome do sistema | F5-FE-01 | `components/Layout.tsx`, `index.html` |
+| B — Carrinho: descrição + edição | F5-BE-01, F5-FE-02, F5-FE-03 | `Domain/Carrinho.cs`, `AppDbContext`, migration, `GerenciarCarrinhos/`, `ListarCarrinhosDisponiveis/`, `GestaoCarrinhos.tsx`, `wizard/SolicitacaoWizard.tsx`, `wizard/EtapaCarrinho.tsx` |
+| C — Excluir em vez de cancelar + histórico sem data | F5-BE-02, F5-FE-04 | `CancelarSolicitacao/` → `ExcluirSolicitacao/`, `StatusSolicitacao.cs`, `ListarHistorico/`, `Program.cs` (1 linha), migration só-SQL, `InicioPublicador.tsx`, `SolicitacaoCard.tsx`, `utils/formatacao.ts`, `RevisaoEscala.tsx` (comentário) |
+
+Único ponto de atenção entre trilhas: **migrations**. `F5-BE-01` é a dona
+da migration de schema da fase. A migration de `F5-BE-02` só deve ser
+gerada depois de `F5-BE-01` estar mergeada (o `AppDbContextModelSnapshot.cs`
+é regenerado a cada `dotnet ef migrations add` e daria conflito). O resto
+de `F5-BE-02` pode ser feito antes, em paralelo.
+
+### Trilha A — Nome do sistema
+
+#### F5-FE-01 — Exibir "Escala TPL" em vez de "CartSchedule"
+- **Por quê:** os usuários não sabem o que é "CartSchedule".
+- **Arquivos:** `frontend/src/components/Layout.tsx` (nome no header),
+  `frontend/index.html` (`<title>`).
+- **Não fazer:** renomear repo, pastas, namespaces, projeto .NET,
+  containers ou `package.json` — "CartSchedule" continua sendo o nome
+  interno.
+- **Pronto quando:** o header e a aba do navegador mostram "Escala TPL";
+  `grep -rn CartSchedule frontend/src frontend/index.html` não retorna nada
+  visível ao usuário; `npm run build` e `npm run lint` passam.
+
+### Trilha B — Carrinho: descrição + edição pelo admin
+
+#### F5-BE-01 — Campo `Descricao` no carrinho (backend)
+- **Domain:** `Descricao` (`string?`) em `Domain/Carrinho.cs`.
+- **AppDbContext:** `HasMaxLength(500)`, não obrigatório.
+- **Migration:** `dotnet ef migrations add AdicionaDescricaoCarrinho -o Infrastructure/Migrations`.
+  Carrinhos existentes ficam com `NULL`.
+- **`Features/Administradores/GerenciarCarrinhos`:** `Descricao` em
+  `CriarCarrinhoRequest`, `AtualizarCarrinhoRequest` e `CarrinhoResponse`;
+  validator com `MaximumLength(500)` (opcional). Normalizar texto em
+  branco para `null`. O `PUT /api/admin/carrinhos/{id}` já existente passa
+  a ser o endpoint de edição (nome, descrição, ativo) — não criar outro.
+- **`Features/Publicadores/ListarCarrinhosDisponiveis`:** `Descricao` em
+  `CarrinhoDisponivelResponse`.
+- **Contrato:** `descricao: string | null` em `GET /api/carrinhos`,
+  `GET/POST/PUT /api/admin/carrinhos`.
+- **Pronto quando:** `dotnet build` passa; a API sobe aplicando a
+  migration; criar/editar carrinho com e sem descrição funciona.
+
+#### F5-FE-02 — Admin edita o cadastro do carrinho
+- **Arquivo:** `frontend/src/routes/admin/GestaoCarrinhos.tsx`.
+- **O que muda:**
+  - Tipo `Carrinho` ganha `descricao: string | null`.
+  - Formulário de criação ganha campo **Descrição** (opcional).
+  - Cada card de carrinho ganha ação **Editar** que troca o título por
+    campos de nome e descrição, com **Salvar** / **Cancelar edição**.
+    Salvar chama `PUT /api/admin/carrinhos/{id}` com `{ nome, descricao, ativo }`
+    (preservando o `ativo` atual). Erro aparece no card, como os demais.
+  - O toggle de ativo (`handleAlternarAtivo`) passa a mandar também a
+    `descricao` atual, para não apagá-la.
+  - Descrição (quando houver) aparece abaixo do nome no card, fora do modo
+    edição.
+- **Depende de:** contrato de F5-BE-01 (pode começar em paralelo).
+- **Pronto quando:** dá para criar carrinho com descrição, editar nome e
+  descrição, e ativar/desativar sem perder a descrição; `npm run build` e
+  `npm run lint` passam.
+
+#### F5-FE-03 — Publicador vê a descrição ao escolher o carrinho
+- **Arquivos:** `frontend/src/routes/publicador/wizard/SolicitacaoWizard.tsx`
+  (tipo `Carrinho` ganha `descricao: string | null`),
+  `frontend/src/routes/publicador/wizard/EtapaCarrinho.tsx`.
+- **O que muda:** cada opção mostra o nome e, **abaixo dele**, a descrição
+  em texto menor (só se não vazia). O texto precisa continuar legível no
+  estado selecionado (fundo `primary`) e quebrar linha em telas estreitas
+  (hoje o botão é de uma linha só: ajustar altura/`whitespace-normal`).
+- **Depende de:** contrato de F5-BE-01 (pode começar em paralelo).
+- **Pronto quando:** carrinho com descrição mostra as duas linhas; sem
+  descrição, só o nome; layout ok em 360px; `npm run build`/`lint` passam.
+
+### Trilha C — Excluir em vez de cancelar + histórico sem data
+
+#### F5-BE-02 — `ExcluirSolicitacao` substitui `CancelarSolicitacao`
+- **Slice:** apagar `Features/Publicadores/CancelarSolicitacao/` e criar
+  `Features/Publicadores/ExcluirSolicitacao/Endpoint.cs` com
+  `DELETE /api/solicitacoes/{id}`. Mesmas validações de hoje: header
+  `X-Publicador-Token`, 404, 403 se não for do publicador, só
+  Pendente/Aprovada, janela aberta (400 com `codigo: "JANELA_FECHADA"`) e
+  escala do mês-alvo. Em vez de mudar status: `db.Solicitacoes.Remove(...)`.
+  Responde 204.
+- **`Program.cs`:** trocar só a linha `app.MapCancelarSolicitacao();` por
+  `app.MapExcluirSolicitacao();` (e o `using`).
+- **Enum:** remover `Cancelada = 4` de `Domain/Enums/StatusSolicitacao.cs`;
+  ajustar os comentários que citam Cancelada em `AprovarSolicitacao`,
+  `RejeitarSolicitacao` e `ListarSolicitacoesAgrupadas`.
+- **`ListarHistorico`:** remover `CriadoEm` do `ListarHistoricoResponse`
+  (a ordenação no servidor continua por `CriadoEm` desc).
+- **Migration só-SQL** `RemoveSolicitacoesCanceladas`, com
+  `migrationBuilder.Sql("DELETE FROM solicitacoes WHERE \"Status\" = 4;")`
+  no `Up` (sem `Down` de dados). **Gerar só depois de F5-BE-01 mergeada.**
+  Isso também libera quem tinha cancelado a re-solicitar a mesma trinca
+  (o índice único de duplicidade contava as canceladas).
+- **Pronto quando:** `dotnet build` passa; excluir com janela aberta
+  retorna 204 e a linha some; re-enviar a mesma trinca depois funciona;
+  com janela fechada retorna 400 `JANELA_FECHADA`.
+
+#### F5-FE-04 — Publicador exclui pedido; histórico sem data/hora
+- **Arquivos:** `frontend/src/routes/publicador/InicioPublicador.tsx`,
+  `frontend/src/routes/publicador/components/SolicitacaoCard.tsx`,
+  `frontend/src/utils/formatacao.ts`, `frontend/src/routes/admin/RevisaoEscala.tsx`
+  (só o comentário de status).
+- **O que muda:**
+  - `InicioPublicador`: `cancelarSolicitacao` → `excluirSolicitacao`,
+    chama `DELETE /api/solicitacoes/{id}` e **remove o item da lista** (em
+    vez de marcar status). Aviso de janela fechada: "para excluir um
+    pedido, fale com o administrador".
+  - `SolicitacaoCard`: botão **"Excluir pedido"** com confirmação inline
+    (ex.: "Excluir este pedido?" + Confirmar/Voltar — nunca
+    `window.confirm`); props renomeadas (`exclusaoPermitida`,
+    `excluindo`, `onExcluir`). Remover o trecho "Enviado em …", o campo
+    `criadoEm` do tipo e a função `formatarDataHora`.
+  - `formatacao.ts`: remover `Cancelada` de `STATUS`, labels e variantes.
+- **Depende de:** contrato de F5-BE-02 (pode começar em paralelo).
+- **Pronto quando:** o card mostra carrinho, dia e turno sem data/hora;
+  excluir com confirmação some da lista; fora da janela não há botão;
+  `grep -rni cancelad frontend/src` não encontra nada;
+  `npm run build`/`lint` passam.
+
+### Verificação da Fase 5 (após as 3 trilhas mergeadas)
+
+`dotnet build backend/CartSchedule.Api.slnx`, `npm run build`,
+`npm run lint`, e `docker compose up --build` (com data do servidor dentro
+da janela, dias 15–25):
+1. Header "Escala TPL".
+2. Admin cria um carrinho com descrição, edita nome/descrição,
+   desativa/ativa sem perder a descrição.
+3. No wizard, o carrinho mostra a descrição abaixo do nome.
+4. Publicador envia um pedido, exclui, e envia a mesma trinca de novo sem
+   erro de duplicidade.
+5. Histórico sem data/hora do envio.
+
+---
+
+## Backlog (Fase 6 — opcional, fora do escopo inicial)
 
 Não paralelizar ainda — só entra depois que Fases 0–4 estiverem completas
 e validadas:
@@ -258,3 +404,7 @@ e validadas:
   todos partindo do mesmo ponto pós-Fase-0, cada um em arquivos próprios.
 - **Fase 4**: 2–3 agentes (Dockerfiles em paralelo; compose e smoke test
   depois de tudo integrado).
+- **Fase 5**: até **5 agentes simultâneos** em 3 trilhas sem arquivos em
+  comum — A (`F5-FE-01`), B (`F5-BE-01`, `F5-FE-02`, `F5-FE-03`) e C
+  (`F5-BE-02`, `F5-FE-04`; um agente por área). Só a migration de
+  `F5-BE-02` espera `F5-BE-01` estar mergeada.
