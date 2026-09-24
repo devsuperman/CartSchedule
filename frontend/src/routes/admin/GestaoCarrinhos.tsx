@@ -352,8 +352,11 @@ export default function GestaoCarrinhos() {
                       <tbody>
                         {TURNOS.map((turno) => (
                           <tr key={turno.id}>
-                            <th scope="row" className="pr-1 text-left font-normal whitespace-nowrap">
-                              {turno.horaInicio}–{turno.horaFim}
+                            {/* <wbr>: em telas estreitas o horário quebra em 2 linhas para
+                                as 5 colunas de dias caberem sem rolagem horizontal. */}
+                            <th scope="row" className="pr-1 text-left font-normal">
+                              {turno.horaInicio}–<wbr />
+                              {turno.horaFim}
                             </th>
                             {DIAS_SEMANA.map((dia) => {
                               const habilitado = temDisponibilidade(carrinho, dia.valor, turno.id);
@@ -366,7 +369,7 @@ export default function GestaoCarrinhos() {
                                     aria-pressed={habilitado}
                                     aria-label={`${dia.label} ${turno.horaInicio}–${turno.horaFim}`}
                                     className={cn(
-                                      "h-9 w-full min-w-9 px-0",
+                                      "h-9 w-full min-w-8 px-0",
                                       habilitado && "border-primary bg-accent text-accent-foreground",
                                     )}
                                     onClick={() => handleAlternarTurno(carrinho, dia.valor, turno.id)}

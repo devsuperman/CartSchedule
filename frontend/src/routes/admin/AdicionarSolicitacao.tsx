@@ -232,7 +232,10 @@ export default function AdicionarSolicitacao() {
 
             <Label className="flex flex-col items-start gap-1.5">
               Turno
+              {/* key: remonta ao trocar carrinho/dia — o Radix não volta ao placeholder quando o
+                  valor passa de preenchido para undefined. */}
               <Select
+                key={`${carrinhoId}-${diaSemana}`}
                 value={turnoId === "" ? undefined : String(turnoId)}
                 onValueChange={(valor) => setTurnoId(Number(valor))}
                 disabled={!carrinhoSelecionado || diaSemana === "" || turnosDisponiveis.length === 0}
