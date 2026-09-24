@@ -52,8 +52,14 @@ public static class Endpoint
 
         var nomeSolicitado = request.Nome.Trim();
 
+        // Nomes repetidos são permitidos (regra 9): entre homônimos, reusa sempre o mesmo —
+        // o de pedido mais antigo (sem pedidos por último), desempate pelo Id.
         var publicador = await db.Publicadores
-            .FirstOrDefaultAsync(p => p.Nome == nomeSolicitado, ct);
+            .Where(p => p.Nome == nomeSolicitado)
+            .OrderBy(p => p.Solicitacoes.Min(s => (DateTimeOffset?)s.CriadoEm) == null)
+            .ThenBy(p => p.Solicitacoes.Min(s => (DateTimeOffset?)s.CriadoEm))
+            .ThenBy(p => p.Id)
+            .FirstOrDefaultAsync(ct);
 
         if (publicador is null)
         {

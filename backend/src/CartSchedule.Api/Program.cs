@@ -2,10 +2,12 @@ using CartSchedule.Api.Features.Administradores.GerenciarCarrinhos;
 using CartSchedule.Api.Features.Administradores.GerenciarTurnosDoCarrinho;
 using CartSchedule.Api.Features.Administradores.Login;
 using CartSchedule.Api.Features.Administradores.ObterEscalaFinal;
+using CartSchedule.Api.Features.Administradores.RenomearPublicador;
 using CartSchedule.Api.Features.Administradores.RevisarEscala.AdicionarSolicitacaoManual;
 using CartSchedule.Api.Features.Administradores.RevisarEscala.ListarSolicitacoesAgrupadas;
 using CartSchedule.Api.Features.Administradores.RevisarEscala.ExcluirSolicitacao;
 using CartSchedule.Api.Features.Publicadores.ExcluirSolicitacao;
+using CartSchedule.Api.Features.Publicadores.AtualizarNome;
 using CartSchedule.Api.Features.Publicadores.ConsultarJanela;
 using CartSchedule.Api.Features.Publicadores.CriarSolicitacao;
 using CartSchedule.Api.Features.Publicadores.ListarCarrinhosDisponiveis;
@@ -73,6 +75,7 @@ app.MapListarCarrinhosDisponiveis();
 app.MapCriarSolicitacao();
 app.MapListarHistorico();
 app.MapExcluirSolicitacao();
+app.MapAtualizarNome();
 
 // Administradores (rotas protegidas por JWT, exceto o login)
 app.MapLogin();
@@ -82,5 +85,6 @@ app.MapListarSolicitacoesAgrupadas();
 app.MapExcluirSolicitacaoAdmin();
 app.MapAdicionarSolicitacaoManual();
 app.MapObterEscalaFinal();
+app.MapRenomearPublicador();
 
 app.Run();

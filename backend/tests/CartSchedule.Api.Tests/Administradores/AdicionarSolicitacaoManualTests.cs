@@ -64,6 +64,23 @@ public class AdicionarSolicitacaoManualTests(ApiFixture fixture) : ApiTestBase(f
     }
 
     [Fact]
+    public async Task NomeDeHomonimos_ReusaOPublicadorDePedidoMaisAntigo()
+    {
+        // Regra 9: nomes repetidos são permitidos; entre homônimos, a adição manual usa sempre
+        // o de pedido mais antigo.
+        var admin = await AdminAsync();
+        var carrinhoId = await CriarCarrinhoAsync(admin);
+        await DefinirTurnosAsync(admin, carrinhoId, (Segunda, Turno0810), (Terca, Turno0810));
+        var maisAntigo = Guid.NewGuid();
+        await SolicitarAsync(Publicador(maisAntigo), carrinhoId, Segunda, Turno0810, "João");
+        await SolicitarAsync(Publicador(), carrinhoId, Segunda, Turno0810, "João");
+
+        var resposta = await AdicionarManualAsync(admin, carrinhoId, Terca, Turno0810, "João");
+
+        Assert.Equal(maisAntigo, (await JsonAsync(resposta)).GetProperty("publicadorId").GetGuid());
+    }
+
+    [Fact]
     public async Task ForaDaJanelaEEmOutroMes_Funciona()
     {
         // Regra 7: o administrador não é limitado pela janela.
