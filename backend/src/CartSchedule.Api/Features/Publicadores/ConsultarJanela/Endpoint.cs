@@ -11,9 +11,9 @@ public static class Endpoint
 {
     public static IEndpointRouteBuilder MapConsultarJanela(this IEndpointRouteBuilder app)
     {
-        app.MapGet("/api/janela", () =>
+        app.MapGet("/api/janela", (TimeProvider relogio) =>
         {
-            var status = JanelaDeEnvio.CalcularParaHoje();
+            var status = JanelaDeEnvio.CalcularParaHoje(relogio);
 
             return Results.Ok(new JanelaResponse(status.Aberta, status.MesAlvo));
         });

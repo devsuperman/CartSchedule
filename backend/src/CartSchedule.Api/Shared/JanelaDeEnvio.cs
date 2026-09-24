@@ -29,8 +29,12 @@ public static class JanelaDeEnvio
 
     private static readonly TimeZoneInfo FusoHorario = ObterFusoHorario();
 
-    public static JanelaStatus CalcularParaHoje() =>
-        Calcular(DateOnly.FromDateTime(TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, FusoHorario)));
+    /// <summary>
+    /// O relógio vem por injeção (TimeProvider.System registrado em Program.cs) para os
+    /// testes de integração poderem fixar a data e abrir/fechar a janela.
+    /// </summary>
+    public static JanelaStatus CalcularParaHoje(TimeProvider relogio) =>
+        Calcular(DateOnly.FromDateTime(TimeZoneInfo.ConvertTimeFromUtc(relogio.GetUtcNow().UtcDateTime, FusoHorario)));
 
     private static TimeZoneInfo ObterFusoHorario()
     {

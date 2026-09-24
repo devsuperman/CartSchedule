@@ -17,7 +17,7 @@ public static class Endpoint
 {
     public static IEndpointRouteBuilder MapExcluirSolicitacao(this IEndpointRouteBuilder app)
     {
-        app.MapDelete("/api/solicitacoes/{id:int}", async (int id, HttpContext ctx, AppDbContext db) =>
+        app.MapDelete("/api/solicitacoes/{id:int}", async (int id, HttpContext ctx, AppDbContext db, TimeProvider relogio) =>
         {
             if (!ctx.Request.Headers.TryGetValue("X-Publicador-Token", out var tokenHeader) ||
                 !Guid.TryParse(tokenHeader, out var publicadorId))
@@ -50,7 +50,7 @@ public static class Endpoint
                     statusCode: StatusCodes.Status409Conflict);
             }
 
-            var janela = JanelaDeEnvio.CalcularParaHoje();
+            var janela = JanelaDeEnvio.CalcularParaHoje(relogio);
             if (!janela.Aberta)
             {
                 return Results.Problem(

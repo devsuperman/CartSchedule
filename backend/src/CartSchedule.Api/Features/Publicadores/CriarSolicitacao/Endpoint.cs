@@ -19,6 +19,7 @@ public static class Endpoint
     private static async Task<IResult> HandleAsync(
         HttpContext httpContext,
         AppDbContext db,
+        TimeProvider relogio,
         Request request,
         CancellationToken ct)
     {
@@ -31,7 +32,7 @@ public static class Endpoint
                 statusCode: StatusCodes.Status400BadRequest);
         }
 
-        var janela = JanelaDeEnvio.CalcularParaHoje();
+        var janela = JanelaDeEnvio.CalcularParaHoje(relogio);
         if (!janela.Aberta)
         {
             return Results.Problem(
