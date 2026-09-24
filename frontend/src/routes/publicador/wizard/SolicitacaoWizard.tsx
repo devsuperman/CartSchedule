@@ -58,7 +58,8 @@ interface SolicitacaoWizardProps {
 
 /**
  * Formulário de solicitação em 4 etapas (PLANNING.md §5): nome → carrinho → dia da semana
- * → turno, uma pergunta por tela, com um botão grande de confirmação no rodapé. Cada
+ * → turno, uma pergunta por tela, com um botão grande de confirmação no rodapé. Quem já
+ * tem nome salvo começa na etapa do carrinho (volta ao nome pelo botão Voltar). Cada
  * Etapa* é "burra" (recebe valor + callback, sem estado próprio); este componente guarda
  * todo o estado e faz o submit final.
  */
@@ -66,7 +67,9 @@ export function SolicitacaoWizard({ mesAlvo }: SolicitacaoWizardProps) {
   const navigate = useNavigate();
   const { nome, setNome } = usePublicadorToken();
 
-  const [etapa, setEtapa] = useState<Etapa>(1);
+  // Com nome já salvo, o wizard abre direto no carrinho; o nome só é alterado se o
+  // publicador tocar em Voltar. Decidido só na montagem: editar o nome depois não pula etapa.
+  const [etapa, setEtapa] = useState<Etapa>(() => (nome.trim() !== "" ? 2 : 1));
   const [diaSemana, setDiaSemana] = useState<DiaSemana | null>(null);
   const [carrinhoId, setCarrinhoId] = useState<number | null>(null);
   const [turnoId, setTurnoId] = useState<number | null>(null);
