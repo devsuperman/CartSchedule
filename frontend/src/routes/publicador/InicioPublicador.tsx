@@ -3,7 +3,7 @@ import { Link, Navigate } from "react-router-dom";
 import { apiFetch, ApiError } from "../../api/client";
 import { ehErroDeJanelaFechada, useJanela } from "../../hooks/useJanela";
 import { usePublicadorToken } from "../../hooks/usePublicadorToken";
-import { formatarMes } from "../../utils/formatacao";
+import { formatarNomeMes, STATUS } from "../../utils/formatacao";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -13,6 +13,18 @@ import { ErroJanela } from "./components/ErroJanela";
 function primeiroDiaDoMesAtualIso(): string {
   const agora = new Date();
   return `${agora.getFullYear()}-${String(agora.getMonth() + 1).padStart(2, "0")}-01`;
+}
+
+/** Ordena os pedidos de um mês por dia da semana (Segunda → Sexta), depois por turno
+ * (ids em ordem cronológica) e por fim pelo nome do carrinho ("Carrinho 2" antes de
+ * "Carrinho 10"). Não altera a lista recebida. */
+function ordenarPorDiaTurnoCarrinho(lista: Solicitacao[]): Solicitacao[] {
+  return [...lista].sort(
+    (a, b) =>
+      a.diaSemana - b.diaSemana ||
+      a.turnoId - b.turnoId ||
+      a.carrinhoNome.localeCompare(b.carrinhoNome, "pt-BR", { numeric: true }),
+  );
 }
 
 /**
@@ -111,7 +123,11 @@ export default function InicioPublicador() {
   const mesesRelevantes = new Set(
     [primeiroDiaDoMesAtualIso(), janela?.mesAlvo].filter((v): v is string => Boolean(v)),
   );
-  const relevantes = (solicitacoes ?? []).filter((s) => mesesRelevantes.has(s.escalaMesReferencia));
+  // Rejeitadas ficam ocultas: sem status na tela, elas pareceriam pedidos válidos (a escala
+  // oficial é divulgada pelo administrador no grupo de WhatsApp).
+  const relevantes = (solicitacoes ?? []).filter(
+    (s) => mesesRelevantes.has(s.escalaMesReferencia) && s.status !== STATUS.Rejeitada,
+  );
 
   const porMes = new Map<string, Solicitacao[]>();
   for (const s of relevantes) {
@@ -122,11 +138,6 @@ export default function InicioPublicador() {
 
   return (
     <section className="flex flex-col gap-4">
-      <div className="flex flex-col gap-1.5">
-        <h1>Minhas escalas</h1>
-        <p className="text-muted-foreground">Pedidos deste mês e do próximo.</p>
-      </div>
-
       {erroJanela || !janela ? (
         <ErroJanela onTentarNovamente={tentarJanelaNovamente} />
       ) : janela.aberta ? (
@@ -155,26 +166,29 @@ export default function InicioPublicador() {
         </Card>
       )}
 
-      {[...porMes.entries()].map(([mes, lista]) => (
-        <div key={mes} className="flex flex-col gap-4">
-          <h2 className="mt-2 text-base font-normal text-muted-foreground capitalize">
-            {formatarMes(mes)}
-          </h2>
-          <ul className="flex list-none flex-col gap-3 p-0">
-            {lista.map((s) => (
-              <li key={s.id}>
-                <SolicitacaoCard
-                  solicitacao={s}
-                  exclusaoPermitida={janela?.aberta === true && mes === janela.mesAlvo}
-                  excluindo={excluindoId === s.id}
-                  erro={errosExclusao[s.id]}
-                  onExcluir={excluirSolicitacao}
-                />
-              </li>
-            ))}
-          </ul>
-        </div>
-      ))}
+      {[...porMes.entries()]
+        // Datas ISO ordenam como texto: mês mais recente (o mês-alvo) primeiro.
+        .sort(([a], [b]) => b.localeCompare(a))
+        .map(([mes, lista]) => (
+          <div key={mes} className="flex flex-col gap-4">
+            <h2 className="mt-2 text-base font-normal text-muted-foreground">
+              Minhas solicitações para {formatarNomeMes(mes)}
+            </h2>
+            <ul className="flex list-none flex-col gap-3 p-0">
+              {ordenarPorDiaTurnoCarrinho(lista).map((s) => (
+                <li key={s.id}>
+                  <SolicitacaoCard
+                    solicitacao={s}
+                    exclusaoPermitida={janela?.aberta === true && mes === janela.mesAlvo}
+                    excluindo={excluindoId === s.id}
+                    erro={errosExclusao[s.id]}
+                    onExcluir={excluirSolicitacao}
+                  />
+                </li>
+              ))}
+            </ul>
+          </div>
+        ))}
     </section>
   );
 }

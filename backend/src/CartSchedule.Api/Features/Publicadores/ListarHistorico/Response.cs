@@ -5,6 +5,7 @@ public record ListarHistoricoResponse(
     DateOnly EscalaMesReferencia,
     int CarrinhoId,
     string CarrinhoNome,
+    string? CarrinhoDescricao,
     int DiaSemana,
     int TurnoId,
     int Status,
