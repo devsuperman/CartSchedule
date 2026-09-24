@@ -68,14 +68,14 @@ backend/
       Features/
         Publicadores/
           ConsultarJanela/           # GET  /api/janela
-          ListarCarrinhosDisponiveis/# GET  /api/carrinhos  (id, nome, descricao, turnos habilitados por carrinho)
+          ListarCarrinhosDisponiveis/# GET  /api/carrinhos  (id, nome, descricao, disponibilidades dia×turno por carrinho)
           CriarSolicitacao/          # POST /api/solicitacoes
           ListarHistorico/           # GET  /api/solicitacoes  (header X-Publicador-Token; sem data/hora do envio na resposta)
           ExcluirSolicitacao/        # DELETE /api/solicitacoes/{id}  (apaga o registro; não há status Cancelada)
         Administradores/
           Login/                    # POST /api/admin/login
           GerenciarCarrinhos/       # GET/POST/PUT /api/admin/carrinhos  (nome, descricao opcional, ativo)
-          GerenciarTurnosDoCarrinho/# GET/PUT       /api/admin/carrinhos/{id}/turnos (turnos em si são fixos, ver 2.4)
+          GerenciarTurnosDoCarrinho/# GET/PUT       /api/admin/carrinhos/{id}/turnos (disponibilidades dia×turno; turnos em si são fixos, ver 2.4)
           RevisarEscala/
             ListarSolicitacoesAgrupadas/ # GET  /api/admin/escalas/{mes}/solicitacoes
             AprovarSolicitacao/          # POST /api/admin/solicitacoes/{id}/aprovar
@@ -127,11 +127,17 @@ Conforme regras de negócio 19 e 20 (`PLANNING.md`):
 - O único endpoint relacionado a turno que o administrador usa é o de
   **associação** (`GerenciarTurnosDoCarrinho`), que só lê da lista
   fixa de 6 e escreve em `CarrinhoTurno` — nunca cria ou altera um
-  `Turno` em si.
+  `Turno` em si. Cada linha de `CarrinhoTurno` é uma disponibilidade
+  `(carrinho, dia_semana, turno)`: o mesmo carrinho pode ter turnos
+  diferentes em cada dia (PLANNING.md regra 17). O contrato usa
+  `disponibilidades: [{ diaSemana, turnoId }]` (diaSemana 1–5,
+  turnoId 1–6) — tanto no `PUT` (substituição completa do conjunto)
+  quanto nas respostas de `GET /api/carrinhos` e
+  `GET/POST/PUT /api/admin/carrinhos`.
 - O frontend também pode tratar essa lista de 6 turnos como uma
   constante compartilhada, evitando uma chamada extra à API só para
   listá-los (ela ainda existe via `GET /api/carrinhos`, que já retorna
-  os turnos habilitados por carrinho).
+  as disponibilidades dia×turno de cada carrinho).
 
 ### 2.5 Janela de Envio e Escala — cálculo automático
 
@@ -160,16 +166,16 @@ A entidade `Escala` (mês de referência) é criada **sob demanda** (lazy) na pr
 
 ### 2.7 Validação
 
-- **FluentValidation** para validar os `Request` de cada slice (ex: nome obrigatório, carrinho/turno/dia válidos, turno pertence ao carrinho escolhido no momento do envio).
+- **FluentValidation** para validar os `Request` de cada slice (ex: nome obrigatório, carrinho/turno/dia válidos, turno disponível para o carrinho **no dia da semana** escolhido no momento do envio — vale também para a adição manual do admin).
 - Erros de validação retornam `400` com detalhes (`ProblemDetails`).
 
 ### 2.8 Remoção de turno de um carrinho / desativação de carrinho
 
-Conforme regra de negócio 18 (`PLANNING.md`): remover um turno de um
-`CarrinhoTurno` ou marcar `Carrinho.ativo = false` **não** altera nem
+Conforme regra de negócio 18 (`PLANNING.md`): remover uma disponibilidade
+(dia × turno) de `CarrinhoTurno` ou marcar `Carrinho.ativo = false` **não** altera nem
 remove `Solicitacao` já existentes — essas linhas continuam no banco
 normalmente, e o histórico/escala continuam exibindo-as. A validação
-de "turno pertence ao carrinho" (2.7) só se aplica à **criação** de
+de "turno disponível para o carrinho naquele dia" (2.7) só se aplica à **criação** de
 novas solicitações, não é reavaliada retroativamente sobre as
 existentes.
 
@@ -240,13 +246,13 @@ Tabelas espelhando o modelo de dados do `PLANNING.md` (seção 9):
 | `publicadores` | `id` (uuid/token), `nome` |
 | `carrinhos` | `id`, `nome`, `descricao` (opcional, até 500), `ativo` |
 | `turnos` | `id`, `hora_inicio`, `hora_fim` — **tabela com dado fixo (seed)**, sempre as mesmas 6 linhas, sem endpoint de criação/edição |
-| `carrinho_turnos` | `carrinho_id`, `turno_id` (PK composta) |
+| `carrinho_turnos` | `carrinho_id`, `dia_semana`, `turno_id` (PK composta) |
 | `escalas` | `id`, `mes_referencia` (ex: `2026-10-01`, primeiro dia do mês) |
 | `solicitacoes` | `id`, `publicador_id`, `escala_id`, `carrinho_id`, `dia_semana`, `turno_id`, `status` (1=Pendente, 2=Aprovada, 3=Rejeitada — não há Cancelada), `origem`, `criado_em`, `decidido_em` |
 
 Índices/constraints relevantes:
 - Único: `(publicador_id, escala_id, carrinho_id, dia_semana, turno_id)` em `solicitacoes` (regra 10 — bloqueio de duplicidade).
-- Único: `(carrinho_id, turno_id)` em `carrinho_turnos`.
+- Único: `(carrinho_id, dia_semana, turno_id)` em `carrinho_turnos` (a própria PK).
 - Índice em `(escala_id, carrinho_id, dia_semana, turno_id)` em `solicitacoes`, usado tanto para montar os grupos de aprovação quanto a grade final.
 
 Migrations do EF Core cuidam da criação/evolução do schema — não há necessidade de scripts SQL manuais.

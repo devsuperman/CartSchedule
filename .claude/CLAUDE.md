@@ -59,8 +59,9 @@ todas são intencionais, confirmadas no `PLANNING.md`:
    para todas as ocorrências daquele dia no mês), não uma data específica.
 2. **Turnos fixos do sistema**: sempre estes 6, nunca cadastráveis pelo
    admin: `06:00–08:00, 08:00–10:00, 10:00–12:00, 14:00–16:00, 16:00–18:00,
-   18:00–20:00`. O admin só escolhe, por carrinho, **quais** desses 6 ficam
-   disponíveis (`CarrinhoTurno`). Não criar endpoint de CRUD de `Turno`.
+   18:00–20:00`. O admin só escolhe, por carrinho **e por dia da semana**,
+   **quais** desses 6 ficam disponíveis (`CarrinhoTurno` com chave
+   `(carrinho, dia_semana, turno)` — ex: 08–10 só na Segunda). Não criar endpoint de CRUD de `Turno`.
 3. **Limite de 2 por trinca `(carrinho, dia, turno)` NÃO é bloqueado pelo
    sistema** — é só uma meta que o admin persegue manualmente. O sistema
    apenas **sinaliza visualmente** grupos com mais de 2. Nunca implementar
@@ -95,7 +96,7 @@ todas são intencionais, confirmadas no `PLANNING.md`:
 9a. **Carrinho** tem `Nome`, `Descricao` (opcional, exibida ao publicador
     abaixo do nome no wizard) e `Ativo`; o admin pode editar nome e
     descrição a qualquer momento.
-10. **Remover turno de um carrinho / desativar carrinho**: nunca altera ou
+10. **Remover turno de um carrinho (em qualquer dia) / desativar carrinho**: nunca altera ou
     remove `Solicitacao` já existentes — só afeta novos envios a partir dali.
 11. **Um único administrador**, sem múltiplos papéis/permissões — login
     simples usuário/senha via variáveis de ambiente, JWT curto.

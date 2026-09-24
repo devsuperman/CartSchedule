@@ -386,7 +386,55 @@ da janela, dias 15–25):
 
 ---
 
-## Backlog (Fase 6 — opcional, fora do escopo inicial)
+## Fase 6 — Turnos por dia da semana
+
+Depende da Fase 5 mergeada. Nova regra (`PLANNING.md` regras 17, 18 e 20,
+modelo de dados; `TECHNICAL_SPEC.md` §2.4/§2.7/§2.8): os turnos
+disponíveis de cada carrinho passam a ser definidos **por dia da semana**
+(ex: Carrinho 01 com 08:00–10:00 na Segunda e só 10:00–12:00 na Terça).
+`CarrinhoTurno` ganha `DiaSemana` e a PK vira
+`(carrinho_id, dia_semana, turno_id)`. A configuração antiga é **zerada**
+na migration (o admin reconfigura) — nenhuma `Solicitacao` é tocada.
+
+Contrato (fixado aqui, permite FE e BE em paralelo) — `turnoIds` some em
+todos os lugares e vira:
+
+```jsonc
+"disponibilidades": [{ "diaSemana": 1, "turnoId": 2 }]  // diaSemana 1–5, turnoId 1–6
+```
+
+- `GET /api/carrinhos` → `{ id, nome, descricao, disponibilidades }`
+- `GET/POST/PUT /api/admin/carrinhos` → `{ id, nome, descricao, ativo, disponibilidades }`
+- `GET/PUT /api/admin/carrinhos/{id}/turnos` → corpo `{ disponibilidades }`,
+  resposta `{ carrinhoId, disponibilidades }` (PUT = substituição completa).
+
+| ID | Entrega | Critério de aceite |
+|---|---|---|
+| F6-BE-01 | `Domain/CarrinhoTurno.cs` (+`DiaSemana`), `AppDbContext` (PK composta nova), migration `CarrinhoTurnoPorDiaSemana` | Migration apaga `carrinho_turnos` antes de trocar a PK (Up e Down); `solicitacoes` intacta. Única dona da migration da fase. |
+| F6-BE-02 | `GerenciarTurnosDoCarrinho/`, `GerenciarCarrinhos/` | Contrato admin com `disponibilidades`; valida dia 1–5 e turno 1–6; diff por `(dia, turno)`. |
+| F6-BE-03 | `ListarCarrinhosDisponiveis/`, `CriarSolicitacao/`, `AdicionarSolicitacaoManual/` | Resposta pública com `disponibilidades`; envio e adição manual recusam (400) turno não habilitado para o carrinho **naquele dia**. Limite de 2 continua sem bloqueio. |
+| F6-FE-01 | `routes/admin/GestaoCarrinhos.tsx` | Grade dia × turno por carrinho (cada clique salva); aviso quando carrinho ativo não tem nenhuma disponibilidade. |
+| F6-FE-02 | `wizard/SolicitacaoWizard.tsx`, `EtapaDiaSemana.tsx`, `EtapaCarrinho.tsx`, `EtapaTurno.tsx` | Dia sem turno em nenhum carrinho fica desabilitado; só aparecem carrinhos com turno no dia; turnos filtrados por carrinho+dia; trocar o dia limpa carrinho/turno incompatíveis. |
+| F6-FE-03 | `routes/admin/AdicionarSolicitacao.tsx` | Turnos filtrados por carrinho **e** dia; trocar o dia limpa o turno. |
+
+Dependências: F6-BE-02/03 dependem de F6-BE-01. As tarefas FE só dependem
+do contrato acima. Nenhuma tarefa compartilha arquivos (`Program.cs` e
+`App.tsx` não mudam).
+
+### Verificação da Fase 6
+
+`dotnet build`, `npm run build`, `npm run lint`, `docker compose up --build`:
+1. `carrinho_turnos` vazia após a migration; `solicitacoes` intacta.
+2. Admin marca Carrinho 01 Seg 08–10 e Ter 10–12; recarrega e persiste.
+3. Wizard (janela aberta): Segunda → Carrinho 01 → só 08–10; Terça → só
+   10–12; dia sem nenhum turno fica desabilitado.
+4. `POST /api/solicitacoes` e `POST /api/admin/escalas/{mes}/solicitacoes`
+   com (Carrinho 01, Terça, 08–10) → 400; trio válido → 201; 3ª aprovação
+   numa trinca continua permitida; duplicidade continua 409.
+
+---
+
+## Backlog (Fase 7 — opcional, fora do escopo inicial)
 
 Não paralelizar ainda — só entra depois que Fases 0–4 estiverem completas
 e validadas:
@@ -408,3 +456,6 @@ e validadas:
   comum — A (`F5-FE-01`), B (`F5-BE-01`, `F5-FE-02`, `F5-FE-03`) e C
   (`F5-BE-02`, `F5-FE-04`; um agente por área). Só a migration de
   `F5-BE-02` espera `F5-BE-01` estar mergeada.
+- **Fase 6**: até **5 agentes** — `F6-BE-01` primeiro (migration), depois
+  `F6-BE-02`/`F6-BE-03`; as 3 tarefas FE podem rodar desde o início
+  (contrato fixado no próprio TASKS.md).
