@@ -94,7 +94,7 @@ export default function InicioPublicador() {
       setSolicitacoes((prev) => (prev ? prev.filter((s) => s.id !== id) : prev));
     } catch (err) {
       const mensagem =
-        err instanceof ApiError ? err.message : "Não foi possível excluir a solicitação. Tente novamente.";
+        err instanceof ApiError ? err.message : "Não foi possível cancelar a solicitação. Tente novamente.";
       setErrosExclusao((prev) => ({ ...prev, [id]: mensagem }));
       // A janela fechou enquanto a tela estava aberta (ex: virou o dia 26): reconsulta a
       // janela para a tela passar ao modo só leitura, com o aviso no lugar do botão.

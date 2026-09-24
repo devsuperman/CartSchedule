@@ -42,9 +42,8 @@ async function continuar(user: ReturnType<typeof userEvent.setup>) {
   await user.click(screen.getByRole("button", { name: "Continuar" }));
 }
 
-/** Passa da etapa do nome (já preenchido via localStorage) para a do carrinho. */
-async function irParaEtapaDoCarrinho(user: ReturnType<typeof userEvent.setup>) {
-  await continuar(user);
+/** Com o nome já salvo no localStorage, o wizard abre direto na etapa do carrinho. */
+async function irParaEtapaDoCarrinho() {
   await screen.findByText("Em qual carrinho?");
   // Espera os carrinhos chegarem.
   await screen.findByRole("radio", { name: /Carrinho 01/ });
@@ -73,8 +72,8 @@ beforeEach(() => {
 
 describe("SolicitacaoWizard — carrinho antes do dia da semana", () => {
   it("mostra só os carrinhos com algum turno configurado", async () => {
-    const user = renderWizard();
-    await irParaEtapaDoCarrinho(user);
+    renderWizard();
+    await irParaEtapaDoCarrinho();
 
     expect(radiosVisiveis()).toEqual([
       expect.stringContaining("Carrinho 01"),
@@ -85,7 +84,7 @@ describe("SolicitacaoWizard — carrinho antes do dia da semana", () => {
 
   it("mostra só os dias em que o carrinho escolhido tem turno", async () => {
     const user = renderWizard();
-    await irParaEtapaDoCarrinho(user);
+    await irParaEtapaDoCarrinho();
     await escolherCarrinho(user, /Carrinho 02/);
     expect(radiosVisiveis()).toEqual(["Segunda-feira"]);
 
@@ -95,15 +94,9 @@ describe("SolicitacaoWizard — carrinho antes do dia da semana", () => {
     expect(screen.queryByText("Vale para todas as semanas do mês.")).not.toBeInTheDocument();
   });
 
-  it("pede o nome sem textos de apoio", async () => {
-    renderWizard();
-    expect(screen.getByRole("textbox", { name: "Seu nome" })).toHaveValue("Bia");
-    expect(screen.queryByText(/Fica salvo/)).not.toBeInTheDocument();
-  });
-
   it("na terça o Carrinho 01 oferece só 10–12", async () => {
     const user = renderWizard();
-    await irParaEtapaDoCarrinho(user);
+    await irParaEtapaDoCarrinho();
     await escolherCarrinho(user, /Carrinho 01/);
 
     await user.click(screen.getByRole("radio", { name: /Terça-feira/ }));
@@ -113,7 +106,7 @@ describe("SolicitacaoWizard — carrinho antes do dia da semana", () => {
 
   it("na segunda o Carrinho 01 oferece só 08–10", async () => {
     const user = renderWizard();
-    await irParaEtapaDoCarrinho(user);
+    await irParaEtapaDoCarrinho();
     await escolherCarrinho(user, /Carrinho 01/);
 
     await user.click(screen.getByRole("radio", { name: /Segunda-feira/ }));
@@ -123,7 +116,7 @@ describe("SolicitacaoWizard — carrinho antes do dia da semana", () => {
 
   it("ao voltar e trocar para um carrinho que não funciona no dia escolhido, limpa dia e turno", async () => {
     const user = renderWizard();
-    await irParaEtapaDoCarrinho(user);
+    await irParaEtapaDoCarrinho();
     await escolherCarrinho(user, /Carrinho 01/);
     await user.click(screen.getByRole("radio", { name: /Terça-feira/ }));
     await continuar(user);
@@ -141,7 +134,7 @@ describe("SolicitacaoWizard — carrinho antes do dia da semana", () => {
 
   it("envia nome, carrinho, dia e turno escolhidos", async () => {
     const user = renderWizard();
-    await irParaEtapaDoCarrinho(user);
+    await irParaEtapaDoCarrinho();
     await escolherCarrinho(user, /Carrinho 01/);
     await user.click(screen.getByRole("radio", { name: /Terça-feira/ }));
     await continuar(user);
@@ -161,7 +154,7 @@ describe("SolicitacaoWizard — mês-alvo", () => {
     const user = renderWizard();
     expect(screen.getByText("outubro de 2026")).toBeInTheDocument();
 
-    await irParaEtapaDoCarrinho(user);
+    await irParaEtapaDoCarrinho();
     expect(screen.getByText("outubro de 2026")).toBeInTheDocument();
 
     await escolherCarrinho(user, /Carrinho 01/);
@@ -171,5 +164,54 @@ describe("SolicitacaoWizard — mês-alvo", () => {
     await continuar(user);
     await screen.findByText("Em qual turno?");
     expect(screen.getByText("outubro de 2026")).toBeInTheDocument();
+  });
+});
+
+describe("SolicitacaoWizard — nome do publicador", () => {
+  it("com nome salvo, abre direto na etapa do carrinho", async () => {
+    renderWizard();
+    await irParaEtapaDoCarrinho();
+    expect(screen.queryByRole("textbox", { name: "Seu nome" })).not.toBeInTheDocument();
+  });
+
+  it("permite trocar o nome tocando em Voltar", async () => {
+    const user = renderWizard();
+    await irParaEtapaDoCarrinho();
+
+    await user.click(screen.getByRole("button", { name: "Voltar" }));
+    const campo = screen.getByRole("textbox", { name: "Seu nome" });
+    expect(campo).toHaveValue("Bia");
+    await user.clear(campo);
+    await user.type(campo, "Ana");
+    await continuar(user);
+
+    await irParaEtapaDoCarrinho();
+    await escolherCarrinho(user, /Carrinho 01/);
+    await user.click(screen.getByRole("radio", { name: /Terça-feira/ }));
+    await continuar(user);
+    await user.click(screen.getByRole("radio", { name: "10:00–12:00" }));
+    await user.click(screen.getByRole("button", { name: "Salvar" }));
+
+    await waitFor(() =>
+      expect(mockApiFetch).toHaveBeenCalledWith("/api/solicitacoes", expect.objectContaining({ method: "POST" })),
+    );
+    const [, opcoes] = mockApiFetch.mock.calls.find(([path]) => path === "/api/solicitacoes")!;
+    expect(JSON.parse(opcoes!.body as string)).toMatchObject({ nome: "Ana" });
+    expect(localStorage.getItem(PUBLICADOR_NOME_STORAGE_KEY)).toBe("Ana");
+  });
+
+  it("sem nome salvo, pede o nome sem textos de apoio", async () => {
+    localStorage.removeItem(PUBLICADOR_NOME_STORAGE_KEY);
+    const user = renderWizard();
+
+    expect(screen.getByText("Qual é o seu nome?")).toBeInTheDocument();
+    const campo = screen.getByRole("textbox", { name: "Seu nome" });
+    expect(campo).toHaveValue("");
+    expect(screen.queryByText(/Fica salvo/)).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Continuar" })).toBeDisabled();
+
+    await user.type(campo, "Bia");
+    await continuar(user);
+    await irParaEtapaDoCarrinho();
   });
 });
