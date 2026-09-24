@@ -3,13 +3,15 @@ import { Link, Navigate } from "react-router-dom";
 import { apiFetch, ApiError } from "../../api/client";
 import { ehErroDeJanelaFechada, useJanela } from "../../hooks/useJanela";
 import { usePublicadorToken } from "../../hooks/usePublicadorToken";
-import { formatarNomeMes, STATUS } from "../../utils/formatacao";
+import { formatarNomeMes } from "../../utils/formatacao";
 import { GRUPO_WHATSAPP_URL } from "../../constants/whatsapp";
+import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { SolicitacaoCard, type Solicitacao } from "./components/SolicitacaoCard";
 import { ErroJanela } from "./components/ErroJanela";
+import { ModalAgradecimento } from "./components/ModalAgradecimento";
 
 function primeiroDiaDoMesAtualIso(): string {
   const agora = new Date();
@@ -32,9 +34,11 @@ function ordenarPorDiaTurnoCarrinho(lista: Solicitacao[]): Solicitacao[] {
  * Rota "/": tela inicial do publicador. Mostra os pedidos do mês atual e do próximo
  * (mesAlvo). Com a janela aberta, há um botão para solicitar uma nova escala e os pedidos
  * do mês-alvo podem ser excluídos; com ela fechada, um aviso aparece no topo, o botão some
- * e a lista fica só para leitura (PLANNING.md regra 8). O botão fica num rodapé fixo na
- * base da tela. Abaixo da lista, "Terminei!" volta para o grupo do WhatsApp (os navegadores
- * não deixam o site fechar a própria aba). Se o publicador nunca fez nenhuma
+ * e a lista fica só para leitura (PLANNING.md regra 8). Os botões ficam num rodapé fixo na
+ * base da tela: "Pronto! Terminei minha escala!" em cima (janela aberta ou fechada) e
+ * "Solicitar Nova Escala" embaixo, bem separados para evitar toque errado. O primeiro abre
+ * um agradecimento que leva ao grupo do WhatsApp (os navegadores não deixam o site fechar a
+ * própria aba). Se o publicador nunca fez nenhuma
  * solicitação e a janela está aberta, redireciona automaticamente para "/solicitar" —
  * sem precisar clicar em nada (fluxo de primeiro acesso).
  *
@@ -60,6 +64,7 @@ export default function InicioPublicador() {
   const [primeiroAcesso, setPrimeiroAcesso] = useState(false);
   const [excluindoId, setExcluindoId] = useState<number | null>(null);
   const [errosExclusao, setErrosExclusao] = useState<Record<number, string>>({});
+  const [agradecendo, setAgradecendo] = useState(false);
 
   useEffect(() => {
     let cancelado = false;
@@ -126,11 +131,7 @@ export default function InicioPublicador() {
   const mesesRelevantes = new Set(
     [primeiroDiaDoMesAtualIso(), janela?.mesAlvo].filter((v): v is string => Boolean(v)),
   );
-  // Rejeitadas ficam ocultas: sem status na tela, elas pareceriam pedidos válidos (a escala
-  // oficial é divulgada pelo administrador no grupo de WhatsApp).
-  const relevantes = (solicitacoes ?? []).filter(
-    (s) => mesesRelevantes.has(s.escalaMesReferencia) && s.status !== STATUS.Rejeitada,
-  );
+  const relevantes = (solicitacoes ?? []).filter((s) => mesesRelevantes.has(s.escalaMesReferencia));
 
   const podeSolicitar = !erroJanela && janela?.aberta === true;
 
@@ -191,26 +192,36 @@ export default function InicioPublicador() {
           </div>
         ))}
 
-      {GRUPO_WHATSAPP_URL && (
-        // Link comum: no celular o sistema entrega o chat.whatsapp.com ao app do WhatsApp.
-        <Button asChild size="lg" variant="outline" className="w-full">
-          <a href={GRUPO_WHATSAPP_URL}>Terminei!</a>
-        </Button>
-      )}
-
-      {podeSolicitar && (
+      {(GRUPO_WHATSAPP_URL || podeSolicitar) && (
         <>
           {/* Reserva o espaço do rodapé fixo para ele não cobrir o fim da página. */}
-          <div aria-hidden className="h-[calc(2rem+env(safe-area-inset-bottom))]" />
+          <div
+            aria-hidden
+            className={cn(
+              GRUPO_WHATSAPP_URL && podeSolicitar
+                ? "h-[calc(7rem+env(safe-area-inset-bottom))]"
+                : "h-[calc(2rem+env(safe-area-inset-bottom))]",
+            )}
+          />
           <div className="fixed inset-x-0 bottom-0 z-10 border-t border-border bg-background">
-            <div className="mx-auto max-w-4xl px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
-              <Button asChild size="lg" className="w-full">
-                <Link to="/solicitar">Solicitar Nova Escala</Link>
-              </Button>
+            {/* gap-8: espaço generoso entre os dois botões para não tocar no errado. */}
+            <div className="mx-auto flex max-w-4xl flex-col gap-8 px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+              {GRUPO_WHATSAPP_URL && (
+                <Button type="button" size="lg" variant="outline" className="w-full" onClick={() => setAgradecendo(true)}>
+                  Pronto! Terminei minha escala!
+                </Button>
+              )}
+              {podeSolicitar && (
+                <Button asChild size="lg" className="w-full">
+                  <Link to="/solicitar">Solicitar Nova Escala</Link>
+                </Button>
+              )}
             </div>
           </div>
         </>
       )}
+
+      {GRUPO_WHATSAPP_URL && <ModalAgradecimento aberto={agradecendo} onAbertoChange={setAgradecendo} />}
     </section>
   );
 }

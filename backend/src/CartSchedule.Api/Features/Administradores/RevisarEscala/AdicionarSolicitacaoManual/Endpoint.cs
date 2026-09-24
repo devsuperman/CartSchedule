@@ -8,8 +8,8 @@ namespace CartSchedule.Api.Features.Administradores.RevisarEscala.AdicionarSolic
 
 /// <summary>
 /// POST /api/admin/escalas/{mes}/solicitacoes — adição manual de solicitação pelo
-/// administrador (PLANNING.md regra 9, TECHNICAL_SPEC.md §2.3). Nasce direto Aprovada,
-/// origem Administrador. O administrador não é limitado pela janela de envio (regra 7):
+/// administrador (PLANNING.md regra 9, TECHNICAL_SPEC.md §2.3), origem
+/// Administrador; como toda solicitação, já conta na escala. O administrador não é limitado pela janela de envio (regra 7):
 /// {mes} pode ser qualquer escala, passada, atual ou futura.
 /// </summary>
 public static class Endpoint
@@ -52,8 +52,14 @@ public static class Endpoint
 
         var nomeSolicitado = request.Nome.Trim();
 
+        // Nomes repetidos são permitidos (regra 9): entre homônimos, reusa sempre o mesmo —
+        // o de pedido mais antigo (sem pedidos por último), desempate pelo Id.
         var publicador = await db.Publicadores
-            .FirstOrDefaultAsync(p => p.Nome == nomeSolicitado, ct);
+            .Where(p => p.Nome == nomeSolicitado)
+            .OrderBy(p => p.Solicitacoes.Min(s => (DateTimeOffset?)s.CriadoEm) == null)
+            .ThenBy(p => p.Solicitacoes.Min(s => (DateTimeOffset?)s.CriadoEm))
+            .ThenBy(p => p.Id)
+            .FirstOrDefaultAsync(ct);
 
         if (publicador is null)
         {
@@ -82,8 +88,6 @@ public static class Endpoint
             });
         }
 
-        var agora = DateTimeOffset.UtcNow;
-
         var solicitacao = new Solicitacao
         {
             PublicadorId = publicador.Id,
@@ -92,10 +96,8 @@ public static class Endpoint
             CarrinhoId = request.CarrinhoId,
             DiaSemana = request.DiaSemana,
             TurnoId = request.TurnoId,
-            Status = StatusSolicitacao.Aprovada,
             Origem = OrigemSolicitacao.Administrador,
-            CriadoEm = agora,
-            DecididoEm = agora,
+            CriadoEm = DateTimeOffset.UtcNow,
         };
 
         db.Solicitacoes.Add(solicitacao);
@@ -109,7 +111,6 @@ public static class Endpoint
             CarrinhoId = solicitacao.CarrinhoId,
             DiaSemana = solicitacao.DiaSemana,
             TurnoId = solicitacao.TurnoId,
-            Status = solicitacao.Status,
             Origem = solicitacao.Origem,
         };
 

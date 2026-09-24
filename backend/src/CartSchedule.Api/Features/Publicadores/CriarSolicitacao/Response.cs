@@ -7,5 +7,4 @@ public record Response(
     int CarrinhoId,
     DiaSemana DiaSemana,
     int TurnoId,
-    StatusSolicitacao Status,
     DateTimeOffset CriadoEm);

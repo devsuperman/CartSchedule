@@ -95,10 +95,8 @@ public static class Endpoint
             CarrinhoId = request.CarrinhoId,
             DiaSemana = request.DiaSemana,
             TurnoId = request.TurnoId,
-            Status = StatusSolicitacao.Pendente,
             Origem = OrigemSolicitacao.Publicador,
             CriadoEm = DateTimeOffset.UtcNow,
-            DecididoEm = null,
         };
 
         db.Solicitacoes.Add(solicitacao);
@@ -109,7 +107,6 @@ public static class Endpoint
             solicitacao.CarrinhoId,
             solicitacao.DiaSemana,
             solicitacao.TurnoId,
-            solicitacao.Status,
             solicitacao.CriadoEm);
 
         return Results.Created($"/api/solicitacoes/{solicitacao.Id}", response);

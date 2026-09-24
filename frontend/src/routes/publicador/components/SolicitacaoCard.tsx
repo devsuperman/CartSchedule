@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { formatarDia, formatarTurno, STATUS } from "../../../utils/formatacao";
+import { formatarDia, formatarTurno } from "../../../utils/formatacao";
 
 /** Contrato de GET /api/solicitacoes (uma solicitação do publicador autenticado via token). */
 export interface Solicitacao {
@@ -13,7 +13,6 @@ export interface Solicitacao {
   carrinhoDescricao: string | null;
   diaSemana: number;
   turnoId: number;
-  status: number;
   origem: number;
 }
 
@@ -28,11 +27,10 @@ interface SolicitacaoCardProps {
 
 /** Card de uma solicitação do publicador. A informação principal é o dia da semana com o
  * turno ao lado (os dois em destaque) e, abaixo, o carrinho, com a descrição logo abaixo do
- * nome quando houver. O status não aparece: a escala oficial é divulgada pelo administrador
- * fora do sistema (grupo de WhatsApp). Abaixo do carrinho, um link discreto em vermelho ("Cancelar
- * solicitação") para excluir,
- * quando Pendente/Aprovada e a exclusão é permitida — só com a janela aberta e para a
- * escala do mês-alvo (PLANNING.md regra 8). A exclusão pede confirmação no próprio card
+ * nome quando houver. A escala oficial é divulgada pelo administrador fora do sistema
+ * (grupo de WhatsApp). Abaixo do carrinho, um link discreto em vermelho ("Cancelar
+ * solicitação") para excluir, quando a exclusão é permitida — só com a janela aberta e para
+ * a escala do mês-alvo (PLANNING.md regra 8). A exclusão pede confirmação no próprio card
  * (nunca window.confirm). Fora disso, só o administrador mexe no pedido. */
 export function SolicitacaoCard({
   solicitacao,
@@ -42,9 +40,6 @@ export function SolicitacaoCard({
   onExcluir,
 }: SolicitacaoCardProps) {
   const [confirmando, setConfirmando] = useState(false);
-  const podeExcluir =
-    exclusaoPermitida &&
-    (solicitacao.status === STATUS.Pendente || solicitacao.status === STATUS.Aprovada);
   const descricao = solicitacao.carrinhoDescricao?.trim();
 
   return (
@@ -57,7 +52,7 @@ export function SolicitacaoCard({
         <span className="text-sm font-medium">{solicitacao.carrinhoNome}</span>
         {descricao && <span className="text-sm text-muted-foreground">{descricao}</span>}
       </span>
-      {podeExcluir && !confirmando && (
+      {exclusaoPermitida && !confirmando && (
         <Button
           type="button"
           variant="link"
@@ -68,7 +63,7 @@ export function SolicitacaoCard({
           Cancelar solicitação
         </Button>
       )}
-      {podeExcluir && confirmando && (
+      {exclusaoPermitida && confirmando && (
         <div className="mt-2 flex flex-wrap items-center justify-end gap-2">
           <span className="mr-auto text-[0.95rem] font-semibold">Cancelar esta solicitação?</span>
           <Button

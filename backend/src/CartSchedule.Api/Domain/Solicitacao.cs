@@ -24,11 +24,7 @@ public class Solicitacao
 
     public Turno Turno { get; set; } = null!;
 
-    public StatusSolicitacao Status { get; set; } = StatusSolicitacao.Pendente;
-
     public OrigemSolicitacao Origem { get; set; }
 
     public DateTimeOffset CriadoEm { get; set; }
-
-    public DateTimeOffset? DecididoEm { get; set; }
 }

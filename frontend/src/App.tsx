@@ -1,6 +1,7 @@
 import { BrowserRouter, Link, Navigate, Route, Routes } from "react-router-dom";
 import { Layout } from "./components/Layout";
 import { RequireAdminAuth } from "./components/RequireAdminAuth";
+import { ExigeNome } from "./components/ExigeNome";
 import { useJanela } from "./hooks/useJanela";
 import { formatarMes } from "./utils/formatacao";
 import { Card } from "@/components/ui/card";
@@ -11,6 +12,7 @@ import AdicionarSolicitacao from "./routes/admin/AdicionarSolicitacao";
 import EscalaFinal from "./routes/admin/EscalaFinal";
 import InicioPublicador from "./routes/publicador/InicioPublicador";
 import SolicitarEscala from "./routes/publicador/SolicitarEscala";
+import Nome from "./routes/publicador/Nome";
 
 function mesParam(mesAlvoIso: string): string {
   return mesAlvoIso.slice(0, 7);
@@ -48,7 +50,7 @@ function AdminHome() {
                 <Card className="h-full gap-1 transition-colors hover:border-primary">
                   <strong className="text-[1.1rem] font-bold text-primary">Revisão da escala</strong>
                   <span className="text-[0.95rem] font-normal text-muted-foreground">
-                    Aprove ou rejeite os pedidos recebidos.
+                    Veja os pedidos recebidos e exclua os excedentes.
                   </span>
                 </Card>
               </Link>
@@ -58,7 +60,7 @@ function AdminHome() {
                 <Card className="h-full gap-1 transition-colors hover:border-primary">
                   <strong className="text-[1.1rem] font-bold text-primary">Adicionar solicitação</strong>
                   <span className="text-[0.95rem] font-normal text-muted-foreground">
-                    Inclua alguém direto na escala, já aprovado.
+                    Inclua alguém direto na escala.
                   </span>
                 </Card>
               </Link>
@@ -85,8 +87,23 @@ export default function App() {
     <BrowserRouter>
       <Layout>
         <Routes>
-          <Route path="/" element={<InicioPublicador />} />
-          <Route path="/solicitar" element={<SolicitarEscala />} />
+          <Route path="/nome" element={<Nome />} />
+          <Route
+            path="/"
+            element={
+              <ExigeNome>
+                <InicioPublicador />
+              </ExigeNome>
+            }
+          />
+          <Route
+            path="/solicitar"
+            element={
+              <ExigeNome>
+                <SolicitarEscala />
+              </ExigeNome>
+            }
+          />
           <Route path="/admin/login" element={<Login />} />
           <Route
             path="/admin"

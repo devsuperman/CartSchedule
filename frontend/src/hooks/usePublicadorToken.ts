@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react";
+import { useState, useSyncExternalStore } from "react";
 import { PUBLICADOR_NOME_STORAGE_KEY, PUBLICADOR_TOKEN_STORAGE_KEY } from "../api/client";
 
 function gerarOuLerToken(): string {
@@ -16,27 +16,39 @@ function gerarOuLerToken(): string {
   }
 }
 
+// Fallback quando o localStorage está indisponível (ex: modo privado): o nome vale só em memória.
+let nomeEmMemoria = "";
+const ouvintes = new Set<() => void>();
+
 function lerNomeSalvo(): string {
   try {
     return localStorage.getItem(PUBLICADOR_NOME_STORAGE_KEY) ?? "";
   } catch {
-    return "";
+    return nomeEmMemoria;
   }
 }
 
-/** Identificação sem cadastro/login (PLANNING.md regra 9): GUID + nome salvos no localStorage. */
+function assinarNome(ouvinte: () => void): () => void {
+  ouvintes.add(ouvinte);
+  return () => ouvintes.delete(ouvinte);
+}
+
+function setNome(novoNome: string): void {
+  nomeEmMemoria = novoNome;
+  try {
+    localStorage.setItem(PUBLICADOR_NOME_STORAGE_KEY, novoNome);
+  } catch {
+    // localStorage indisponível — segue com o valor em memória.
+  }
+  ouvintes.forEach((ouvinte) => ouvinte());
+}
+
+/** Identificação sem cadastro/login (PLANNING.md regra 9): GUID + nome salvos no localStorage.
+ * O nome é compartilhado entre os componentes: mudar numa tela atualiza o "Olá, Fulano" do
+ * cabeçalho na hora. */
 export function usePublicadorToken() {
   const [token] = useState(gerarOuLerToken);
-  const [nome, setNomeState] = useState(lerNomeSalvo);
-
-  const setNome = useCallback((novoNome: string) => {
-    setNomeState(novoNome);
-    try {
-      localStorage.setItem(PUBLICADOR_NOME_STORAGE_KEY, novoNome);
-    } catch {
-      // localStorage indisponível (ex: modo privado) — nome segue válido só em memória.
-    }
-  }, []);
+  const nome = useSyncExternalStore(assinarNome, lerNomeSalvo);
 
   return { token, nome, setNome };
 }

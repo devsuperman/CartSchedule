@@ -1,7 +1,10 @@
 import type { PropsWithChildren } from "react";
-import { NavLink, useLocation, useNavigate } from "react-router-dom";
+import { Link, NavLink, useLocation, useNavigate } from "react-router-dom";
+import { PencilIcon } from "lucide-react";
 import { useAdminAuth } from "../hooks/useAdminAuth";
 import { useJanela } from "../hooks/useJanela";
+import { usePublicadorToken } from "../hooks/usePublicadorToken";
+import type { OrigemNome } from "../routes/publicador/Nome";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -12,22 +15,43 @@ function navLinkClasses({ isActive }: { isActive: boolean }) {
   );
 }
 
+/** "Olá, {primeiro nome}" no canto do cabeçalho do publicador; tocar abre a edição do nome
+ * (rota /nome), que depois volta para a tela atual. Some sem nome e na própria /nome. */
+function Saudacao() {
+  const { nome } = usePublicadorToken();
+  const { pathname } = useLocation();
+  const primeiroNome = nome.trim().split(/\s+/)[0];
+
+  if (!primeiroNome || pathname === "/nome") return null;
+
+  const origem: OrigemNome = { de: pathname };
+  return (
+    <Link
+      to="/nome"
+      state={origem}
+      aria-label={`Olá, ${primeiroNome}. Alterar nome`}
+      className="mb-[0.55rem] ml-auto flex min-w-0 items-center gap-1.5 rounded-md px-2 py-1 text-[0.95rem] font-semibold text-secondary-foreground/90 underline decoration-secondary-foreground/40 underline-offset-4 hover:bg-secondary-foreground/10 hover:text-secondary-foreground focus-visible:ring-2 focus-visible:ring-accent"
+    >
+      <span className="truncate">Olá, {primeiroNome}</span>
+      <PencilIcon aria-hidden className="size-3.5 shrink-0" />
+    </Link>
+  );
+}
+
 function Navegacao({ admin }: { admin: boolean }) {
   const { janela } = useJanela();
   const { logout } = useAdminAuth();
   const navigate = useNavigate();
   const mes = janela?.mesAlvo.slice(0, 7);
 
+  // O publicador não tem menu: todas as telas dele já levam de volta ao início, e o título
+  // "Escala TPL" também é um link para lá.
   if (!admin) {
     return (
-      <nav
-        className="flex flex-1 flex-wrap items-end gap-1"
-        aria-label="Principal"
-      >
-        <NavLink to="/" end className={navLinkClasses}>
-          Início
-        </NavLink>
-      </nav>
+      // min-w-0: a saudação ocupa todo o espaço até o título e só corta ("…") se não couber.
+      <div className="flex min-w-0 flex-1 items-end">
+        <Saudacao />
+      </div>
     );
   }
 
@@ -85,7 +109,12 @@ export function Layout({ children }: PropsWithChildren) {
       </a>
       <header className="bg-secondary text-secondary-foreground">
         <div className="mx-auto flex max-w-4xl flex-wrap items-end gap-x-8 px-4 pt-3">
-          <span className="pb-3 text-[1.15rem] font-bold">Escala TPL</span>
+          <Link
+            to={admin ? "/admin" : "/"}
+            className="rounded-sm pb-3 text-[1.15rem] font-bold text-secondary-foreground no-underline focus-visible:ring-2 focus-visible:ring-accent"
+          >
+            Escala TPL
+          </Link>
           <Navegacao admin={admin} />
         </div>
       </header>

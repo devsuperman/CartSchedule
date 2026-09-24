@@ -1,7 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
-import { STATUS } from "../../../utils/formatacao";
 import { SolicitacaoCard, type Solicitacao } from "./SolicitacaoCard";
 
 const SOLICITACAO: Solicitacao = {
@@ -12,7 +11,6 @@ const SOLICITACAO: Solicitacao = {
   carrinhoDescricao: "Praça central",
   diaSemana: 1,
   turnoId: 2,
-  status: STATUS.Pendente,
   origem: 1,
 };
 
@@ -57,11 +55,6 @@ describe("SolicitacaoCard — exclusão", () => {
 
   it("não mostra o botão sem exclusão permitida", () => {
     renderizar({ exclusaoPermitida: false });
-    expect(screen.queryByRole("button", { name: "Cancelar solicitação" })).not.toBeInTheDocument();
-  });
-
-  it("não mostra o botão para pedido rejeitado", () => {
-    renderizar({ solicitacao: { ...SOLICITACAO, status: STATUS.Rejeitada } });
     expect(screen.queryByRole("button", { name: "Cancelar solicitação" })).not.toBeInTheDocument();
   });
 });

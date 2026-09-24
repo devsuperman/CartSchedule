@@ -8,5 +8,4 @@ public record ListarHistoricoResponse(
     string? CarrinhoDescricao,
     int DiaSemana,
     int TurnoId,
-    int Status,
     int Origem);

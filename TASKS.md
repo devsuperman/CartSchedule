@@ -497,7 +497,63 @@ WhatsApp e tocar em "Terminei!".
 
 ---
 
-## Backlog (Fase 10 — opcional, fora do escopo inicial)
+## Fase 10 — Finalização do publicador
+
+Só frontend — nenhuma regra de negócio muda.
+
+| ID | Entrega | Critério de aceite |
+|---|---|---|
+| F10-FE-01 | `InicioPublicador.tsx` | O botão de terminar sai de baixo da lista e vai para o rodapé fixo, **acima** de "Solicitar Nova Escala", com 32 px entre os dois (contorno vs. preenchido) para evitar toque errado. Com a janela fechada, o rodapé tem só o botão de terminar. |
+| F10-FE-02 | `InicioPublicador.tsx` | O botão se chama "Pronto! Terminei minha escala!". |
+| F10-FE-03 | `components/ui/dialog.tsx`, `routes/publicador/components/ModalAgradecimento.tsx`, `constants/whatsapp.ts` | Tocar no botão abre o modal "Muito Obrigado!" ("Que Jeová abençoe seu trabalho árduo!") e a contagem "Voltando ao whatsapp em 10…"; ao fim, vai para o grupo do WhatsApp. Sem botão de ir na hora. Fechar o modal cancela o redirecionamento. |
+
+### Verificação da Fase 10
+
+`npm test`, `npm run lint`, `npm run build`.
+
+---
+
+## Fase 11 — Sem aprovação: toda solicitação vale, o admin exclui
+
+O fluxo Aprovar/Rejeitar sai: toda solicitação existente já conta na escala e
+tirar alguém é excluir o registro de vez (publicador, como antes, ou admin).
+
+| ID | Entrega | Critério de aceite |
+|---|---|---|
+| F11-BE-01 | `Domain/Solicitacao.cs`, `Domain/Enums/`, migration `RemoveStatusSolicitacao` | `Status`, `DecididoEm` e o enum `StatusSolicitacao` deixam de existir. A migration apaga as Rejeitadas antes de dropar as colunas (as Pendentes passam a contar na escala). |
+| F11-BE-02 | `Features/Administradores/RevisarEscala/ExcluirSolicitacao/`, `Program.cs` | `DELETE /api/admin/solicitacoes/{id}` (JWT): 204 e o registro some; 404 se não existe; sem restrição de janela. Slices `AprovarSolicitacao` e `RejeitarSolicitacao` removidos. |
+| F11-BE-03 | `ListarSolicitacoesAgrupadas`, `ObterEscalaFinal`, `ListarHistorico`, `CriarSolicitacao`, `AdicionarSolicitacaoManual`, `Publicadores/ExcluirSolicitacao` | Nenhuma resposta tem `status`; revisão, excedente, contagem de apoio e grade usam todas as solicitações. A grade devolve `publicadores` (antes `aprovados`). |
+| F11-FE-01 | `routes/admin/RevisaoEscala.tsx` | Sem status nem Aprovar/Rejeitar; resumo com "Recebidos" e "Vagas com excesso". Cada pedido tem "Excluir", que abre um modal de confirmação; confirmar apaga, remove a linha, recalcula o excesso e a contagem do publicador e some com o grupo vazio. |
+| F11-FE-02 | `utils/formatacao.ts`, `components/ui/badge.tsx`, `SolicitacaoCard.tsx`, `InicioPublicador.tsx`, `EscalaFinal.tsx`, `AdicionarSolicitacao.tsx`, `App.tsx` | Sem `STATUS`/badges de status; textos sem "aprovado"/"rejeitado". |
+
+### Verificação da Fase 11
+
+`dotnet test`, `npm test`, `npm run lint`, `npm run build`.
+
+---
+
+## Fase 12 — Nome do publicador
+
+O nome sai do wizard: é pedido uma vez, no primeiro acesso, e fica visível
+como "Olá, Fulano". Publicador e admin podem corrigi-lo.
+
+| ID | Entrega | Critério de aceite |
+|---|---|---|
+| F12-BE-01 | `Features/Publicadores/AtualizarNome/`, `Program.cs` | `PUT /api/publicador` (header `X-Publicador-Token`, `{ nome }` obrigatório, máx. 200, trim): atualiza o nome se o publicador existe; se não, não cria. 204 nos dois casos; sem janela; limite de escrita do publicador. |
+| F12-BE-02 | `Features/Administradores/RenomearPublicador/`, `AdicionarSolicitacaoManual` | `PUT /api/admin/publicadores/{id}` (JWT): 204/404, vale em revisão e grade; nomes repetidos permitidos. Na adição manual, entre homônimos reusa o de pedido mais antigo (desempate pelo `Id`). |
+| F12-FE-01 | `routes/publicador/Nome.tsx`, `components/ExigeNome.tsx`, `App.tsx`, `hooks/usePublicadorToken.ts` | Sem nome salvo, `/` e `/solicitar` levam a `/nome` ("Qual é o seu nome?", placeholder "Nome e sobrenome", "Continuar" → `/`). Com nome, `/nome` é a edição ("Alterar nome", "Salvar"/"Cancelar"): salva no aparelho e no servidor e volta para a tela de origem; se o servidor falhar, avisa e fica. |
+| F12-FE-02 | `components/Layout.tsx` | "Olá, {primeiro nome}" à direita do cabeçalho do publicador (não no admin nem em `/nome`); leva a `/nome` e atualiza na hora quando o nome muda. |
+| F12-FE-05 | `components/Layout.tsx` | O publicador não tem menu (sai o "Início"); o título "Escala TPL" é um link para a tela inicial (no admin, para o painel). |
+| F12-FE-03 | `wizard/SolicitacaoWizard.tsx` | Wizard em 3 etapas (carrinho → dia → turno), sem o nome; "Voltar" na primeira etapa vai para `/`. |
+| F12-FE-04 | `routes/admin/RevisaoEscala.tsx`, `routes/admin/components/ModalEditarNome.tsx` | Lápis ao lado do nome abre "Editar nome" ("Muda o nome em todos os pedidos desta pessoa."); salvar renomeia todas as linhas do publicador; erro aparece no modal. |
+
+### Verificação da Fase 12
+
+`dotnet test`, `npm test`, `npm run lint`, `npm run build`.
+
+---
+
+## Backlog (Fase 13 — opcional, fora do escopo inicial)
 
 Não paralelizar ainda — só entra depois que Fases 0–4 estiverem completas
 e validadas:

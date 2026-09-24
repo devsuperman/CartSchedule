@@ -17,7 +17,7 @@ import {
 import { cn } from "@/lib/utils";
 
 /** Contrato de GET /api/admin/escalas/{mes}/grade (TECHNICAL_SPEC.md, tarefa F2-BE-07). */
-interface AprovadoGrade {
+interface PublicadorGrade {
   publicadorId: string;
   publicadorNome: string;
 }
@@ -27,7 +27,7 @@ interface CelulaGrade {
   carrinhoNome: string;
   diaSemana: number;
   turnoId: number;
-  aprovados: AprovadoGrade[];
+  publicadores: PublicadorGrade[];
 }
 
 interface EscalaGradeResponse {
@@ -106,9 +106,9 @@ export default function EscalaFinal() {
         <h1>Escala final</h1>
         <Card className="items-center gap-2 py-10 text-center text-muted-foreground">
           <strong className="block text-[1.1rem] text-foreground">
-            Nada aprovado em {formatarMes(mes)}
+            Nenhum pedido em {formatarMes(mes)}
           </strong>
-          Aprove pedidos na revisão da escala para montar a grade.
+          Os pedidos aparecem aqui assim que forem enviados ou adicionados.
         </Card>
       </div>
     );
@@ -124,11 +124,11 @@ export default function EscalaFinal() {
     }
   }
 
-  function aprovadosDaCelula(carrinhoId: number, diaSemana: number, turnoId: number): AprovadoGrade[] {
+  function publicadoresDaCelula(carrinhoId: number, diaSemana: number, turnoId: number): PublicadorGrade[] {
     const celula = listaCelulas.find(
       (c) => c.carrinhoId === carrinhoId && c.diaSemana === diaSemana && c.turnoId === turnoId,
     );
-    return celula?.aprovados ?? [];
+    return celula?.publicadores ?? [];
   }
 
   return (
@@ -164,22 +164,22 @@ export default function EscalaFinal() {
                       </th>
                     </TableCell>
                     {DIAS_SEMANA.map((dia) => {
-                      const aprovados = aprovadosDaCelula(carrinho.carrinhoId, dia.valor, turno.id);
-                      const excedente = aprovados.length > 2;
+                      const publicadores = publicadoresDaCelula(carrinho.carrinhoId, dia.valor, turno.id);
+                      const excedente = publicadores.length > 2;
                       return (
                         <TableCell
                           key={dia.valor}
                           className={cn(
                             "text-sm",
-                            aprovados.length === 0 && "text-border-strong",
+                            publicadores.length === 0 && "text-border-strong",
                             excedente &&
                               "bg-destructive-muted shadow-[inset_3px_0_0_var(--color-destructive)]",
                           )}
                         >
-                          {aprovados.length === 0 ? (
+                          {publicadores.length === 0 ? (
                             <span aria-label="Sem ninguém">—</span>
                           ) : (
-                            aprovados.map((a) => (
+                            publicadores.map((a) => (
                               <span key={a.publicadorId} className="block">
                                 {a.publicadorNome}
                               </span>
@@ -187,7 +187,7 @@ export default function EscalaFinal() {
                           )}
                           {excedente && (
                             <span className="block text-[0.8rem] font-bold text-destructive">
-                              {aprovados.length} pessoas
+                              {publicadores.length} pessoas
                             </span>
                           )}
                         </TableCell>

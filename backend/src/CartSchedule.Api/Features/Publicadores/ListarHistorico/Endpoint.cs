@@ -36,7 +36,6 @@ public static class Endpoint
                     s.Carrinho.Descricao,
                     (int)s.DiaSemana,
                     s.TurnoId,
-                    (int)s.Status,
                     (int)s.Origem))
                 .ToListAsync();
 

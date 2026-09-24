@@ -1,13 +1,12 @@
 using System.Globalization;
-using CartSchedule.Api.Domain.Enums;
 using CartSchedule.Api.Infrastructure;
 using Microsoft.EntityFrameworkCore;
 
 namespace CartSchedule.Api.Features.Administradores.RevisarEscala.ListarSolicitacoesAgrupadas;
 
 /// <summary>
-/// GET /api/admin/escalas/{mes}/solicitacoes — agrupa as Solicitacoes (Pendente/Aprovada)
-/// de uma Escala por (carrinho, dia da semana, turno) para a tela de revisão do
+/// GET /api/admin/escalas/{mes}/solicitacoes — agrupa as Solicitacoes de uma
+/// Escala por (carrinho, dia da semana, turno) para a tela de revisão do
 /// administrador (PLANNING.md regras 1-4, 13, 16; TASKS.md F2-BE-04).
 ///
 /// Endpoint só de leitura: nunca cria a Escala caso ela ainda não exista para o mês —
@@ -43,14 +42,13 @@ public static class Endpoint
             return Results.Ok(new ListarSolicitacoesAgrupadasResponse(mes, []));
         }
 
-        // Só Pendente/Aprovada entram na revisão — Rejeitadas já estão resolvidas
-        // e ficam fora (PLANNING.md regras 1-4).
+        // Toda solicitação existente já conta na escala; o admin tira alguém excluindo o
+        // registro (PLANNING.md regra 12a).
         var solicitacoes = await db.Solicitacoes
             .AsNoTracking()
             .Include(s => s.Publicador)
             .Include(s => s.Carrinho)
-            .Where(s => s.EscalaId == escala.Id &&
-                (s.Status == StatusSolicitacao.Pendente || s.Status == StatusSolicitacao.Aprovada))
+            .Where(s => s.EscalaId == escala.Id)
             .ToListAsync(ct);
 
         // Contagem de apoio ao desempate (regra 13/16): total do publicador na escala
@@ -75,7 +73,6 @@ public static class Endpoint
                         s.Id,
                         s.PublicadorId,
                         s.Publicador.Nome,
-                        (int)s.Status,
                         (int)s.Origem,
                         s.CriadoEm,
                         totalPorPublicador[s.PublicadorId]))
