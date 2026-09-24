@@ -488,7 +488,7 @@ configuração de build — nenhuma regra de negócio muda.
 | ID | Entrega | Critério de aceite |
 |---|---|---|
 | F9-FE-01 | `routes/publicador/InicioPublicador.tsx` | "Solicitar Nova Escala" sai do topo e vai para um rodapé fixo na base da tela (visível ao rolar, sem cobrir o último card). O aviso de janela fechada continua no topo. |
-| F9-FE-02 | `InicioPublicador.tsx`, `constants/whatsapp.ts`, `Dockerfile`, compose, `.env.example` | Botão "Terminei!" no rodapé (janela aberta ou fechada) é um link para `WHATSAPP_GRUPO_URL`, que no celular abre o grupo no app do WhatsApp (o navegador não deixa o site fechar a aba). Sem a variável, o botão não aparece. |
+| F9-FE-02 | `InicioPublicador.tsx`, `constants/whatsapp.ts`, `Dockerfile`, compose, `.env.example` | Botão "Terminei!" abaixo da lista de pedidos (janela aberta ou fechada) é um link para `WHATSAPP_GRUPO_URL`, que no celular abre o grupo no app do WhatsApp (o navegador não deixa o site fechar a aba). Sem a variável, o botão não aparece. |
 
 ### Verificação da Fase 9
 

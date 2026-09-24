@@ -33,7 +33,7 @@ function ordenarPorDiaTurnoCarrinho(lista: Solicitacao[]): Solicitacao[] {
  * (mesAlvo). Com a janela aberta, há um botão para solicitar uma nova escala e os pedidos
  * do mês-alvo podem ser excluídos; com ela fechada, um aviso aparece no topo, o botão some
  * e a lista fica só para leitura (PLANNING.md regra 8). O botão fica num rodapé fixo na
- * base da tela, junto com "Terminei!", que volta para o grupo do WhatsApp (os navegadores
+ * base da tela. Abaixo da lista, "Terminei!" volta para o grupo do WhatsApp (os navegadores
  * não deixam o site fechar a própria aba). Se o publicador nunca fez nenhuma
  * solicitação e a janela está aberta, redireciona automaticamente para "/solicitar" —
  * sem precisar clicar em nada (fluxo de primeiro acesso).
@@ -191,30 +191,22 @@ export default function InicioPublicador() {
           </div>
         ))}
 
-      {(podeSolicitar || GRUPO_WHATSAPP_URL) && (
+      {GRUPO_WHATSAPP_URL && (
+        // Link comum: no celular o sistema entrega o chat.whatsapp.com ao app do WhatsApp.
+        <Button asChild size="lg" variant="outline" className="w-full">
+          <a href={GRUPO_WHATSAPP_URL}>Terminei!</a>
+        </Button>
+      )}
+
+      {podeSolicitar && (
         <>
-          {/* Reserva o espaço do rodapé fixo para ele não cobrir o último card. */}
-          <div
-            aria-hidden
-            className={
-              podeSolicitar && GRUPO_WHATSAPP_URL
-                ? "h-[calc(5.5rem+env(safe-area-inset-bottom))]"
-                : "h-[calc(2rem+env(safe-area-inset-bottom))]"
-            }
-          />
+          {/* Reserva o espaço do rodapé fixo para ele não cobrir o fim da página. */}
+          <div aria-hidden className="h-[calc(2rem+env(safe-area-inset-bottom))]" />
           <div className="fixed inset-x-0 bottom-0 z-10 border-t border-border bg-background">
-            <div className="mx-auto flex max-w-4xl flex-col gap-2 px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
-              {podeSolicitar && (
-                <Button asChild size="lg" className="w-full">
-                  <Link to="/solicitar">Solicitar Nova Escala</Link>
-                </Button>
-              )}
-              {GRUPO_WHATSAPP_URL && (
-                // Link comum: no celular o sistema entrega o chat.whatsapp.com ao app do WhatsApp.
-                <Button asChild size="lg" variant="outline" className="w-full">
-                  <a href={GRUPO_WHATSAPP_URL}>Terminei!</a>
-                </Button>
-              )}
+            <div className="mx-auto max-w-4xl px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+              <Button asChild size="lg" className="w-full">
+                <Link to="/solicitar">Solicitar Nova Escala</Link>
+              </Button>
             </div>
           </div>
         </>

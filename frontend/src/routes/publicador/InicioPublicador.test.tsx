@@ -154,12 +154,15 @@ describe("InicioPublicador — rodapé", () => {
     expect(lista.compareDocumentPosition(botao) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 
-  it("\"Terminei!\" leva ao grupo do WhatsApp, com a janela aberta", async () => {
+  it("\"Terminei!\" fica abaixo da lista e leva ao grupo do WhatsApp", async () => {
     whatsapp.url = GRUPO;
     comJanela(true);
     renderizar();
 
-    expect(await screen.findByRole("link", { name: "Terminei!" })).toHaveAttribute("href", GRUPO);
+    const lista = await screen.findByRole("list");
+    const terminei = screen.getByRole("link", { name: "Terminei!" });
+    expect(terminei).toHaveAttribute("href", GRUPO);
+    expect(lista.compareDocumentPosition(terminei) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 
   it("\"Terminei!\" também aparece com a janela fechada, sem o botão de solicitar", async () => {
