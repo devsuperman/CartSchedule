@@ -94,6 +94,16 @@ describe("InicioPublicador — histórico", () => {
     expect(itens[2].textContent).toBe("Segunda-feira08:00–10:00Carrinho 10");
   });
 
+  it("mostra o turno ao lado do dia, com o mesmo destaque", async () => {
+    renderizar();
+
+    const item = within(await screen.findByRole("list")).getAllByRole("listitem")[1];
+    const destaque = within(item).getByText("08:00–10:00").parentElement!;
+    expect(destaque).toHaveTextContent("Segunda-feira08:00–10:00");
+    expect(destaque).toHaveClass("font-bold");
+    expect(destaque).not.toHaveTextContent("Carrinho 2");
+  });
+
   it("mostra só o mês no título da lista, sem cabeçalho da tela nem status", async () => {
     renderizar();
 
