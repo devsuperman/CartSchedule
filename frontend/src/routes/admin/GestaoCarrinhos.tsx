@@ -1,6 +1,7 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { apiFetch, ApiError } from "../../api/client";
 import { TURNOS } from "../../constants/turnos";
+import { DIAS_SEMANA, type DiaSemana } from "../../constants/diasSemana";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,21 +12,31 @@ import { cn } from "@/lib/utils";
 
 /**
  * Contrato de GET/POST/PUT /api/admin/carrinhos e GET/PUT /api/admin/carrinhos/{id}/turnos
- * (TECHNICAL_SPEC.md §2.1, tarefas F2-BE-02/F2-BE-03/F5-BE-01). `turnoIds` no carrinho é só
- * uma conveniência de leitura — sempre re-sincronizado após uma alteração de turnos.
- * `descricao` é opcional (o backend grava texto em branco como null).
+ * (TECHNICAL_SPEC.md §2.1/§2.4, tarefas F2-BE-02/F2-BE-03/F5-BE-01/F6-BE-02). `disponibilidades`
+ * no carrinho (pares dia da semana × turno) é só uma conveniência de leitura — sempre
+ * re-sincronizada após uma alteração. `descricao` é opcional (o backend grava texto em
+ * branco como null).
  */
+interface Disponibilidade {
+  diaSemana: DiaSemana;
+  turnoId: number;
+}
+
 interface Carrinho {
   id: number;
   nome: string;
   descricao: string | null;
   ativo: boolean;
-  turnoIds: number[];
+  disponibilidades: Disponibilidade[];
 }
 
 interface CarrinhoTurnosResponse {
   carrinhoId: number;
-  turnoIds: number[];
+  disponibilidades: Disponibilidade[];
+}
+
+function temDisponibilidade(carrinho: Carrinho, diaSemana: DiaSemana, turnoId: number): boolean {
+  return carrinho.disponibilidades.some((d) => d.diaSemana === diaSemana && d.turnoId === turnoId);
 }
 
 function mensagemErro(erro: unknown, fallback: string): string {
@@ -161,12 +172,11 @@ export default function GestaoCarrinhos() {
     if (salvou) setEditandoId(null);
   }
 
-  async function handleAlternarTurno(carrinho: Carrinho, turnoId: number) {
+  async function handleAlternarTurno(carrinho: Carrinho, diaSemana: DiaSemana, turnoId: number) {
     limparErroCarrinho(carrinho.id);
-    const jaHabilitado = carrinho.turnoIds.includes(turnoId);
-    const novosTurnoIds = jaHabilitado
-      ? carrinho.turnoIds.filter((id) => id !== turnoId)
-      : [...carrinho.turnoIds, turnoId];
+    const novasDisponibilidades = temDisponibilidade(carrinho, diaSemana, turnoId)
+      ? carrinho.disponibilidades.filter((d) => !(d.diaSemana === diaSemana && d.turnoId === turnoId))
+      : [...carrinho.disponibilidades, { diaSemana, turnoId }];
 
     setSalvandoId(carrinho.id);
     try {
@@ -174,12 +184,12 @@ export default function GestaoCarrinhos() {
         `/api/admin/carrinhos/${carrinho.id}/turnos`,
         {
           method: "PUT",
-          body: JSON.stringify({ turnoIds: novosTurnoIds }),
+          body: JSON.stringify({ disponibilidades: novasDisponibilidades }),
         },
       );
       setCarrinhos((atual) =>
         (atual ?? []).map((item) =>
-          item.id === carrinho.id ? { ...item, turnoIds: resposta.turnoIds } : item,
+          item.id === carrinho.id ? { ...item, disponibilidades: resposta.disponibilidades } : item,
         ),
       );
     } catch (erro) {
@@ -194,8 +204,8 @@ export default function GestaoCarrinhos() {
       <div className="flex flex-col gap-1.5">
         <h1>Carrinhos</h1>
         <p className="text-muted-foreground">
-          Escolha quais turnos cada carrinho oferece. Desativar um carrinho ou remover um turno não
-          altera pedidos que já existem.
+          Escolha em quais dias e turnos cada carrinho funciona. Desativar um carrinho ou desmarcar
+          um turno não altera pedidos que já existem.
         </p>
       </div>
 
@@ -322,28 +332,67 @@ export default function GestaoCarrinhos() {
                 </div>
 
                 <fieldset disabled={salvandoId === carrinho.id} className="min-w-0">
-                  <legend className="mb-2 font-semibold">Turnos disponíveis</legend>
-                  <div className="flex flex-wrap gap-2 tabular-nums">
-                    {TURNOS.map((turno) => {
-                      const habilitado = carrinho.turnoIds.includes(turno.id);
-                      return (
-                        <Button
-                          key={turno.id}
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          aria-pressed={habilitado}
-                          className={cn(
-                            habilitado && "border-primary bg-accent text-accent-foreground",
-                          )}
-                          onClick={() => handleAlternarTurno(carrinho, turno.id)}
-                        >
-                          {turno.horaInicio}–{turno.horaFim}
-                        </Button>
-                      );
-                    })}
+                  <legend className="mb-2 font-semibold">Turnos disponíveis por dia</legend>
+                  <div className="overflow-x-auto">
+                    <table className="w-full border-separate border-spacing-1 text-sm tabular-nums">
+                      <thead>
+                        <tr>
+                          <th scope="col" className="sr-only">
+                            Turno
+                          </th>
+                          {DIAS_SEMANA.map((dia) => (
+                            <th key={dia.valor} scope="col" className="font-semibold">
+                              <abbr title={dia.label} className="no-underline">
+                                {dia.curto}
+                              </abbr>
+                            </th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {TURNOS.map((turno) => (
+                          <tr key={turno.id}>
+                            {/* <wbr>: em telas estreitas o horário quebra em 2 linhas para
+                                as 5 colunas de dias caberem sem rolagem horizontal. */}
+                            <th scope="row" className="pr-1 text-left font-normal">
+                              {turno.horaInicio}–<wbr />
+                              {turno.horaFim}
+                            </th>
+                            {DIAS_SEMANA.map((dia) => {
+                              const habilitado = temDisponibilidade(carrinho, dia.valor, turno.id);
+                              return (
+                                <td key={dia.valor} className="p-0">
+                                  <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="sm"
+                                    aria-pressed={habilitado}
+                                    aria-label={`${dia.label} ${turno.horaInicio}–${turno.horaFim}`}
+                                    className={cn(
+                                      "h-9 w-full min-w-8 px-0",
+                                      habilitado && "border-primary bg-accent text-accent-foreground",
+                                    )}
+                                    onClick={() => handleAlternarTurno(carrinho, dia.valor, turno.id)}
+                                  >
+                                    {habilitado ? "✓" : ""}
+                                  </Button>
+                                </td>
+                              );
+                            })}
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
                   </div>
                 </fieldset>
+
+                {carrinho.ativo && carrinho.disponibilidades.length === 0 && (
+                  <Alert variant="warning" className="py-2 text-[0.95rem]">
+                    <AlertDescription>
+                      Nenhum turno marcado — este carrinho não aparece para os publicadores.
+                    </AlertDescription>
+                  </Alert>
+                )}
 
                 {erroPorCarrinho[carrinho.id] && (
                   <Alert variant="destructive" className="py-2 text-[0.95rem]">

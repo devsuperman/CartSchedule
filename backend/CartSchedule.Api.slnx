@@ -2,4 +2,7 @@
   <Folder Name="/src/">
     <Project Path="src/CartSchedule.Api/CartSchedule.Api.csproj" />
   </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/CartSchedule.Api.Tests/CartSchedule.Api.Tests.csproj" />
+  </Folder>
 </Solution>

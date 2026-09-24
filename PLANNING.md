@@ -28,7 +28,7 @@ semana, por turno**.
 | **Carrinho** | Um carrinho de trabalho disponível (ex: Carrinho 1, Carrinho 2...). Tem um nome e uma **descrição** opcional (ex: local onde fica), exibida ao publicador abaixo do nome na hora de escolher o carrinho. |
 | **Dia da semana** | **Sempre Segunda a Sexta-feira** — são os únicos dias que existem no sistema; não há Sábado nem Domingo. A escolha é **recorrente**: se o publicador escolhe "Segunda-feira", isso vale para todas as segundas-feiras daquele mês — não é uma data específica do calendário. |
 | **Turno** | Faixa de horário **fixa do sistema**, não cadastrável pelo administrador. São sempre estes 6 turnos: **06:00–08:00, 08:00–10:00, 10:00–12:00, 14:00–16:00, 16:00–18:00, 18:00–20:00**. Os mesmos horários valem para todos os carrinhos que usarem aquele turno. |
-| **Turnos disponíveis do carrinho** | Cada carrinho usa apenas um subconjunto dos turnos cadastrados, definido pelo administrador. Um carrinho pode ter turnos diferentes de outro (ex: Carrinho A tem Manhã e Tarde; Carrinho B tem só Noite). |
+| **Turnos disponíveis do carrinho** | Cada carrinho usa apenas um subconjunto dos turnos fixos, definido pelo administrador **por dia da semana**. Um carrinho pode ter turnos diferentes de outro, e o mesmo carrinho pode ter turnos diferentes em cada dia (ex: Carrinho 01 tem 08:00–10:00 na Segunda, mas só 10:00–12:00 na Terça). |
 | **Solicitação** | O pedido para trabalhar em `(carrinho, dia da semana, turno)` dentro de uma escala (mês). Pode ter sido criada por um Publicador (fluxo normal, começa Pendente) ou pelo Administrador (entra direto como Aprovada). |
 | **Escala mensal (resultado final)** | Para cada `(carrinho, dia da semana, turno)`, até 2 publicadores aprovados. |
 
@@ -63,9 +63,9 @@ semana, por turno**.
    identificação é simples e o sistema deve poupar o publicador de
    redigitar o nome a cada nova visita (a forma técnica de fazer isso
    será definida na fase de implementação).
-3. Seleciona o **carrinho** que deseja usar (vê o nome e, abaixo dele, a descrição do carrinho, quando houver).
-4. Seleciona o **dia da semana** em que quer trabalhar.
-5. Seleciona o **turno** desejado — apenas entre os turnos que o administrador configurou como disponíveis **para aquele carrinho** (carrinhos diferentes podem ter turnos diferentes).
+3. Seleciona o **dia da semana** em que quer trabalhar — dias em que nenhum carrinho tem turno aparecem desabilitados.
+4. Seleciona o **carrinho** que deseja usar (vê o nome e, abaixo dele, a descrição do carrinho, quando houver) — só aparecem os carrinhos que têm algum turno naquele dia.
+5. Seleciona o **turno** desejado — apenas entre os turnos que o administrador configurou como disponíveis **para aquele carrinho naquele dia da semana** (carrinhos diferentes, e dias diferentes do mesmo carrinho, podem ter turnos diferentes).
 6. Pode repetir os passos 3–5 para pedir mais de uma combinação na mesma escala (ex: Carrinho A / Segunda / Manhã **e** Carrinho B / Quinta / Tarde). O mês/escala já está implícito (é sempre o mês seguinte, definido automaticamente pela janela aberta).
 7. Revisa e **envia** as solicitações.
 8. A qualquer momento (mesmo fora da janela de envio), pode acessar a tela de **histórico** e ver o status de cada solicitação que enviou: *Pendente*, *Aprovada* ou *Rejeitada* (sem data/hora do envio).
@@ -79,8 +79,9 @@ mesma combinação `(escala, carrinho, dia da semana, turno)`.
 1. Acessa o painel administrativo.
 2. **Configura os carrinhos**: cadastra os carrinhos (nome e descrição
    opcional), pode editar esses dados a qualquer momento, e define, para
-   cada um, quais dos 6 turnos fixos do sistema ele tem disponíveis
-   (um carrinho pode ter turnos diferentes de outro). Os turnos em si
+   cada um e **para cada dia da semana**, quais dos 6 turnos fixos do
+   sistema ele tem disponíveis (um carrinho pode ter turnos diferentes
+   de outro, e turnos diferentes em cada dia). Os turnos em si
    não são cadastráveis — são sempre os mesmos 6, fixos no sistema
    (ver seção 3). Essa configuração vale para os publicadores
    escolherem e também para a adição manual (ver item 7).
@@ -100,7 +101,7 @@ mesma combinação `(escala, carrinho, dia da semana, turno)`.
    manualmente** uma nova solicitação a qualquer escala:
    - Escolhe o carrinho, o dia da semana e o turno — o turno só pode
      ser um dos configurados como disponível para aquele carrinho
-     (mesma restrição que vale para o publicador, ver item 2).
+     naquele dia da semana (mesma restrição que vale para o publicador, ver item 2).
    - Informa o nome do publicador — pode escolher um publicador já
      cadastrado **ou digitar um nome novo livremente** (o sistema cria
      o publicador automaticamente se ele ainda não existir).
@@ -140,10 +141,10 @@ mesma combinação `(escala, carrinho, dia da semana, turno)`.
 14. **Sem notificações**: o sistema não envia avisos (e-mail, push, etc.) ao publicador sobre o status de suas solicitações; ele consulta o histórico quando quiser.
 15. **Um único administrador**: não há necessidade de múltiplos administradores nem de controle de acesso por diferentes papéis administrativos.
 16. **Contagem de apoio ao desempate**: para cada publicador presente num grupo excedente (mais de 2 solicitações na mesma trinca), o sistema exibe o total de solicitações (pendentes + aprovadas, somando todas as trincas) que ele já tem naquela mesma escala — para ajudar o administrador a decidir, sem determinar a decisão.
-17. **Turnos por carrinho**: cada carrinho tem seu próprio conjunto de turnos disponíveis, definido pelo administrador, como um subconjunto da lista fixa de turnos do sistema (os horários de cada turno são os mesmos em qualquer carrinho que o utilize). Um carrinho pode ter turnos diferentes de outro. O publicador só pode escolher, para um carrinho, um dos turnos configurados para ele; a adição manual pelo administrador segue a mesma restrição.
-18. **Remoção de turno de um carrinho / desativação de um carrinho**: quando o administrador remove um turno da configuração de um carrinho, ou desativa um carrinho, isso afeta apenas **novos** envios a partir dali (aquele turno/carrinho deixa de ser oferecido). As solicitações que já existiam com essa combinação (pendentes, aprovadas ou rejeitadas) **não são alteradas nem removidas** — continuam aparecendo normalmente no histórico do publicador e na escala.
+17. **Turnos por carrinho e dia da semana**: cada carrinho tem, **para cada dia da semana**, seu próprio conjunto de turnos disponíveis, definido pelo administrador como um subconjunto da lista fixa de turnos do sistema (os horários de cada turno são os mesmos em qualquer carrinho e dia que o utilize). Um carrinho pode ter turnos diferentes de outro, e o mesmo carrinho pode ter turnos diferentes em cada dia (ex: Carrinho 01 com 08:00–10:00 na Segunda e só 10:00–12:00 na Terça). O publicador só pode escolher, para um carrinho e dia, um dos turnos configurados para aquela combinação; a adição manual pelo administrador segue a mesma restrição. Quando esta regra entrou (Fase 6), a configuração anterior de turnos por carrinho foi zerada e o administrador reconfigurou cada carrinho.
+18. **Remoção de turno de um carrinho / desativação de um carrinho**: quando o administrador remove um turno da configuração de um carrinho (em um ou mais dias da semana), ou desativa um carrinho, isso afeta apenas **novos** envios a partir dali (aquele turno/carrinho deixa de ser oferecido). As solicitações que já existiam com essa combinação (pendentes, aprovadas ou rejeitadas) **não são alteradas nem removidas** — continuam aparecendo normalmente no histórico do publicador e na escala.
 19. **Dias da semana fixos**: o sistema só trabalha com **Segunda a Sexta-feira**. Não existe Sábado nem Domingo como opção em nenhum fluxo (publicador, adição manual do administrador, escala final).
-20. **Turnos fixos do sistema**: os turnos não são cadastrados nem editados pelo administrador — são sempre estes 6, fixos: **06:00–08:00, 08:00–10:00, 10:00–12:00, 14:00–16:00, 16:00–18:00, 18:00–20:00**. O papel do administrador é apenas escolher, por carrinho, quais desses 6 ficam disponíveis (regra 17).
+20. **Turnos fixos do sistema**: os turnos não são cadastrados nem editados pelo administrador — são sempre estes 6, fixos: **06:00–08:00, 08:00–10:00, 10:00–12:00, 14:00–16:00, 16:00–18:00, 18:00–20:00**. O papel do administrador é apenas escolher, por carrinho e dia da semana, quais desses 6 ficam disponíveis (regra 17).
 
 ## 8. Estados de uma Solicitação
 
@@ -182,10 +183,12 @@ PENDENTE / APROVADA ──(publicador exclui, só com a janela aberta e na escal
 - `hora_inicio`, `hora_fim`
 - **Fixos do sistema, não cadastráveis pelo administrador.** São sempre estes 6: 06:00–08:00, 08:00–10:00, 10:00–12:00, 14:00–16:00, 16:00–18:00, 18:00–20:00.
 
-**CarrinhoTurno** (associação: quais turnos cada carrinho tem disponível)
+**CarrinhoTurno** (associação: quais turnos cada carrinho tem disponível em cada dia da semana)
 - `carrinho_id`
+- `dia_semana` (Segunda a Sexta)
 - `turno_id`
-- Definida pelo administrador; um carrinho pode ter qualquer subconjunto dos 6 turnos fixos, diferente de outro carrinho.
+- Chave: `(carrinho_id, dia_semana, turno_id)`.
+- Definida pelo administrador; um carrinho pode ter, em cada dia, qualquer subconjunto dos 6 turnos fixos, diferente de outro carrinho e de outro dia.
 
 **DiaSemana**
 - Enum fixo: Segunda, Terça, Quarta, Quinta, Sexta (não precisa de tabela própria). **Não existem Sábado nem Domingo no sistema.**
@@ -213,7 +216,7 @@ PENDENTE / APROVADA ──(publicador exclui, só com a janela aberta e na escal
 
 ## 10. Roadmap Sugerido
 
-- **Fase 1 — Solicitação do publicador**: formulário (nome, carrinho, dia da semana — sempre Segunda a Sexta —, turno — um dos 6 turnos fixos, restrito aos configurados para o carrinho escolhido) disponível apenas durante a janela automática (dia 15 ao dia 25 do mês), sempre direcionado à escala do mês seguinte, com bloqueio de solicitações duplicadas e tela de histórico próprio (sempre disponível, com opção de exclusão só durante a janela e para a escala do mês-alvo), sem cadastro formal.
-- **Fase 2 — Painel do administrador**: cadastro de carrinhos e configuração de quais dos 6 turnos fixos cada carrinho tem disponível; listagem/contagem de solicitações por escala, agrupamento por `(carrinho, dia, turno)` com sinalização visual de excesso (mais de 2, sem bloqueio automático desse limite) e contagem de apoio ao desempate por publicador; aprovação/rejeição livre (critério de desempate exclusivo do administrador); e adição manual de solicitações (com criação de publicador por nome livre) a qualquer escala.
+- **Fase 1 — Solicitação do publicador**: formulário (nome, carrinho, dia da semana — sempre Segunda a Sexta —, turno — um dos 6 turnos fixos, restrito aos configurados para o carrinho e o dia escolhidos) disponível apenas durante a janela automática (dia 15 ao dia 25 do mês), sempre direcionado à escala do mês seguinte, com bloqueio de solicitações duplicadas e tela de histórico próprio (sempre disponível, com opção de exclusão só durante a janela e para a escala do mês-alvo), sem cadastro formal.
+- **Fase 2 — Painel do administrador**: cadastro de carrinhos e configuração de quais dos 6 turnos fixos cada carrinho tem disponível em cada dia da semana; listagem/contagem de solicitações por escala, agrupamento por `(carrinho, dia, turno)` com sinalização visual de excesso (mais de 2, sem bloqueio automático desse limite) e contagem de apoio ao desempate por publicador; aprovação/rejeição livre (critério de desempate exclusivo do administrador); e adição manual de solicitações (com criação de publicador por nome livre) a qualquer escala.
 - **Fase 3 — Escala mensal**: geração e visualização da grade final (Carrinho × Dia da semana × Turno) a partir das solicitações aprovadas.
 - **Fase 4 — Melhorias futuras (opcionais)**: exportação da escala (PDF/Excel/impressão) e relatórios/histórico consolidado de escalas passadas.

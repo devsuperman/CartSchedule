@@ -25,6 +25,9 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 
 builder.Services.AddValidatorsFromAssemblyContaining<Program>();
 
+// Relógio injetável: a janela de envio depende da data (os testes fixam uma data).
+builder.Services.AddSingleton(TimeProvider.System);
+
 builder.Services.AddProblemDetails();
 
 builder.Services.AddAdminAuthentication(builder.Configuration);

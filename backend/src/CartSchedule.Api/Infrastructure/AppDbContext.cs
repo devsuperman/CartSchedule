@@ -40,7 +40,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
         modelBuilder.Entity<CarrinhoTurno>(entity =>
         {
             entity.ToTable("carrinho_turnos");
-            entity.HasKey(ct => new { ct.CarrinhoId, ct.TurnoId });
+            entity.HasKey(ct => new { ct.CarrinhoId, ct.DiaSemana, ct.TurnoId });
 
             entity.HasOne(ct => ct.Carrinho)
                 .WithMany(c => c.CarrinhoTurnos)

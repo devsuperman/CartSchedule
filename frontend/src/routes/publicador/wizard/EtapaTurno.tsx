@@ -11,15 +11,15 @@ interface EtapaTurnoProps {
 }
 
 /** Etapa 4 (última) do wizard: turno, já filtrado pelos turnos habilitados no carrinho
- * escolhido na etapa anterior. Turnos são fixos no sistema, nunca cadastráveis pelo
+ * escolhido na etapa anterior, naquele dia da semana (PLANNING.md regra 17). Turnos são fixos no sistema, nunca cadastráveis pelo
  * admin (PLANNING.md regra 2). */
 export function EtapaTurno({ turnos, carrinhoNome, valor, onSelecionar }: EtapaTurnoProps) {
   if (turnos.length === 0) {
     return (
       <Alert variant="warning">
         <AlertDescription>
-          {carrinhoNome ? `${carrinhoNome} não tem` : "Este carrinho não tem"} turnos disponíveis. Toque em
-          "Voltar" e escolha outro carrinho.
+          {carrinhoNome ? `${carrinhoNome} não tem` : "Este carrinho não tem"} turnos disponíveis nesse
+          dia. Toque em "Voltar" e escolha outro carrinho.
         </AlertDescription>
       </Alert>
     );

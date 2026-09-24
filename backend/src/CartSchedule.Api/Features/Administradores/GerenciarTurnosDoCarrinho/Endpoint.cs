@@ -1,4 +1,5 @@
 using CartSchedule.Api.Domain;
+using CartSchedule.Api.Domain.Enums;
 using CartSchedule.Api.Infrastructure;
 using CartSchedule.Api.Shared;
 using Microsoft.EntityFrameworkCore;
@@ -7,8 +8,8 @@ namespace CartSchedule.Api.Features.Administradores.GerenciarTurnosDoCarrinho;
 
 /// <summary>
 /// GET/PUT /api/admin/carrinhos/{id}/turnos — gerencia apenas a associação
-/// (CarrinhoTurno) entre um carrinho e o conjunto FIXO de 6 turnos do sistema
-/// (PLANNING.md regras 17/20). Nunca cria, edita ou remove um `Turno` — só
+/// (CarrinhoTurno) entre um carrinho, o dia da semana e o conjunto FIXO de 6 turnos
+/// do sistema (PLANNING.md regras 17/20). Nunca cria, edita ou remove um `Turno` — só
 /// linhas de `CarrinhoTurno`. Remover um turno daqui não afeta `Solicitacao`
 /// já existentes (regra 18), o que é automático pois `Solicitacao` não
 /// referencia `CarrinhoTurno`.
@@ -45,7 +46,7 @@ public static class Endpoint
         return Results.Ok(new TurnosDoCarrinhoResponse
         {
             CarrinhoId = carrinho.Id,
-            TurnoIds = carrinho.CarrinhoTurnos.Select(ct => ct.TurnoId).OrderBy(turnoId => turnoId).ToList(),
+            Disponibilidades = Ordenar(carrinho.CarrinhoTurnos.Select(ct => (ct.DiaSemana, ct.TurnoId))),
         });
     }
 
@@ -60,27 +61,33 @@ public static class Endpoint
             return Results.NotFound();
         }
 
-        var turnoIdsSolicitados = request.TurnoIds.Distinct().ToList();
+        var solicitadas = request.Disponibilidades
+            .Select(d => (d.DiaSemana, d.TurnoId))
+            .ToHashSet();
 
-        var idsInvalidos = turnoIdsSolicitados.Where(turnoId => !TurnoIdsValidos.Contains(turnoId)).ToList();
+        var idsInvalidos = solicitadas
+            .Select(d => d.TurnoId)
+            .Where(turnoId => !TurnoIdsValidos.Contains(turnoId))
+            .Distinct()
+            .ToList();
         if (idsInvalidos.Count > 0)
         {
             return Results.ValidationProblem(new Dictionary<string, string[]>
             {
-                ["TurnoIds"] = [$"Ids de turno inválidos: {string.Join(", ", idsInvalidos)}. Os únicos turnos válidos são os ids 1 a 6 (fixos do sistema)."],
+                ["Disponibilidades"] = [$"Ids de turno inválidos: {string.Join(", ", idsInvalidos)}. Os únicos turnos válidos são os ids 1 a 6 (fixos do sistema)."],
             });
         }
 
-        var turnoIdsAtuais = carrinho.CarrinhoTurnos.Select(ct => ct.TurnoId).ToHashSet();
+        var atuais = carrinho.CarrinhoTurnos.Select(ct => (ct.DiaSemana, ct.TurnoId)).ToHashSet();
 
         var paraRemover = carrinho.CarrinhoTurnos
-            .Where(ct => !turnoIdsSolicitados.Contains(ct.TurnoId))
+            .Where(ct => !solicitadas.Contains((ct.DiaSemana, ct.TurnoId)))
             .ToList();
         db.CarrinhoTurnos.RemoveRange(paraRemover);
 
-        var paraAdicionar = turnoIdsSolicitados
-            .Where(turnoId => !turnoIdsAtuais.Contains(turnoId))
-            .Select(turnoId => new CarrinhoTurno { CarrinhoId = carrinho.Id, TurnoId = turnoId });
+        var paraAdicionar = solicitadas
+            .Where(d => !atuais.Contains(d))
+            .Select(d => new CarrinhoTurno { CarrinhoId = carrinho.Id, DiaSemana = d.DiaSemana, TurnoId = d.TurnoId });
         db.CarrinhoTurnos.AddRange(paraAdicionar);
 
         await db.SaveChangesAsync();
@@ -88,7 +95,14 @@ public static class Endpoint
         return Results.Ok(new TurnosDoCarrinhoResponse
         {
             CarrinhoId = carrinho.Id,
-            TurnoIds = turnoIdsSolicitados.OrderBy(turnoId => turnoId).ToList(),
+            Disponibilidades = Ordenar(solicitadas),
         });
     }
+
+    private static List<DisponibilidadeResponse> Ordenar(IEnumerable<(DiaSemana DiaSemana, int TurnoId)> disponibilidades) =>
+        disponibilidades
+            .OrderBy(d => d.DiaSemana)
+            .ThenBy(d => d.TurnoId)
+            .Select(d => new DisponibilidadeResponse(d.DiaSemana, d.TurnoId))
+            .ToList();
 }

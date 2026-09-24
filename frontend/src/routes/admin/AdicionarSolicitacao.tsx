@@ -17,11 +17,11 @@ import {
 } from "@/components/ui/select";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
-/** Contrato de GET /api/carrinhos (TECHNICAL_SPEC.md §2.1, tarefa F1-BE-02). */
+/** Contrato de GET /api/carrinhos (TECHNICAL_SPEC.md §2.1/§2.4, tarefas F1-BE-02/F6-BE-03). */
 interface Carrinho {
   id: number;
   nome: string;
-  turnoIds: number[];
+  disponibilidades: { diaSemana: DiaSemana; turnoId: number }[];
 }
 
 /**
@@ -78,9 +78,20 @@ export default function AdicionarSolicitacao() {
   }, []);
 
   const carrinhoSelecionado = carrinhos.find((c) => c.id === carrinhoId);
-  const turnosDisponiveis = carrinhoSelecionado
-    ? TURNOS.filter((t) => carrinhoSelecionado.turnoIds.includes(t.id))
-    : [];
+  // Turnos habilitados para o carrinho naquele dia da semana (PLANNING.md regra 17).
+  const turnosDisponiveis =
+    carrinhoSelecionado && diaSemana !== ""
+      ? TURNOS.filter((t) =>
+          carrinhoSelecionado.disponibilidades.some(
+            (d) => d.diaSemana === diaSemana && d.turnoId === t.id,
+          ),
+        )
+      : [];
+
+  function handleDiaSemanaChange(valor: string) {
+    setDiaSemana(Number(valor) as DiaSemana);
+    setTurnoId(""); // o turno escolhido antes pode não valer para o novo dia
+  }
 
   function handleCarrinhoChange(valor: string) {
     const novoId = valor === "" ? "" : Number(valor);
@@ -204,7 +215,7 @@ export default function AdicionarSolicitacao() {
               Dia da semana
               <Select
                 value={diaSemana === "" ? undefined : String(diaSemana)}
-                onValueChange={(valor) => setDiaSemana(Number(valor) as DiaSemana)}
+                onValueChange={handleDiaSemanaChange}
               >
                 <SelectTrigger className="w-full">
                   <SelectValue placeholder="Selecione um dia" />
@@ -221,15 +232,22 @@ export default function AdicionarSolicitacao() {
 
             <Label className="flex flex-col items-start gap-1.5">
               Turno
+              {/* key: remonta ao trocar carrinho/dia — o Radix não volta ao placeholder quando o
+                  valor passa de preenchido para undefined. */}
               <Select
+                key={`${carrinhoId}-${diaSemana}`}
                 value={turnoId === "" ? undefined : String(turnoId)}
                 onValueChange={(valor) => setTurnoId(Number(valor))}
-                disabled={!carrinhoSelecionado}
+                disabled={!carrinhoSelecionado || diaSemana === "" || turnosDisponiveis.length === 0}
               >
                 <SelectTrigger className="w-full">
                   <SelectValue
                     placeholder={
-                      carrinhoSelecionado ? "Selecione um turno" : "Selecione um carrinho primeiro"
+                      !carrinhoSelecionado || diaSemana === ""
+                        ? "Selecione o carrinho e o dia primeiro"
+                        : turnosDisponiveis.length === 0
+                          ? "Nenhum turno neste carrinho nesse dia"
+                          : "Selecione um turno"
                     }
                   />
                 </SelectTrigger>
