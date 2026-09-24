@@ -434,7 +434,26 @@ do contrato acima. Nenhuma tarefa compartilha arquivos (`Program.cs` e
 
 ---
 
-## Backlog (Fase 7 — opcional, fora do escopo inicial)
+## Fase 7 — Ajustes de leitura do publicador
+
+Depende da Fase 6 mergeada. Só apresentação e documentação — nenhuma regra
+de negócio nem contrato de API muda (`Program.cs` e `App.tsx` intocados).
+
+| ID | Entrega | Critério de aceite |
+|---|---|---|
+| F7-FE-01 | `wizard/SolicitacaoWizard.tsx` | Mês-alvo ("Escala de outubro de 2026") em destaque no topo de **todas** as etapas do wizard. |
+| F7-FE-02 | `routes/publicador/InicioPublicador.tsx` | Dentro de cada mês, pedidos agrupados por dia da semana (Segunda → Sexta) e ordenados por turno e depois por carrinho; meses do mais recente para o mais antigo. Ordenação só no frontend. |
+| F7-DOC-01 | `README.md` | Declara que o projeto é AI Native e corrige trechos desatualizados (exclusão em vez de cancelamento, turnos por dia). |
+
+As 3 tarefas não compartilham arquivos e podem rodar em paralelo.
+
+### Verificação da Fase 7
+
+`npm test`, `npm run lint`, `npm run build`.
+
+---
+
+## Backlog (Fase 8 — opcional, fora do escopo inicial)
 
 Não paralelizar ainda — só entra depois que Fases 0–4 estiverem completas
 e validadas:
@@ -459,3 +478,5 @@ e validadas:
 - **Fase 6**: até **5 agentes** — `F6-BE-01` primeiro (migration), depois
   `F6-BE-02`/`F6-BE-03`; as 3 tarefas FE podem rodar desde o início
   (contrato fixado no próprio TASKS.md).
+- **Fase 7**: até **3 agentes** — `F7-FE-01`, `F7-FE-02` e `F7-DOC-01`
+  em arquivos distintos.

@@ -6,15 +6,36 @@ Sistema web para organizar o uso de carrinhos de trabalho ao longo do mês.
 trabalhar; um **administrador** aprova/rejeita os pedidos e monta a escala
 mensal final (meta de no máximo 2 pessoas por combinação).
 
+## Projeto AI Native
+
+Este é um projeto **AI Native**: foi especificado e implementado com agentes
+de IA ([Claude Code](https://claude.com/claude-code)) desde o primeiro
+commit, não com IA como ajuda pontual.
+
+- **Especificação como contrato para agentes**: [`PLANNING.md`](./PLANNING.md)
+  (regras de negócio), [`TECHNICAL_SPEC.md`](./TECHNICAL_SPEC.md)
+  (arquitetura) e [`TASKS.md`](./TASKS.md) (tarefas) são a fonte da verdade
+  que os agentes leem antes de implementar.
+- **Tarefas pensadas para execução paralela**: cada fase é quebrada em
+  tarefas com arquivos próprios (Vertical Slices no backend, uma tela por
+  arquivo no frontend), para vários agentes trabalharem ao mesmo tempo sem
+  conflito. Cada commit leva o ID da tarefa.
+- **Contexto operacional versionado**: [`.claude/CLAUDE.md`](./.claude/CLAUDE.md)
+  resume stack, convenções e as regras que não podem ser quebradas.
+- **Testes automatizados como verificação**: toda mudança de regra ou de tela
+  vem com testes (integração na API, componentes no frontend), em vez de
+  depender de conferência manual.
+
 ## Como funciona
 
 - **Publicador** (`/`): sem cadastro nem senha. Um token anônimo (GUID) é
   gerado no navegador, salvo em `localStorage` e enviado no header
-  `X-Publicador-Token`. Escolhe nome, carrinho, dia e turno, e acompanha o
-  status (Pendente, Aprovada, Rejeitada, Cancelada) no histórico, onde
-  também pode cancelar qualquer solicitação sua a qualquer momento.
+  `X-Publicador-Token`. Escolhe nome, dia, carrinho e turno, e acompanha o
+  status (Pendente, Aprovada, Rejeitada) no histórico, agrupado por dia da
+  semana. Com a janela aberta, pode excluir pedidos seus da escala do
+  mês-alvo.
 - **Administrador** (`/admin`): login único (usuário/senha via variáveis de
-  ambiente, JWT curto). Configura carrinhos e seus turnos, revisa as
+  ambiente, JWT curto). Configura carrinhos e seus turnos por dia da semana, revisa as
   solicitações agrupadas por `(carrinho, dia, turno)`, aprova/rejeita,
   adiciona solicitações manualmente (nascem já aprovadas) e vê a escala
   final (grade Carrinho × Dia × Turno).
@@ -24,7 +45,8 @@ mensal final (meta de no máximo 2 pessoas por combinação).
 - **Só Segunda a Sexta.** A escolha de dia é recorrente (vale para todas as
   ocorrências daquele dia no mês).
 - **6 turnos fixos**, não cadastráveis: 06–08, 08–10, 10–12, 14–16, 16–18,
-  18–20. O admin só escolhe quais deles cada carrinho oferece.
+  18–20. O admin só escolhe quais deles cada carrinho oferece em cada dia
+  da semana.
 - **Janela de envio automática**, sem cron: do dia 15 ao dia 25 do mês, o
   publicador envia para a escala do mês seguinte. Fora disso, o envio fica
   fechado, mas o histórico continua acessível. O admin não é limitado pela
@@ -55,7 +77,7 @@ backend/src/CartSchedule.Api/
   Shared/            JanelaDeEnvio, EscalaHelpers
   Features/
     Publicadores/    ConsultarJanela, ListarCarrinhosDisponiveis,
-                     CriarSolicitacao, ListarHistorico, CancelarSolicitacao
+                     CriarSolicitacao, ListarHistorico, ExcluirSolicitacao
     Administradores/ Login, GerenciarCarrinhos, GerenciarTurnosDoCarrinho,
                      RevisarEscala/*, ObterEscalaFinal
   Program.cs
