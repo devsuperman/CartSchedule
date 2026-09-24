@@ -21,6 +21,7 @@ function pedido(
   turnoId: number,
   carrinhoNome: string,
   carrinhoDescricao: string | null = null,
+  status = 1,
 ): Solicitacao {
   return {
     id,
@@ -30,7 +31,7 @@ function pedido(
     carrinhoDescricao,
     diaSemana,
     turnoId,
-    status: 1,
+    status,
     origem: 1,
   };
 }
@@ -42,6 +43,7 @@ const SOLICITACOES: Solicitacao[] = [
   pedido(3, 1, 2, "Carrinho 10", "   "),
   pedido(4, 1, 2, "Carrinho 2", "Em frente à estação"),
   pedido(5, 1, 1, "Carrinho 03"),
+  pedido(6, 2, 1, "Carrinho 04", null, 3), // Rejeitada: não aparece
 ];
 
 beforeEach(() => {
@@ -101,5 +103,14 @@ describe("InicioPublicador — histórico", () => {
     expect(screen.queryByText("Minhas escalas")).not.toBeInTheDocument();
     expect(screen.queryByText(/Pedidos deste mês/)).not.toBeInTheDocument();
     expect(screen.queryByText("Pendente")).not.toBeInTheDocument();
+  });
+
+  it("esconde as solicitações rejeitadas", async () => {
+    renderizar();
+
+    await screen.findByRole("list");
+    expect(screen.queryByText("Carrinho 04")).not.toBeInTheDocument();
+    expect(screen.queryByText("Terça-feira")).not.toBeInTheDocument();
+    expect(screen.getAllByRole("listitem")).toHaveLength(5);
   });
 });

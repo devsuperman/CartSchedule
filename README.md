@@ -31,7 +31,7 @@ commit, não com IA como ajuda pontual.
 - **Publicador** (`/`): sem cadastro nem senha. Um token anônimo (GUID) é
   gerado no navegador, salvo em `localStorage` e enviado no header
   `X-Publicador-Token`. Escolhe nome, carrinho, dia e turno, e vê as
-  próprias solicitações (sem status — a escala oficial é divulgada pelo
+  próprias solicitações (sem status nem as rejeitadas — a escala oficial é divulgada pelo
   administrador no grupo de WhatsApp), ordenadas por dia da semana, turno e
   carrinho. Com a janela aberta, pode excluir pedidos seus da escala do
   mês-alvo.

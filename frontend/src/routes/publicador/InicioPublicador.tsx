@@ -3,7 +3,7 @@ import { Link, Navigate } from "react-router-dom";
 import { apiFetch, ApiError } from "../../api/client";
 import { ehErroDeJanelaFechada, useJanela } from "../../hooks/useJanela";
 import { usePublicadorToken } from "../../hooks/usePublicadorToken";
-import { formatarNomeMes } from "../../utils/formatacao";
+import { formatarNomeMes, STATUS } from "../../utils/formatacao";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -123,7 +123,11 @@ export default function InicioPublicador() {
   const mesesRelevantes = new Set(
     [primeiroDiaDoMesAtualIso(), janela?.mesAlvo].filter((v): v is string => Boolean(v)),
   );
-  const relevantes = (solicitacoes ?? []).filter((s) => mesesRelevantes.has(s.escalaMesReferencia));
+  // Rejeitadas ficam ocultas: sem status na tela, elas pareceriam pedidos válidos (a escala
+  // oficial é divulgada pelo administrador no grupo de WhatsApp).
+  const relevantes = (solicitacoes ?? []).filter(
+    (s) => mesesRelevantes.has(s.escalaMesReferencia) && s.status !== STATUS.Rejeitada,
+  );
 
   const porMes = new Map<string, Solicitacao[]>();
   for (const s of relevantes) {

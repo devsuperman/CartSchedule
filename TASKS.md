@@ -448,7 +448,7 @@ aditivo: `GET /api/solicitacoes` ganha `carrinhoDescricao: string | null`.
 | F7-FE-03 | `wizard/*` | Ordem das etapas: nome → **carrinho** → dia → turno. Só aparecem carrinhos com algum turno configurado; dias sem turno no carrinho escolhido ficam desabilitados (ocultos a partir do F7-FE-05); trocar o carrinho limpa dia/turno incompatíveis. |
 | F7-BE-01 | `Features/Publicadores/ListarHistorico/` | `GET /api/solicitacoes` devolve `carrinhoDescricao` (null quando o carrinho não tem descrição). |
 | F7-FE-04 | `components/SolicitacaoCard.tsx`, `InicioPublicador.tsx` | Card do histórico: dia da semana em destaque, depois turno, por último carrinho (nome + descrição). Sem título por dia na lista (o card já destaca o dia). |
-| F7-FE-05 | `InicioPublicador.tsx`, `SolicitacaoCard.tsx`, `wizard/EtapaNome.tsx`, `EtapaDiaSemana.tsx`, `SolicitacaoWizard.tsx` | Menos texto nas telas do publicador: sem "Minhas escalas"/"Pedidos deste mês e do próximo"; sem status no card; título da lista "Minhas solicitações para <mês>"; etapa do nome sem rótulo/ajuda; etapa do dia sem "Vale para todas as semanas…" e sem os dias em que o carrinho não tem turno. |
+| F7-FE-05 | `InicioPublicador.tsx`, `SolicitacaoCard.tsx`, `wizard/EtapaNome.tsx`, `EtapaDiaSemana.tsx`, `SolicitacaoWizard.tsx` | Menos texto nas telas do publicador: sem "Minhas escalas"/"Pedidos deste mês e do próximo"; sem status no card e sem as rejeitadas na lista; título da lista "Minhas solicitações para <mês>"; etapa do nome sem rótulo/ajuda; etapa do dia sem "Vale para todas as semanas…" e sem os dias em que o carrinho não tem turno. |
 
 Nenhuma tarefa compartilha arquivos (`F7-FE-04` só depende do contrato
 acima e ajusta a lista do `F7-FE-02` depois dele); podem rodar em paralelo.
