@@ -40,6 +40,11 @@ public sealed class ApiFixture : IAsyncLifetime
             builder.UseSetting("Admin:Usuario", AdminUsuario);
             builder.UseSetting("Admin:SenhaHash", senhaHash);
             builder.UseSetting("Jwt:ChaveSecreta", "chave-secreta-de-teste-com-32-bytes!!");
+            // Todos os testes dividem o mesmo "IP" e o mesmo host: limites altos para a suíte
+            // não esbarrar no rate limiting (RateLimitingTests sobe um host próprio com limites baixos).
+            builder.UseSetting("RateLimit:GlobalPorMinuto", "100000");
+            builder.UseSetting("RateLimit:EscritaPublicadorPorMinuto", "100000");
+            builder.UseSetting("RateLimit:LoginPor15Minutos", "100000");
             builder.UseSetting("Logging:LogLevel:Default", "Warning");
             // Numa base nova o EF loga como erro a consulta ao histórico de migrations, que ainda não existe.
             builder.UseSetting("Logging:LogLevel:Microsoft.EntityFrameworkCore.Database.Command", "None");

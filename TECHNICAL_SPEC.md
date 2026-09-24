@@ -179,7 +179,29 @@ de "turno disponível para o carrinho naquele dia" (2.7) só se aplica à **cria
 novas solicitações, não é reavaliada retroativamente sobre as
 existentes.
 
-### 2.9 CORS
+### 2.9 Proteção contra abuso (sem login do publicador)
+
+As rotas do publicador são públicas por decisão de produto; a proteção contra
+bots e força bruta é invisível para quem usa o sistema normalmente:
+
+- **Rate limiting por IP** (nativo do ASP.NET, `Infrastructure/RateLimiting/`),
+  com limites na seção `RateLimit` da configuração: teto geral de 300 req/min
+  em `/api` (`/health` fica de fora), 30 criações/exclusões de solicitação por
+  minuto (`publicador-escrita`) e 5 tentativas de login do admin a cada 15
+  minutos (`login`). Os limites são generosos porque muitos publicadores podem
+  sair pelo mesmo IP (Wi-Fi do salão, CGNAT do celular).
+- Excedeu: **429** com `codigo: "MUITAS_REQUISICOES"` no ProblemDetails e header
+  `Retry-After`; o frontend mostra "Muitas tentativas. Aguarde um pouco e tente
+  novamente." e cada bloqueio é logado como warning com o IP.
+- O IP vem do `X-Forwarded-For` (`UseForwardedHeaders`, `ForwardLimit = 2`:
+  Caddy → nginx → API). O Caddy descarta esse header quando vem da internet,
+  então o cliente não forja o IP. Mudou a cadeia de proxies? Revise o `ForwardLimit`.
+- nginx limita o corpo dos requests de `/api` a 16 KB; o Caddy envia HSTS,
+  `X-Frame-Options: DENY`, `nosniff` e `Referrer-Policy`.
+- Solicitação falsa enviada por alguém que tem o link continua possível — é
+  aceito: o admin já revisa todas as solicitações.
+
+### 2.10 CORS
 
 A API habilita CORS para a origem do frontend (`VITE_API_URL`/URL do
 container `web`), permitindo os métodos e headers usados pelo cliente

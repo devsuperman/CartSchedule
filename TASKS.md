@@ -462,7 +462,25 @@ acima e ajusta a lista do `F7-FE-02` depois dele); podem rodar em paralelo.
 
 ---
 
-## Backlog (Fase 8 — opcional, fora do escopo inicial)
+## Fase 8 — Proteção contra abuso
+
+Sem login do publicador (regra 5), a defesa contra bots e força bruta fica em
+limites por IP e na borda (nginx/Caddy) — nada muda para o uso normal.
+Detalhes em `TECHNICAL_SPEC.md` §2.9.
+
+| ID | Entrega | Critério de aceite |
+|---|---|---|
+| F8-BE-01 | `Infrastructure/RateLimiting/`, `Program.cs`, slices `Login`, `CriarSolicitacao`, `ExcluirSolicitacao` | Rate limiting por IP real (`X-Forwarded-For`): login 5/15 min, criar/excluir solicitação 30/min, geral 300/min em `/api` (`/health` livre); limites configuráveis em `RateLimit:*`. Excedeu → 429 com `codigo: "MUITAS_REQUISICOES"` e `Retry-After`. |
+| F8-FE-01 | `routes/admin/Login.tsx` | No 429 o login mostra "Muitas tentativas…" em vez de "Usuário ou senha inválidos."; o wizard já exibe a mensagem do servidor. |
+| F8-OPS-01 | `frontend/nginx.conf`, `deploy/Caddyfile`, `deploy/README.md` | Corpo de `/api` limitado a 16 KB; headers de segurança no Caddy; checklist de segurança do servidor. |
+
+### Verificação da Fase 8
+
+`npm test`, `npm run lint`, `npm run build` e `dotnet test`.
+
+---
+
+## Backlog (Fase 9 — opcional, fora do escopo inicial)
 
 Não paralelizar ainda — só entra depois que Fases 0–4 estiverem completas
 e validadas:

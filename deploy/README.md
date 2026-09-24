@@ -108,6 +108,23 @@ gunzip -c ~/backups/cartschedule-AAAAMMDD-HHMMSS.sql.gz \
   | docker compose -f docker-compose.prod.yml exec -T db psql -U cartschedule -d cartschedule
 ```
 
+### Segurança
+
+O sistema não tem login para o publicador; a API limita requisições por IP
+(bots e força bruta no login do admin recebem 429 — aparece como warning em
+`dc logs api`). Do lado do servidor, confira:
+
+- **Firewall do Lightsail** só com 22, 80 e 443 (banco e API não ficam expostos).
+- **SSH só por chave** (o padrão do Lightsail) — não habilite senha.
+- **Atualizações automáticas** do Ubuntu:
+  `systemctl status unattended-upgrades` deve estar ativo.
+- **Senha do admin forte**, gerada pelo `deploy/gerar-segredos.py`.
+- **Backup fora do servidor** (snapshots automáticos ou S3, acima).
+- Ataque pesado (muitos IPs ao mesmo tempo)? Coloque o domínio atrás do
+  Cloudflare (plano grátis, proxy ligado) — não precisa mudar código, mas aí o
+  IP do cliente passa a vir no `CF-Connecting-IP` e o rate limit precisa ser
+  ajustado para lê-lo.
+
 ### Problemas comuns
 
 - **HTTPS não sobe**: o DNS ainda não aponta para o IP, ou a porta 443 não foi

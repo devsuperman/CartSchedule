@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { apiFetch } from "../../api/client";
+import { apiFetch, ApiError } from "../../api/client";
 import { useAdminAuth } from "../../hooks/useAdminAuth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -34,8 +34,12 @@ export default function Login() {
       login(resposta.token);
       const destino = (location.state as { from?: Location })?.from?.pathname ?? "/admin";
       navigate(destino, { replace: true });
-    } catch {
-      setErro("Usuário ou senha inválidos.");
+    } catch (err) {
+      // Muitas tentativas erradas seguidas: o servidor bloqueia por alguns minutos (429).
+      const bloqueado =
+        err instanceof ApiError &&
+        (err.details as { codigo?: string } | null | undefined)?.codigo === "MUITAS_REQUISICOES";
+      setErro(bloqueado ? err.message : "Usuário ou senha inválidos.");
     } finally {
       setEnviando(false);
     }
