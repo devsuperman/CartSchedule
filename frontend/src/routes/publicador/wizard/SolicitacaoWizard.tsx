@@ -231,6 +231,13 @@ export function SolicitacaoWizard({ mesAlvo }: SolicitacaoWizardProps) {
 
   return (
     <section className="flex min-h-[60vh] flex-col gap-6">
+      {/* Mês-alvo fixo no topo de todas as etapas: o publicador sempre sabe para qual
+          escala está pedindo. */}
+      <div className="rounded-lg border bg-muted px-4 py-3">
+        <p className="text-sm text-muted-foreground">Escala de</p>
+        <p className="text-2xl font-bold capitalize">{formatarMes(mesAlvo)}</p>
+      </div>
+
       <WizardProgresso etapa={etapa} total={TOTAL_ETAPAS} />
 
       <div className="flex flex-1 flex-col gap-4">
@@ -238,7 +245,7 @@ export function SolicitacaoWizard({ mesAlvo }: SolicitacaoWizardProps) {
           <h1 className="text-xl">{TITULOS[etapa]}</h1>
           {etapa === 2 && (
             <p className="text-sm text-muted-foreground">
-              Vale para todas as semanas de {formatarMes(mesAlvo)}.
+              Vale para todas as semanas do mês.
             </p>
           )}
         </div>

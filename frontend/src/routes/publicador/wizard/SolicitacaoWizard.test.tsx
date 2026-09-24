@@ -139,3 +139,22 @@ describe("SolicitacaoWizard — turnos por dia da semana", () => {
     expect(JSON.parse(opcoes!.body as string)).toEqual({ nome: "Bia", carrinhoId: 1, diaSemana: 2, turnoId: 3 });
   });
 });
+
+describe("SolicitacaoWizard — mês-alvo", () => {
+  it("mostra o mês-alvo no topo em todas as etapas", async () => {
+    const user = renderWizard();
+    expect(screen.getByText("outubro de 2026")).toBeInTheDocument();
+
+    await irParaEtapaDoDia(user);
+    expect(screen.getByText("outubro de 2026")).toBeInTheDocument();
+
+    await user.click(screen.getByRole("radio", { name: /Terça-feira/ }));
+    await continuar(user);
+    expect(screen.getByText("outubro de 2026")).toBeInTheDocument();
+
+    await user.click(screen.getByRole("radio", { name: /Carrinho 01/ }));
+    await continuar(user);
+    await screen.findByText("Em qual turno?");
+    expect(screen.getByText("outubro de 2026")).toBeInTheDocument();
+  });
+});
