@@ -61,14 +61,15 @@ semana, por turno**.
 1. Acessa o site durante a janela de envio (dias 15 a 25 do mês).
 2. Informa seu **nome**. Não há cadastro/login com senha — a
    identificação é simples e o sistema deve poupar o publicador de
-   redigitar o nome a cada nova visita (a forma técnica de fazer isso
-   será definida na fase de implementação).
+   redigitar o nome a cada nova visita: quem já informou o nome antes
+   vai direto à escolha do carrinho e só volta a esta etapa (para
+   alterar o nome) se tocar em **Voltar**.
 3. Seleciona o **carrinho** que deseja usar (vê o nome e, abaixo dele, a descrição do carrinho, quando houver) — só aparecem os carrinhos que têm algum turno configurado.
 4. Seleciona o **dia da semana** em que quer trabalhar — dias em que o carrinho escolhido não tem turno nem aparecem.
 5. Seleciona o **turno** desejado — apenas entre os turnos que o administrador configurou como disponíveis **para aquele carrinho naquele dia da semana** (carrinhos diferentes, e dias diferentes do mesmo carrinho, podem ter turnos diferentes).
 6. Pode repetir os passos 3–5 para pedir mais de uma combinação na mesma escala (ex: Carrinho A / Segunda / Manhã **e** Carrinho B / Quinta / Tarde). O mês/escala já está implícito (é sempre o mês seguinte, definido automaticamente pela janela aberta).
 7. Revisa e **envia** as solicitações.
-8. A qualquer momento (mesmo fora da janela de envio), pode acessar a tela de **histórico** e ver as solicitações que enviou (as rejeitadas ficam ocultas), sem status nem data/hora do envio — a escala oficial é divulgada pelo administrador no grupo de WhatsApp, fora do sistema. Cada pedido mostra em destaque o dia da semana, depois o turno e por último o carrinho (nome e descrição), e a lista segue essa mesma ordem.
+8. A qualquer momento (mesmo fora da janela de envio), pode acessar a tela de **histórico** e ver as solicitações que enviou (as rejeitadas ficam ocultas), sem status nem data/hora do envio — a escala oficial é divulgada pelo administrador no grupo de WhatsApp, fora do sistema. Cada pedido mostra em destaque o dia da semana e, ao lado, o turno; por último o carrinho (nome e descrição), e a lista segue essa mesma ordem.
 9. Nessa mesma tela de histórico, pode **excluir** uma solicitação sua — esteja ela Pendente ou já Aprovada — **somente enquanto a janela de envio estiver aberta e apenas para a escala do mês-alvo**. A exclusão apaga o registro (não existe status "Cancelada"). Fora disso, só o administrador altera a solicitação.
 
 Regra de duplicidade: o mesmo publicador não pode enviar duas vezes a
