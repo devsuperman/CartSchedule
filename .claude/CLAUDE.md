@@ -143,10 +143,32 @@ cd frontend && npm install
 VITE_API_URL=http://localhost:5000 npm run dev -- --port 3000   # 3000 = origem CORS padrão da API
 npm run build   # tsc -b && vite build
 npm run lint    # oxlint
+npm test        # vitest (componentes, jsdom)
+
+# Testes do backend (precisam de Docker: Testcontainers sobe um PostgreSQL)
+dotnet test --solution backend/CartSchedule.Api.slnx
 ```
 
-Não há projeto de testes (backend nem frontend) por enquanto — validar com
-build/lint e rodando a aplicação.
+## Testes
+
+**Toda mudança de regra ou de tela vem com testes automatizados** — não
+depender de teste manual no navegador/curl a cada alteração.
+
+- **Backend** (`backend/tests/CartSchedule.Api.Tests`, xUnit v3): testes de
+  integração que sobem a API real (`WebApplicationFactory`) contra um
+  PostgreSQL em container, com as migrations do startup. Herde de
+  `ApiTestBase` (banco limpo a cada teste, atalhos de login/carrinho/turnos)
+  e use o contrato JSON em camelCase, como o frontend. A data é controlada
+  por `Fixture.Relogio.Agora` — o código nunca lê `DateTime.UtcNow` para
+  regra de negócio; injete `TimeProvider`. `backend/global.json` liga o
+  runner Microsoft.Testing.Platform (exigido pelo `dotnet test` do .NET 10).
+- **Frontend** (Vitest + Testing Library, `*.test.tsx` ao lado da tela):
+  mocke só `apiFetch` (`vi.mock` do `api/client`, mantendo `ApiError`) e
+  interaja como o usuário (`getByRole`, `userEvent`). `src/test/setup.ts`
+  tem os polyfills que o Radix Select precisa no jsdom.
+- Sem .NET 10/Node na máquina? Rode nos containers oficiais:
+  `docker run --rm -u "$(id -u):$(id -g)" --group-add "$(stat -c %g /var/run/docker.sock)" -e HOME=/tmp -v /var/run/docker.sock:/var/run/docker.sock -v "$PWD/backend":/src -w /src mcr.microsoft.com/dotnet/sdk:10.0 dotnet test --solution CartSchedule.Api.slnx`
+  e `docker run --rm -u "$(id -u):$(id -g)" -e HOME=/tmp -v "$PWD/frontend":/app -w /app node:22-alpine npm test`.
 
 ## Armadilhas
 

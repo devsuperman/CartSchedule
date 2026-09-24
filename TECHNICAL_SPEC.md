@@ -328,10 +328,12 @@ volumes:
 CartSchedule/
   backend/
     src/CartSchedule.Api/...
-    CartSchedule.Api.sln
+    tests/CartSchedule.Api.Tests/   # xUnit + WebApplicationFactory + Testcontainers (PostgreSQL)
+    CartSchedule.Api.slnx
+    global.json                     # runner Microsoft.Testing.Platform
     Dockerfile
   frontend/
-    src/...
+    src/...                         # *.test.tsx (Vitest + Testing Library) ao lado das telas
     package.json
     Dockerfile
   docker-compose.yml
