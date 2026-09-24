@@ -505,7 +505,7 @@ Só frontend — nenhuma regra de negócio muda.
 |---|---|---|
 | F10-FE-01 | `InicioPublicador.tsx` | O botão de terminar sai de baixo da lista e vai para o rodapé fixo, **acima** de "Solicitar Nova Escala", com 32 px entre os dois (contorno vs. preenchido) para evitar toque errado. Com a janela fechada, o rodapé tem só o botão de terminar. |
 | F10-FE-02 | `InicioPublicador.tsx` | O botão se chama "Pronto! Terminei minha escala!". |
-| F10-FE-03 | `components/ui/dialog.tsx`, `routes/publicador/components/ModalAgradecimento.tsx`, `constants/whatsapp.ts` | Tocar no botão abre o modal "Muito Obrigado!" ("Que Jeová abençoe seu trabalho árduo!") e a contagem "Voltando ao whatsapp em 5…"; ao fim, vai para o grupo do WhatsApp. Sem botão de ir na hora. Fechar o modal cancela o redirecionamento. |
+| F10-FE-03 | `components/ui/dialog.tsx`, `routes/publicador/components/ModalAgradecimento.tsx`, `constants/whatsapp.ts` | Tocar no botão abre o modal "Muito Obrigado!" ("Que Jeová abençoe seu trabalho árduo!") e a contagem "Voltando ao whatsapp em 10…"; ao fim, vai para o grupo do WhatsApp. Sem botão de ir na hora. Fechar o modal cancela o redirecionamento. |
 
 ### Verificação da Fase 10
 

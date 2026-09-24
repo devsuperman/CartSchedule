@@ -10,7 +10,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 
-export const SEGUNDOS_PARA_REDIRECIONAR = 5;
+export const SEGUNDOS_PARA_REDIRECIONAR = 10;
 
 // Cores do tema (index.css): primary, accent, warning e success.
 const CORES_CONFETE = ["#0b6e6e", "#dcefee", "#e0a526", "#1d6b41"];
@@ -35,7 +35,7 @@ export function ModalAgradecimento({
   aberto: boolean;
   onAbertoChange: (aberto: boolean) => void;
 }) {
-  // Baixa a animação antes do toque para ele já estar pronto quando o modal abrir (5 s é pouco).
+  // Baixa a animação antes do toque para ele já estar pronto quando o modal abrir.
   useEffect(() => {
     new Image().src = imagemObrigado;
   }, []);

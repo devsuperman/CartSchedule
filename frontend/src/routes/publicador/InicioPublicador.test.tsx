@@ -200,7 +200,7 @@ describe("InicioPublicador — rodapé", () => {
       return { user, dialogo: screen.getByRole("dialog") };
     }
 
-    it("abre o modal de agradecimento e redireciona ao grupo após 5 segundos", async () => {
+    it("abre o modal de agradecimento e redireciona ao grupo após 10 segundos", async () => {
       const { dialogo } = await abrirAgradecimento();
 
       expect(within(dialogo).getByRole("heading", { name: "Muito Obrigado!" })).toBeInTheDocument();
@@ -210,7 +210,7 @@ describe("InicioPublicador — rodapé", () => {
       expect(within(dialogo).queryByRole("link")).not.toBeInTheDocument();
       expect(confete).toHaveBeenCalled();
 
-      await act(() => vi.advanceTimersByTimeAsync(4000));
+      await act(() => vi.advanceTimersByTimeAsync(9000));
       expect(whatsapp.abrir).not.toHaveBeenCalled();
       expect(within(dialogo).getByText(/Voltando ao whatsapp em 1/)).toBeInTheDocument();
 
@@ -224,7 +224,7 @@ describe("InicioPublicador — rodapé", () => {
       await user.click(screen.getByRole("button", { name: "Fechar" }));
       expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
 
-      await act(() => vi.advanceTimersByTimeAsync(10000));
+      await act(() => vi.advanceTimersByTimeAsync(20000));
       expect(whatsapp.abrir).not.toHaveBeenCalled();
     });
   });
