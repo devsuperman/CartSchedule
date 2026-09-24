@@ -13,6 +13,10 @@ vi.mock("../../api/client", async (importOriginal) => ({
 
 const mockApiFetch = vi.mocked(apiFetch);
 
+// O jsdom não tem canvas; o confete é só enfeite.
+const confete = vi.hoisted(() => vi.fn());
+vi.mock("canvas-confetti", () => ({ default: confete }));
+
 const whatsapp = vi.hoisted(() => ({ url: "", abrir: vi.fn() }));
 vi.mock("../../constants/whatsapp", () => ({
   get GRUPO_WHATSAPP_URL() {
@@ -55,6 +59,7 @@ const SOLICITACOES: Solicitacao[] = [
 beforeEach(() => {
   whatsapp.url = "";
   whatsapp.abrir.mockReset();
+  confete.mockReset();
   mockApiFetch.mockReset();
   mockApiFetch.mockImplementation(async (path) => {
     if (path === "/api/janela") return { aberta: false, mesAlvo: MES_ALVO };
@@ -200,13 +205,14 @@ describe("InicioPublicador — rodapé", () => {
 
       expect(within(dialogo).getByRole("heading", { name: "Muito Obrigado!" })).toBeInTheDocument();
       expect(
-        within(dialogo).getByText("Que Jeová abençoe seu trabalho árduo! Vamos te redirecionar pro whatsapp"),
+        within(dialogo).getByText("Que Jeová abençoe seu trabalho árduo!"),
       ).toBeInTheDocument();
       expect(within(dialogo).queryByRole("link")).not.toBeInTheDocument();
+      expect(confete).toHaveBeenCalled();
 
       await act(() => vi.advanceTimersByTimeAsync(4000));
       expect(whatsapp.abrir).not.toHaveBeenCalled();
-      expect(within(dialogo).getByText(/Redirecionando em 1/)).toBeInTheDocument();
+      expect(within(dialogo).getByText(/Voltando ao whatsapp em 1/)).toBeInTheDocument();
 
       await act(() => vi.advanceTimersByTimeAsync(1000));
       expect(whatsapp.abrir).toHaveBeenCalledTimes(1);
