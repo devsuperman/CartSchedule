@@ -1,6 +1,7 @@
-import { render, screen, within } from "@testing-library/react";
+import { act, render, screen, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { apiFetch } from "../../api/client";
 import InicioPublicador from "./InicioPublicador";
 import type { Solicitacao } from "./components/SolicitacaoCard";
@@ -12,11 +13,12 @@ vi.mock("../../api/client", async (importOriginal) => ({
 
 const mockApiFetch = vi.mocked(apiFetch);
 
-const whatsapp = vi.hoisted(() => ({ url: "" }));
+const whatsapp = vi.hoisted(() => ({ url: "", abrir: vi.fn() }));
 vi.mock("../../constants/whatsapp", () => ({
   get GRUPO_WHATSAPP_URL() {
     return whatsapp.url;
   },
+  abrirGrupoWhatsapp: whatsapp.abrir,
 }));
 
 // Mês-alvo vem da janela, então é sempre um mês "relevante" independente da data real.
@@ -55,6 +57,7 @@ const SOLICITACOES: Solicitacao[] = [
 
 beforeEach(() => {
   whatsapp.url = "";
+  whatsapp.abrir.mockReset();
   mockApiFetch.mockReset();
   mockApiFetch.mockImplementation(async (path) => {
     if (path === "/api/janela") return { aberta: false, mesAlvo: MES_ALVO };
@@ -154,32 +157,82 @@ describe("InicioPublicador — rodapé", () => {
     expect(lista.compareDocumentPosition(botao) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 
-  it("\"Terminei!\" fica abaixo da lista e leva ao grupo do WhatsApp", async () => {
+  const TERMINEI = "Pronto! Terminei minha escala!";
+
+  it("\"Pronto! Terminei minha escala!\" fica acima de \"Solicitar Nova Escala\"", async () => {
     whatsapp.url = GRUPO;
     comJanela(true);
     renderizar();
 
     const lista = await screen.findByRole("list");
-    const terminei = screen.getByRole("link", { name: "Terminei!" });
-    expect(terminei).toHaveAttribute("href", GRUPO);
+    const terminei = screen.getByRole("button", { name: TERMINEI });
+    const solicitar = screen.getByRole("link", { name: "Solicitar Nova Escala" });
     expect(lista.compareDocumentPosition(terminei) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(terminei.compareDocumentPosition(solicitar) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(screen.queryByText("Terminei!")).not.toBeInTheDocument();
   });
 
-  it("\"Terminei!\" também aparece com a janela fechada, sem o botão de solicitar", async () => {
+  it("o botão de terminar também aparece com a janela fechada, sem o botão de solicitar", async () => {
     whatsapp.url = GRUPO;
     comJanela(false);
     renderizar();
 
-    expect(await screen.findByRole("link", { name: "Terminei!" })).toHaveAttribute("href", GRUPO);
+    expect(await screen.findByRole("button", { name: TERMINEI })).toBeInTheDocument();
     expect(screen.getByText("Envio de pedidos fechado")).toBeInTheDocument();
     expect(screen.queryByRole("link", { name: "Solicitar Nova Escala" })).not.toBeInTheDocument();
   });
 
-  it("sem o link do grupo configurado, não mostra \"Terminei!\"", async () => {
+  it("sem o link do grupo configurado, não mostra o botão de terminar", async () => {
     comJanela(true);
     renderizar();
 
     await screen.findByRole("link", { name: "Solicitar Nova Escala" });
-    expect(screen.queryByRole("link", { name: "Terminei!" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: TERMINEI })).not.toBeInTheDocument();
+  });
+
+  describe("agradecimento", () => {
+    beforeEach(() => {
+      vi.useFakeTimers({ shouldAdvanceTime: true });
+    });
+
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    async function abrirAgradecimento() {
+      whatsapp.url = GRUPO;
+      comJanela(true);
+      renderizar();
+      const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+      await user.click(await screen.findByRole("button", { name: TERMINEI }));
+      return { user, dialogo: screen.getByRole("dialog") };
+    }
+
+    it("abre o modal de agradecimento e redireciona ao grupo após 5 segundos", async () => {
+      const { dialogo } = await abrirAgradecimento();
+
+      expect(within(dialogo).getByRole("heading", { name: "Muito Obrigado!" })).toBeInTheDocument();
+      expect(
+        within(dialogo).getByText("Que Jeová abençoe seu trabalho árduo! Vamos te redirecionar pro whatsapp"),
+      ).toBeInTheDocument();
+      expect(within(dialogo).getByRole("link", { name: "Ir para o WhatsApp agora" })).toHaveAttribute("href", GRUPO);
+
+      await act(() => vi.advanceTimersByTimeAsync(4000));
+      expect(whatsapp.abrir).not.toHaveBeenCalled();
+      expect(within(dialogo).getByText(/Redirecionando em 1/)).toBeInTheDocument();
+
+      await act(() => vi.advanceTimersByTimeAsync(1000));
+      expect(whatsapp.abrir).toHaveBeenCalledTimes(1);
+    });
+
+    it("fechar o modal cancela o redirecionamento", async () => {
+      const { user } = await abrirAgradecimento();
+
+      await user.click(screen.getByRole("button", { name: "Fechar" }));
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+
+      await act(() => vi.advanceTimersByTimeAsync(10000));
+      expect(whatsapp.abrir).not.toHaveBeenCalled();
+    });
   });
 });
