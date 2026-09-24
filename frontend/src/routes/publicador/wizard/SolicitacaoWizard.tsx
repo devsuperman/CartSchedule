@@ -250,11 +250,6 @@ export function SolicitacaoWizard({ mesAlvo }: SolicitacaoWizardProps) {
       <div className="flex flex-1 flex-col gap-4">
         <div className="flex flex-col gap-1.5">
           <h1 className="text-xl">{TITULOS[etapa]}</h1>
-          {etapa === 3 && (
-            <p className="text-sm text-muted-foreground">
-              Vale para todas as semanas do mês.
-            </p>
-          )}
         </div>
         {renderEtapa()}
       </div>

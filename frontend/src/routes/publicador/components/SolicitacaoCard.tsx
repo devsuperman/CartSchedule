@@ -1,15 +1,8 @@
 import { useState } from "react";
 import { Card } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import {
-  formatarDia,
-  formatarTurno,
-  STATUS,
-  STATUS_BADGE_VARIANT,
-  STATUS_LABELS,
-} from "../../../utils/formatacao";
+import { formatarDia, formatarTurno, STATUS } from "../../../utils/formatacao";
 
 /** Contrato de GET /api/solicitacoes (uma solicitação do publicador autenticado via token). */
 export interface Solicitacao {
@@ -35,7 +28,8 @@ interface SolicitacaoCardProps {
 
 /** Card de uma solicitação do publicador. A informação principal é o dia da semana (em
  * destaque), depois o turno e por último o carrinho, com a descrição logo abaixo do nome
- * quando houver. À direita, badge de status + botão de excluir,
+ * quando houver. O status não aparece: a escala oficial é divulgada pelo administrador
+ * fora do sistema (grupo de WhatsApp). À direita, botão de excluir,
  * quando Pendente/Aprovada e a exclusão é permitida — só com a janela aberta e para a
  * escala do mês-alvo (PLANNING.md regra 8). A exclusão pede confirmação no próprio card
  * (nunca window.confirm). Fora disso, só o administrador mexe no pedido. */
@@ -56,9 +50,6 @@ export function SolicitacaoCard({
     <Card className="grid grid-cols-[1fr_auto] items-center gap-x-4 gap-y-1 p-4 sm:p-5">
       <span className="text-[1.05rem] font-bold">{formatarDia(solicitacao.diaSemana)}</span>
       <span className="row-span-3 flex flex-col items-end gap-2">
-        <Badge variant={STATUS_BADGE_VARIANT[solicitacao.status]}>
-          {STATUS_LABELS[solicitacao.status] ?? `Status ${solicitacao.status}`}
-        </Badge>
         {podeExcluir && !confirmando && (
           <Button type="button" variant="destructive" size="sm" onClick={() => setConfirmando(true)}>
             Excluir pedido

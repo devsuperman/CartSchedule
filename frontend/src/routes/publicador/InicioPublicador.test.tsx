@@ -87,8 +87,19 @@ describe("InicioPublicador — histórico", () => {
     expect(comDescricao.getByText("Carrinho 2")).toBeInTheDocument();
     expect(comDescricao.getByText("Em frente à estação")).toBeInTheDocument();
 
-    // Descrição nula ou só com espaços: nada além de dia, turno, carrinho e status.
-    expect(itens[0].textContent).toBe("Segunda-feiraPendente06:00–08:00Carrinho 03");
-    expect(itens[2].textContent).toBe("Segunda-feiraPendente08:00–10:00Carrinho 10");
+    // Descrição nula ou só com espaços: nada além de dia, turno e carrinho (sem status).
+    expect(itens[0].textContent).toBe("Segunda-feira06:00–08:00Carrinho 03");
+    expect(itens[2].textContent).toBe("Segunda-feira08:00–10:00Carrinho 10");
+  });
+
+  it("mostra só o mês no título da lista, sem cabeçalho da tela nem status", async () => {
+    renderizar();
+
+    expect(
+      await screen.findByRole("heading", { name: "Minhas solicitações para outubro" }),
+    ).toBeInTheDocument();
+    expect(screen.queryByText("Minhas escalas")).not.toBeInTheDocument();
+    expect(screen.queryByText(/Pedidos deste mês/)).not.toBeInTheDocument();
+    expect(screen.queryByText("Pendente")).not.toBeInTheDocument();
   });
 });

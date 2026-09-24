@@ -3,7 +3,7 @@ import { Link, Navigate } from "react-router-dom";
 import { apiFetch, ApiError } from "../../api/client";
 import { ehErroDeJanelaFechada, useJanela } from "../../hooks/useJanela";
 import { usePublicadorToken } from "../../hooks/usePublicadorToken";
-import { formatarMes } from "../../utils/formatacao";
+import { formatarNomeMes } from "../../utils/formatacao";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -134,11 +134,6 @@ export default function InicioPublicador() {
 
   return (
     <section className="flex flex-col gap-4">
-      <div className="flex flex-col gap-1.5">
-        <h1>Minhas escalas</h1>
-        <p className="text-muted-foreground">Pedidos deste mês e do próximo.</p>
-      </div>
-
       {erroJanela || !janela ? (
         <ErroJanela onTentarNovamente={tentarJanelaNovamente} />
       ) : janela.aberta ? (
@@ -172,8 +167,8 @@ export default function InicioPublicador() {
         .sort(([a], [b]) => b.localeCompare(a))
         .map(([mes, lista]) => (
           <div key={mes} className="flex flex-col gap-4">
-            <h2 className="mt-2 text-base font-normal text-muted-foreground capitalize">
-              {formatarMes(mes)}
+            <h2 className="mt-2 text-base font-normal text-muted-foreground">
+              Minhas solicitações para {formatarNomeMes(mes)}
             </h2>
             <ul className="flex list-none flex-col gap-3 p-0">
               {ordenarPorDiaTurnoCarrinho(lista).map((s) => (

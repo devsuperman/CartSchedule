@@ -83,17 +83,22 @@ describe("SolicitacaoWizard — carrinho antes do dia da semana", () => {
     expect(screen.queryByRole("radio", { name: /Carrinho 03/ })).not.toBeInTheDocument();
   });
 
-  it("desabilita os dias em que o carrinho escolhido não tem turno", async () => {
+  it("mostra só os dias em que o carrinho escolhido tem turno", async () => {
     const user = renderWizard();
     await irParaEtapaDoCarrinho(user);
     await escolherCarrinho(user, /Carrinho 02/);
+    expect(radiosVisiveis()).toEqual(["Segunda-feira"]);
 
-    expect(screen.getByRole("radio", { name: /Segunda-feira/ })).toBeEnabled();
-    for (const dia of [/Terça-feira/, /Quarta-feira/, /Quinta-feira/, /Sexta-feira/]) {
-      const botao = screen.getByRole("radio", { name: dia });
-      expect(botao).toBeDisabled();
-      expect(botao).toHaveTextContent("sem turnos");
-    }
+    await user.click(screen.getByRole("button", { name: "Voltar" }));
+    await escolherCarrinho(user, /Carrinho 01/);
+    expect(radiosVisiveis()).toEqual(["Segunda-feira", "Terça-feira"]);
+    expect(screen.queryByText("Vale para todas as semanas do mês.")).not.toBeInTheDocument();
+  });
+
+  it("pede o nome sem textos de apoio", async () => {
+    renderWizard();
+    expect(screen.getByRole("textbox", { name: "Seu nome" })).toHaveValue("Bia");
+    expect(screen.queryByText(/Fica salvo/)).not.toBeInTheDocument();
   });
 
   it("na terça o Carrinho 01 oferece só 10–12", async () => {

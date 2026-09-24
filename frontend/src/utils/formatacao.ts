@@ -8,6 +8,13 @@ export function formatarMes(valor: string): string {
   return new Date(ano, mes - 1, 1).toLocaleDateString("pt-BR", { month: "long", year: "numeric" });
 }
 
+/** Aceita "2026-10" ou "2026-10-01" e devolve só o nome do mês: "outubro". */
+export function formatarNomeMes(valor: string): string {
+  const [ano, mes] = valor.split("-").map(Number);
+  if (!ano || !mes) return valor;
+  return new Date(ano, mes - 1, 1).toLocaleDateString("pt-BR", { month: "long" });
+}
+
 export function formatarTurno(turnoId: number): string {
   const turno = TURNOS.find((t) => t.id === turnoId);
   return turno ? `${turno.horaInicio}–${turno.horaFim}` : `Turno ${turnoId}`;
