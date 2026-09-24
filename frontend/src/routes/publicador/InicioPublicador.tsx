@@ -3,8 +3,7 @@ import { Link, Navigate } from "react-router-dom";
 import { apiFetch, ApiError } from "../../api/client";
 import { ehErroDeJanelaFechada, useJanela } from "../../hooks/useJanela";
 import { usePublicadorToken } from "../../hooks/usePublicadorToken";
-import { DIAS_SEMANA } from "../../constants/diasSemana";
-import { formatarDia, formatarMes } from "../../utils/formatacao";
+import { formatarMes } from "../../utils/formatacao";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -16,18 +15,16 @@ function primeiroDiaDoMesAtualIso(): string {
   return `${agora.getFullYear()}-${String(agora.getMonth() + 1).padStart(2, "0")}-01`;
 }
 
-/** Agrupa os pedidos de um mês por dia da semana (Segunda → Sexta) e, dentro do dia,
- * ordena por turno (ids em ordem cronológica) e depois pelo nome do carrinho. */
-function agruparPorDia(lista: Solicitacao[]): [number, Solicitacao[]][] {
-  const ordenada = [...lista].sort(
+/** Ordena os pedidos de um mês por dia da semana (Segunda → Sexta), depois por turno
+ * (ids em ordem cronológica) e por fim pelo nome do carrinho ("Carrinho 2" antes de
+ * "Carrinho 10"). Não altera a lista recebida. */
+function ordenarPorDiaTurnoCarrinho(lista: Solicitacao[]): Solicitacao[] {
+  return [...lista].sort(
     (a, b) =>
+      a.diaSemana - b.diaSemana ||
       a.turnoId - b.turnoId ||
       a.carrinhoNome.localeCompare(b.carrinhoNome, "pt-BR", { numeric: true }),
   );
-  return DIAS_SEMANA.map((d): [number, Solicitacao[]] => [
-    d.valor,
-    ordenada.filter((s) => s.diaSemana === d.valor),
-  ]).filter(([, doDia]) => doDia.length > 0);
 }
 
 /**
@@ -178,24 +175,19 @@ export default function InicioPublicador() {
             <h2 className="mt-2 text-base font-normal text-muted-foreground capitalize">
               {formatarMes(mes)}
             </h2>
-            {agruparPorDia(lista).map(([dia, doDia]) => (
-              <div key={dia} className="flex flex-col gap-3">
-                <h3 className="text-sm font-semibold">{formatarDia(dia)}</h3>
-                <ul className="flex list-none flex-col gap-3 p-0">
-                  {doDia.map((s) => (
-                    <li key={s.id}>
-                      <SolicitacaoCard
-                        solicitacao={s}
-                        exclusaoPermitida={janela?.aberta === true && mes === janela.mesAlvo}
-                        excluindo={excluindoId === s.id}
-                        erro={errosExclusao[s.id]}
-                        onExcluir={excluirSolicitacao}
-                      />
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            ))}
+            <ul className="flex list-none flex-col gap-3 p-0">
+              {ordenarPorDiaTurnoCarrinho(lista).map((s) => (
+                <li key={s.id}>
+                  <SolicitacaoCard
+                    solicitacao={s}
+                    exclusaoPermitida={janela?.aberta === true && mes === janela.mesAlvo}
+                    excluindo={excluindoId === s.id}
+                    erro={errosExclusao[s.id]}
+                    onExcluir={excluirSolicitacao}
+                  />
+                </li>
+              ))}
+            </ul>
           </div>
         ))}
     </section>
