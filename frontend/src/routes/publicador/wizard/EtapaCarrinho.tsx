@@ -5,18 +5,16 @@ import type { Carrinho } from "./SolicitacaoWizard";
 
 interface EtapaCarrinhoProps {
   carrinhos: Carrinho[];
-  /** Nome do dia escolhido na etapa anterior, para a mensagem de lista vazia. */
-  diaLabel?: string;
   carregando: boolean;
   erro: string | null;
   valor: number | null;
   onSelecionar: (id: number) => void;
 }
 
-/** Etapa 3 do wizard: carrinho. A lista já vem só com carrinhos ativos (filtro do
- * backend em GET /api/carrinhos) que têm algum turno no dia escolhido (filtro do
+/** Etapa 2 do wizard: carrinho. Só aparecem carrinhos ativos (filtro do backend em
+ * GET /api/carrinhos) com algum turno configurado em qualquer dia da semana (filtro do
  * SolicitacaoWizard, PLANNING.md regra 17). */
-export function EtapaCarrinho({ carrinhos, diaLabel, carregando, erro, valor, onSelecionar }: EtapaCarrinhoProps) {
+export function EtapaCarrinho({ carrinhos, carregando, erro, valor, onSelecionar }: EtapaCarrinhoProps) {
   if (carregando) {
     return <p className="text-muted-foreground">Carregando carrinhos…</p>;
   }
@@ -32,10 +30,7 @@ export function EtapaCarrinho({ carrinhos, diaLabel, carregando, erro, valor, on
   if (carrinhos.length === 0) {
     return (
       <Alert variant="warning">
-        <AlertDescription>
-          Nenhum carrinho disponível {diaLabel ? `na ${diaLabel}` : "nesse dia"}. Toque em "Voltar" e
-          escolha outro dia.
-        </AlertDescription>
+        <AlertDescription>Nenhum carrinho disponível no momento.</AlertDescription>
       </Alert>
     );
   }

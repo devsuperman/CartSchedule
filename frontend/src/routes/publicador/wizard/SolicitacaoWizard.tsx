@@ -45,8 +45,8 @@ const TOTAL_ETAPAS = 4;
 
 const TITULOS: Record<Etapa, string> = {
   1: "Qual é o seu nome?",
-  2: "Em qual dia da semana?",
-  3: "Em qual carrinho?",
+  2: "Em qual carrinho?",
+  3: "Em qual dia da semana?",
   4: "Em qual turno?",
 };
 
@@ -57,7 +57,7 @@ interface SolicitacaoWizardProps {
 }
 
 /**
- * Formulário de solicitação em 4 etapas (PLANNING.md §5): nome → dia da semana → carrinho
+ * Formulário de solicitação em 4 etapas (PLANNING.md §5): nome → carrinho → dia da semana
  * → turno, uma pergunta por tela, com um botão grande de confirmação no rodapé. Cada
  * Etapa* é "burra" (recebe valor + callback, sem estado próprio); este componente guarda
  * todo o estado e faz o submit final.
@@ -111,46 +111,54 @@ export function SolicitacaoWizard({ mesAlvo }: SolicitacaoWizardProps) {
     [carrinhos, carrinhoId],
   );
 
-  // Os turnos agora dependem do dia (PLANNING.md regra 17): dias sem turno em nenhum
-  // carrinho ficam desabilitados, e só aparecem carrinhos/turnos daquele dia.
-  const diasComTurno = useMemo(
-    () => new Set(carrinhos.flatMap((c) => c.disponibilidades.map((d) => d.diaSemana))),
+  // Os turnos dependem de (carrinho, dia) (PLANNING.md regra 17): primeiro só aparecem
+  // carrinhos com algum turno configurado; depois, só os dias em que o carrinho escolhido
+  // tem turno ficam habilitados; por fim, só os turnos daquele carrinho naquele dia.
+  const carrinhosComTurno = useMemo(
+    () => carrinhos.filter((c) => c.disponibilidades.length > 0),
     [carrinhos],
   );
 
-  const carrinhosDoDia = useMemo(
-    () => (diaSemana == null ? [] : carrinhos.filter((c) => temTurnoNoDia(c, diaSemana))),
-    [carrinhos, diaSemana],
-  );
+  const diasDoCarrinho = useMemo(() => {
+    if (!carrinhoSelecionado) return new Set<DiaSemana>();
+    return new Set(
+      DIAS_SEMANA.map((d) => d.valor).filter((dia) => temTurnoNoDia(carrinhoSelecionado, dia)),
+    );
+  }, [carrinhoSelecionado]);
 
   const turnosDisponiveis = useMemo(() => {
     if (!carrinhoSelecionado || diaSemana == null) return [];
     return TURNOS.filter((t) => temTurno(carrinhoSelecionado, diaSemana, t.id));
   }, [carrinhoSelecionado, diaSemana]);
 
-  function selecionarDia(dia: DiaSemana) {
-    setDiaSemana(dia);
-    // Carrinho/turno escolhidos antes (usuário voltou etapas) podem não valer no novo dia.
-    if (carrinhoSelecionado && !temTurnoNoDia(carrinhoSelecionado, dia)) {
-      setCarrinhoId(null);
+  function selecionarCarrinho(id: number) {
+    setCarrinhoId(id);
+    // Dia/turno escolhidos antes (usuário voltou etapas) podem não valer no novo carrinho.
+    const novo = carrinhos.find((c) => c.id === id);
+    if (!novo) return;
+    if (diaSemana != null && !temTurnoNoDia(novo, diaSemana)) {
+      setDiaSemana(null);
       setTurnoId(null);
-    } else if (carrinhoSelecionado && turnoId != null && !temTurno(carrinhoSelecionado, dia, turnoId)) {
+    } else if (diaSemana != null && turnoId != null && !temTurno(novo, diaSemana, turnoId)) {
       setTurnoId(null);
     }
   }
 
-  function selecionarCarrinho(id: number) {
-    setCarrinhoId(id);
-    setTurnoId(null); // o turno escolhido antes pode não pertencer ao novo carrinho
+  function selecionarDia(dia: DiaSemana) {
+    setDiaSemana(dia);
+    // O turno escolhido antes pode não valer para o carrinho nesse novo dia.
+    if (carrinhoSelecionado && turnoId != null && !temTurno(carrinhoSelecionado, dia, turnoId)) {
+      setTurnoId(null);
+    }
   }
 
   const podeAvancar =
     etapa === 1
       ? nome.trim() !== ""
       : etapa === 2
-        ? diaSemana != null
+        ? carrinhoId != null
         : etapa === 3
-          ? carrinhoId != null
+          ? diaSemana != null
           : turnoId != null;
 
   function voltar() {
@@ -200,21 +208,20 @@ export function SolicitacaoWizard({ mesAlvo }: SolicitacaoWizardProps) {
         return <EtapaNome nome={nome} onChange={setNome} />;
       case 2:
         return (
-          <EtapaDiaSemana
-            valor={diaSemana}
-            diasDisponiveis={carregandoCarrinhos || erroCarrinhos ? null : diasComTurno}
-            onSelecionar={selecionarDia}
-          />
-        );
-      case 3:
-        return (
           <EtapaCarrinho
-            carrinhos={carrinhosDoDia}
-            diaLabel={DIAS_SEMANA.find((d) => d.valor === diaSemana)?.label}
+            carrinhos={carrinhosComTurno}
             carregando={carregandoCarrinhos}
             erro={erroCarrinhos}
             valor={carrinhoId}
             onSelecionar={selecionarCarrinho}
+          />
+        );
+      case 3:
+        return (
+          <EtapaDiaSemana
+            valor={diaSemana}
+            diasDisponiveis={carregandoCarrinhos || erroCarrinhos ? null : diasDoCarrinho}
+            onSelecionar={selecionarDia}
           />
         );
       case 4:
@@ -243,7 +250,7 @@ export function SolicitacaoWizard({ mesAlvo }: SolicitacaoWizardProps) {
       <div className="flex flex-1 flex-col gap-4">
         <div className="flex flex-col gap-1.5">
           <h1 className="text-xl">{TITULOS[etapa]}</h1>
-          {etapa === 2 && (
+          {etapa === 3 && (
             <p className="text-sm text-muted-foreground">
               Vale para todas as semanas do mês.
             </p>

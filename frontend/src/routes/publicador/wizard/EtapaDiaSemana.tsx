@@ -4,15 +4,15 @@ import { DIAS_SEMANA, type DiaSemana } from "../../../constants/diasSemana";
 
 interface EtapaDiaSemanaProps {
   valor: DiaSemana | null;
-  /** Dias em que algum carrinho tem turno. `null` enquanto os carrinhos carregam (ou se a
+  /** Dias em que o carrinho escolhido na etapa anterior tem turno. `null` enquanto os carrinhos carregam (ou se a
    * carga falhou) — aí nenhum dia é desabilitado e o backend valida no envio. */
   diasDisponiveis: ReadonlySet<DiaSemana> | null;
   onSelecionar: (dia: DiaSemana) => void;
 }
 
-/** Etapa 2 do wizard: dia da semana. A escolha é recorrente — vale para todas as semanas
+/** Etapa 3 do wizard: dia da semana. A escolha é recorrente — vale para todas as semanas
  * do mês, nunca uma data específica — e restrita a Segunda–Sexta (PLANNING.md regra 1).
- * Dias sem turno em nenhum carrinho ficam desabilitados (PLANNING.md regra 17). */
+ * Dias sem turno no carrinho escolhido ficam desabilitados (PLANNING.md regra 17). */
 export function EtapaDiaSemana({ valor, diasDisponiveis, onSelecionar }: EtapaDiaSemanaProps) {
   return (
     <div className="flex flex-col gap-3" role="radiogroup" aria-label="Dia da semana">
