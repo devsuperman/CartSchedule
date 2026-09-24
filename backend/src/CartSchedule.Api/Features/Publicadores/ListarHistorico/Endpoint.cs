@@ -33,6 +33,7 @@ public static class Endpoint
                     s.Escala.MesReferencia,
                     s.CarrinhoId,
                     s.Carrinho.Nome,
+                    s.Carrinho.Descricao,
                     (int)s.DiaSemana,
                     s.TurnoId,
                     (int)s.Status,
