@@ -34,6 +34,7 @@ services:
       context: ./frontend
       args:
         VITE_API_URL: http://localhost:5000
+        VITE_WHATSAPP_GRUPO_URL: ${WHATSAPP_GRUPO_URL:-}
     depends_on:
       - api
     ports:

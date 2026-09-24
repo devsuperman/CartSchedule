@@ -174,7 +174,9 @@ depender de teste manual no navegador/curl a cada alteração.
 
 - CORS da API libera só `Cors__FrontendOrigin` (padrão `http://localhost:3000`);
   o Vite serve em 5173 por padrão — use `--port 3000` ou ajuste a variável.
-- `VITE_API_URL` é embutida no bundle **em build time**; mudar exige rebuild.
+- `VITE_API_URL` e `VITE_WHATSAPP_GRUPO_URL` (vinda de `WHATSAPP_GRUPO_URL` no
+  `.env`, link do botão "Terminei!") são embutidas no bundle **em build time**;
+  mudar exige rebuild.
 - `ADMIN_SENHA_HASH` (hash do `PasswordHasher` do ASP.NET) contém `$`: no
   `.env` do compose, escape cada `$` como `$$`.
 - Rate limiting por IP (`Infrastructure/RateLimiting/`) usa o `X-Forwarded-For`

@@ -12,6 +12,13 @@ vi.mock("../../api/client", async (importOriginal) => ({
 
 const mockApiFetch = vi.mocked(apiFetch);
 
+const whatsapp = vi.hoisted(() => ({ url: "" }));
+vi.mock("../../constants/whatsapp", () => ({
+  get GRUPO_WHATSAPP_URL() {
+    return whatsapp.url;
+  },
+}));
+
 // Mês-alvo vem da janela, então é sempre um mês "relevante" independente da data real.
 const MES_ALVO = "2030-10-01";
 
@@ -47,6 +54,7 @@ const SOLICITACOES: Solicitacao[] = [
 ];
 
 beforeEach(() => {
+  whatsapp.url = "";
   mockApiFetch.mockReset();
   mockApiFetch.mockImplementation(async (path) => {
     if (path === "/api/janela") return { aberta: false, mesAlvo: MES_ALVO };
@@ -122,5 +130,53 @@ describe("InicioPublicador — histórico", () => {
     expect(screen.queryByText("Carrinho 04")).not.toBeInTheDocument();
     expect(screen.queryByText("Terça-feira")).not.toBeInTheDocument();
     expect(screen.getAllByRole("listitem")).toHaveLength(5);
+  });
+});
+
+describe("InicioPublicador — rodapé", () => {
+  const GRUPO = "https://chat.whatsapp.com/grupo-de-teste";
+
+  function comJanela(aberta: boolean) {
+    mockApiFetch.mockImplementation(async (path) => {
+      if (path === "/api/janela") return { aberta, mesAlvo: MES_ALVO };
+      if (path === "/api/solicitacoes") return SOLICITACOES;
+      throw new Error(`chamada inesperada: ${path}`);
+    });
+  }
+
+  it("com a janela aberta, o botão de solicitar fica depois da lista", async () => {
+    comJanela(true);
+    renderizar();
+
+    const lista = await screen.findByRole("list");
+    const botao = screen.getByRole("link", { name: "Solicitar Nova Escala" });
+    expect(botao).toHaveAttribute("href", "/solicitar");
+    expect(lista.compareDocumentPosition(botao) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  it("\"Terminei!\" leva ao grupo do WhatsApp, com a janela aberta", async () => {
+    whatsapp.url = GRUPO;
+    comJanela(true);
+    renderizar();
+
+    expect(await screen.findByRole("link", { name: "Terminei!" })).toHaveAttribute("href", GRUPO);
+  });
+
+  it("\"Terminei!\" também aparece com a janela fechada, sem o botão de solicitar", async () => {
+    whatsapp.url = GRUPO;
+    comJanela(false);
+    renderizar();
+
+    expect(await screen.findByRole("link", { name: "Terminei!" })).toHaveAttribute("href", GRUPO);
+    expect(screen.getByText("Envio de pedidos fechado")).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "Solicitar Nova Escala" })).not.toBeInTheDocument();
+  });
+
+  it("sem o link do grupo configurado, não mostra \"Terminei!\"", async () => {
+    comJanela(true);
+    renderizar();
+
+    await screen.findByRole("link", { name: "Solicitar Nova Escala" });
+    expect(screen.queryByRole("link", { name: "Terminei!" })).not.toBeInTheDocument();
   });
 });
