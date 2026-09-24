@@ -48,7 +48,7 @@ function AdminHome() {
                 <Card className="h-full gap-1 transition-colors hover:border-primary">
                   <strong className="text-[1.1rem] font-bold text-primary">Revisão da escala</strong>
                   <span className="text-[0.95rem] font-normal text-muted-foreground">
-                    Aprove ou rejeite os pedidos recebidos.
+                    Veja os pedidos recebidos e exclua os excedentes.
                   </span>
                 </Card>
               </Link>
@@ -58,7 +58,7 @@ function AdminHome() {
                 <Card className="h-full gap-1 transition-colors hover:border-primary">
                   <strong className="text-[1.1rem] font-bold text-primary">Adicionar solicitação</strong>
                   <span className="text-[0.95rem] font-normal text-muted-foreground">
-                    Inclua alguém direto na escala, já aprovado.
+                    Inclua alguém direto na escala.
                   </span>
                 </Card>
               </Link>

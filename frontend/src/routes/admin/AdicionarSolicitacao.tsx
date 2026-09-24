@@ -35,7 +35,6 @@ interface SolicitacaoCriadaResponse {
   carrinhoId: number;
   diaSemana: DiaSemana;
   turnoId: number;
-  status: string;
   origem: string;
 }
 
@@ -124,7 +123,7 @@ export default function AdicionarSolicitacao() {
         },
       );
 
-      setConfirmacao(`Solicitação de ${resposta.publicadorNome} adicionada e aprovada.`);
+      setConfirmacao(`Solicitação de ${resposta.publicadorNome} adicionada à escala.`);
       setNomesVistos((atual) =>
         atual.includes(resposta.publicadorNome) ? atual : [...atual, resposta.publicadorNome],
       );
@@ -159,7 +158,7 @@ export default function AdicionarSolicitacao() {
       <div className="flex flex-col gap-1.5">
         <h1>Adicionar solicitação</h1>
         <p className="text-muted-foreground">
-          Escala de {formatarMes(mes)}. O pedido entra direto como aprovado.
+          Escala de {formatarMes(mes)}. O pedido entra direto na escala.
         </p>
       </div>
 

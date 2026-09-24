@@ -1,5 +1,4 @@
 using System.Globalization;
-using CartSchedule.Api.Domain.Enums;
 using CartSchedule.Api.Infrastructure;
 using Microsoft.EntityFrameworkCore;
 
@@ -7,7 +6,7 @@ namespace CartSchedule.Api.Features.Administradores.ObterEscalaFinal;
 
 /// <summary>
 /// GET /api/admin/escalas/{mes}/grade — grade final do mês (Carrinho × Dia × Turno),
-/// montada sob demanda a partir das Solicitacao aprovadas (TASKS.md F2-BE-07).
+/// montada sob demanda a partir de todas as Solicitacao da escala (TASKS.md F2-BE-07).
 /// </summary>
 public static class Endpoint
 {
@@ -37,8 +36,8 @@ public static class Endpoint
             return Results.Ok(new EscalaFinalResponse(mes, []));
         }
 
-        var aprovadas = await db.Solicitacoes
-            .Where(s => s.EscalaId == escala.Id && s.Status == StatusSolicitacao.Aprovada)
+        var solicitacoes = await db.Solicitacoes
+            .Where(s => s.EscalaId == escala.Id)
             .Include(s => s.Carrinho)
             .Include(s => s.Publicador)
             .OrderBy(s => s.CarrinhoId)
@@ -46,7 +45,7 @@ public static class Endpoint
             .ThenBy(s => s.TurnoId)
             .ToListAsync(ct);
 
-        var celulas = aprovadas
+        var celulas = solicitacoes
             .GroupBy(s => (s.CarrinhoId, s.DiaSemana, s.TurnoId))
             .Select(grupo => new EscalaFinalCelulaResponse(
                 grupo.Key.CarrinhoId,
@@ -54,7 +53,7 @@ public static class Endpoint
                 grupo.Key.DiaSemana,
                 grupo.Key.TurnoId,
                 grupo
-                    .Select(s => new PublicadorAprovadoResponse(s.PublicadorId, s.Publicador.Nome))
+                    .Select(s => new PublicadorNaEscalaResponse(s.PublicadorId, s.Publicador.Nome))
                     .ToList()))
             .ToList();
 

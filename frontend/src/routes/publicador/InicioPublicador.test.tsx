@@ -30,7 +30,6 @@ function pedido(
   turnoId: number,
   carrinhoNome: string,
   carrinhoDescricao: string | null = null,
-  status = 1,
 ): Solicitacao {
   return {
     id,
@@ -40,7 +39,6 @@ function pedido(
     carrinhoDescricao,
     diaSemana,
     turnoId,
-    status,
     origem: 1,
   };
 }
@@ -52,7 +50,6 @@ const SOLICITACOES: Solicitacao[] = [
   pedido(3, 1, 2, "Carrinho 10", "   "),
   pedido(4, 1, 2, "Carrinho 2", "Em frente à estação"),
   pedido(5, 1, 1, "Carrinho 03"),
-  pedido(6, 2, 1, "Carrinho 04", null, 3), // Rejeitada: não aparece
 ];
 
 beforeEach(() => {
@@ -100,7 +97,7 @@ describe("InicioPublicador — histórico", () => {
     expect(comDescricao.getByText("Carrinho 2")).toBeInTheDocument();
     expect(comDescricao.getByText("Em frente à estação")).toBeInTheDocument();
 
-    // Descrição nula ou só com espaços: nada além de dia, turno e carrinho (sem status).
+    // Descrição nula ou só com espaços: nada além de dia, turno e carrinho.
     expect(itens[0].textContent).toBe("Segunda-feira06:00–08:00Carrinho 03");
     expect(itens[2].textContent).toBe("Segunda-feira08:00–10:00Carrinho 10");
   });
@@ -115,7 +112,7 @@ describe("InicioPublicador — histórico", () => {
     expect(destaque).not.toHaveTextContent("Carrinho 2");
   });
 
-  it("mostra só o mês no título da lista, sem cabeçalho da tela nem status", async () => {
+  it("mostra só o mês no título da lista, sem cabeçalho da tela", async () => {
     renderizar();
 
     expect(
@@ -123,16 +120,6 @@ describe("InicioPublicador — histórico", () => {
     ).toBeInTheDocument();
     expect(screen.queryByText("Minhas escalas")).not.toBeInTheDocument();
     expect(screen.queryByText(/Pedidos deste mês/)).not.toBeInTheDocument();
-    expect(screen.queryByText("Pendente")).not.toBeInTheDocument();
-  });
-
-  it("esconde as solicitações rejeitadas", async () => {
-    renderizar();
-
-    await screen.findByRole("list");
-    expect(screen.queryByText("Carrinho 04")).not.toBeInTheDocument();
-    expect(screen.queryByText("Terça-feira")).not.toBeInTheDocument();
-    expect(screen.getAllByRole("listitem")).toHaveLength(5);
   });
 });
 

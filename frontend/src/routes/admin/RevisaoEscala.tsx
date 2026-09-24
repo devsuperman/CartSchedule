@@ -1,18 +1,20 @@
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { apiFetch, ApiError } from "../../api/client";
-import {
-  formatarDia,
-  formatarMes,
-  formatarTurno,
-  STATUS,
-  STATUS_BADGE_VARIANT,
-  STATUS_LABELS,
-} from "../../utils/formatacao";
+import { formatarDia, formatarMes, formatarTurno } from "../../utils/formatacao";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 
 /** Contrato de GET /api/admin/escalas/{mes}/solicitacoes (TECHNICAL_SPEC.md, tarefa F2-BE-04). */
@@ -20,7 +22,6 @@ interface SolicitacaoAgrupada {
   id: number;
   publicadorId: string;
   publicadorNome: string;
-  status: number; // 1=Pendente,2=Aprovada,3=Rejeitada
   origem: number; // 1=Publicador,2=Administrador
   criadoEm: string;
   totalNaEscala: number;
@@ -45,23 +46,49 @@ const ORIGEM_LABELS: Record<number, string> = {
   2: "Administrador",
 };
 
-// O admin pode rever a decisão a qualquer momento (Aprovada <-> Rejeitada).
-const PODE_APROVAR: readonly number[] = [STATUS.Pendente, STATUS.Rejeitada];
-const PODE_REJEITAR: readonly number[] = [STATUS.Pendente, STATUS.Aprovada];
-
 function mensagemErro(erro: unknown, fallback: string): string {
   return erro instanceof ApiError ? erro.message : fallback;
 }
 
-type Acao = "aprovar" | "rejeitar";
+/** Tira a solicitação da resposta e refaz o que depende dela: o excesso do grupo, o total do
+ * publicador na escala (contagem de apoio, regra 16) e some com o grupo que ficou vazio. */
+function semSolicitacao(dados: RespostaSolicitacoesAgrupadas, id: number): RespostaSolicitacoesAgrupadas {
+  const removida = dados.grupos.flatMap((g) => g.solicitacoes).find((s) => s.id === id);
+  if (!removida) return dados;
 
+  const grupos = dados.grupos
+    .map((grupo) => {
+      const solicitacoes = grupo.solicitacoes
+        .filter((s) => s.id !== id)
+        .map((s) =>
+          s.publicadorId === removida.publicadorId ? { ...s, totalNaEscala: s.totalNaEscala - 1 } : s,
+        );
+      return { ...grupo, solicitacoes, excedente: solicitacoes.length > 2 };
+    })
+    .filter((grupo) => grupo.solicitacoes.length > 0);
+
+  return { ...dados, grupos };
+}
+
+interface Exclusao {
+  solicitacao: SolicitacaoAgrupada;
+  grupo: GrupoSolicitacoes;
+}
+
+/**
+ * Revisão da escala pelo administrador. Não há aprovação: todo pedido já conta na escala
+ * (PLANNING.md regra 12a). Grupos com mais de 2 pedidos são sinalizados, nunca bloqueados
+ * (regras 1/3), e o admin tira quem ele decidir com "Excluir" — definitivo, por isso pede
+ * confirmação num modal.
+ */
 export default function RevisaoEscala() {
   const { mes } = useParams<{ mes: string }>();
   const [dados, setDados] = useState<RespostaSolicitacoesAgrupadas | null>(null);
   const [carregando, setCarregando] = useState(true);
   const [erroCarregamento, setErroCarregamento] = useState<string | null>(null);
-  const [processando, setProcessando] = useState<Record<number, boolean>>({});
-  const [errosAcao, setErrosAcao] = useState<Record<number, string>>({});
+  const [confirmando, setConfirmando] = useState<Exclusao | null>(null);
+  const [excluindo, setExcluindo] = useState(false);
+  const [errosExclusao, setErrosExclusao] = useState<Record<number, string>>({});
 
   useEffect(() => {
     if (!mes) {
@@ -96,38 +123,21 @@ export default function RevisaoEscala() {
     };
   }, [mes]);
 
-  async function decidir(id: number, acao: Acao) {
-    setProcessando((atual) => ({ ...atual, [id]: true }));
-    setErrosAcao((atual) => {
+  async function excluir(id: number) {
+    setExcluindo(true);
+    setErrosExclusao((atual) => {
       const { [id]: _removido, ...resto } = atual;
       return resto;
     });
 
     try {
-      const resposta = await apiFetch<{ id: number; status: number }>(`/api/admin/solicitacoes/${id}/${acao}`, {
-        method: "POST",
-      });
-
-      setDados((atual) =>
-        atual
-          ? {
-              ...atual,
-              grupos: atual.grupos.map((grupo) => ({
-                ...grupo,
-                solicitacoes: grupo.solicitacoes.map((solicitacao) =>
-                  solicitacao.id === resposta.id ? { ...solicitacao, status: resposta.status } : solicitacao,
-                ),
-              })),
-            }
-          : atual,
-      );
+      await apiFetch(`/api/admin/solicitacoes/${id}`, { method: "DELETE" });
+      setDados((atual) => (atual ? semSolicitacao(atual, id) : atual));
     } catch (erro) {
-      setErrosAcao((atual) => ({
-        ...atual,
-        [id]: mensagemErro(erro, acao === "aprovar" ? "Falha ao aprovar." : "Falha ao rejeitar."),
-      }));
+      setErrosExclusao((atual) => ({ ...atual, [id]: mensagemErro(erro, "Falha ao excluir.") }));
     } finally {
-      setProcessando((atual) => ({ ...atual, [id]: false }));
+      setExcluindo(false);
+      setConfirmando(null);
     }
   }
 
@@ -153,7 +163,6 @@ export default function RevisaoEscala() {
   }
 
   const todas = dados.grupos.flatMap((g) => g.solicitacoes);
-  const contar = (status: number) => todas.filter((x) => x.status === status).length;
   const excedentes = dados.grupos.filter((g) => g.excedente).length;
 
   return (
@@ -161,7 +170,8 @@ export default function RevisaoEscala() {
       <div className="flex flex-col gap-1.5">
         <h1>Revisão da escala</h1>
         <p className="text-muted-foreground">
-          {formatarMes(dados.mes)}. O limite é de 2 pessoas por vaga, mas você decide quando ajustar.
+          {formatarMes(dados.mes)}. Todos os pedidos já contam na escala. O limite é de 2 pessoas
+          por vaga: exclua quem você decidir tirar.
         </p>
       </div>
 
@@ -171,28 +181,12 @@ export default function RevisaoEscala() {
           <dd className="m-0 text-[1.6rem] font-bold tabular-nums">{todas.length}</dd>
         </Card>
         <Card className="gap-1 p-3">
-          <dt className="text-sm text-muted-foreground">Pendentes</dt>
-          <dd className="m-0 text-[1.6rem] font-bold tabular-nums">{contar(STATUS.Pendente)}</dd>
-        </Card>
-        <Card className="gap-1 p-3">
-          <dt className="text-sm text-muted-foreground">Aprovados</dt>
-          <dd className="m-0 text-[1.6rem] font-bold tabular-nums">{contar(STATUS.Aprovada)}</dd>
-        </Card>
-        <Card className="gap-1 p-3">
-          <dt className="text-sm text-muted-foreground">Rejeitados</dt>
-          <dd className="m-0 text-[1.6rem] font-bold tabular-nums">{contar(STATUS.Rejeitada)}</dd>
-        </Card>
-        <Card className="gap-1 p-3">
           <dt className="text-sm text-muted-foreground">Vagas com excesso</dt>
           <dd className="m-0 text-[1.6rem] font-bold tabular-nums">{excedentes}</dd>
         </Card>
       </dl>
 
       {dados.grupos.map((grupo) => {
-        const ativos = grupo.solicitacoes.filter(
-          (x) => x.status === STATUS.Pendente || x.status === STATUS.Aprovada,
-        ).length;
-
         return (
           <div
             key={`${grupo.carrinhoId}-${grupo.diaSemana}-${grupo.turnoId}`}
@@ -209,7 +203,7 @@ export default function RevisaoEscala() {
                 </span>
               </div>
               {grupo.excedente && (
-                <Badge variant="rejeitada">{ativos} pedidos para 2 vagas</Badge>
+                <Badge variant="excedente">{grupo.solicitacoes.length} pedidos para 2 vagas</Badge>
               )}
             </div>
             <ul className="list-none border-t border-border p-0">
@@ -227,36 +221,17 @@ export default function RevisaoEscala() {
                         `, adicionado pelo ${ORIGEM_LABELS[solicitacao.origem]?.toLowerCase() ?? "sistema"}`}
                     </span>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <Badge variant={STATUS_BADGE_VARIANT[solicitacao.status]}>
-                      {STATUS_LABELS[solicitacao.status] ?? "Desconhecido"}
-                    </Badge>
-                    {PODE_APROVAR.includes(solicitacao.status) && (
-                      <Button
-                        type="button"
-                        variant="success"
-                        size="sm"
-                        disabled={processando[solicitacao.id] === true}
-                        onClick={() => decidir(solicitacao.id, "aprovar")}
-                      >
-                        Aprovar
-                      </Button>
-                    )}
-                    {PODE_REJEITAR.includes(solicitacao.status) && (
-                      <Button
-                        type="button"
-                        variant="destructive"
-                        size="sm"
-                        disabled={processando[solicitacao.id] === true}
-                        onClick={() => decidir(solicitacao.id, "rejeitar")}
-                      >
-                        Rejeitar
-                      </Button>
-                    )}
-                  </div>
-                  {errosAcao[solicitacao.id] && (
+                  <Button
+                    type="button"
+                    variant="destructive"
+                    size="sm"
+                    onClick={() => setConfirmando({ solicitacao, grupo })}
+                  >
+                    Excluir
+                  </Button>
+                  {errosExclusao[solicitacao.id] && (
                     <Alert variant="destructive" className="basis-full py-2 text-[0.95rem]">
-                      <AlertDescription>{errosAcao[solicitacao.id]}</AlertDescription>
+                      <AlertDescription>{errosExclusao[solicitacao.id]}</AlertDescription>
                     </Alert>
                   )}
                 </li>
@@ -265,6 +240,38 @@ export default function RevisaoEscala() {
           </div>
         );
       })}
+
+      <Dialog open={confirmando !== null} onOpenChange={(aberto) => !aberto && !excluindo && setConfirmando(null)}>
+        <DialogContent>
+          {confirmando && (
+            <>
+              <DialogHeader>
+                <DialogTitle>Excluir pedido?</DialogTitle>
+                <DialogDescription>
+                  {confirmando.solicitacao.publicadorNome} — {confirmando.grupo.carrinhoNome},{" "}
+                  {formatarDia(confirmando.grupo.diaSemana)}, {formatarTurno(confirmando.grupo.turnoId)}. Isso não
+                  pode ser desfeito.
+                </DialogDescription>
+              </DialogHeader>
+              <DialogFooter>
+                <DialogClose asChild>
+                  <Button type="button" variant="outline" disabled={excluindo}>
+                    Cancelar
+                  </Button>
+                </DialogClose>
+                <Button
+                  type="button"
+                  variant="destructive"
+                  disabled={excluindo}
+                  onClick={() => excluir(confirmando.solicitacao.id)}
+                >
+                  {excluindo ? "Excluindo…" : "Excluir"}
+                </Button>
+              </DialogFooter>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
     </section>
   );
 }

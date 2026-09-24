@@ -8,7 +8,7 @@ namespace CartSchedule.Api.Tests.Administradores;
 public class AdicionarSolicitacaoManualTests(ApiFixture fixture) : ApiTestBase(fixture)
 {
     [Fact]
-    public async Task TurnoDisponivelNaqueleDia_NasceAprovada()
+    public async Task TurnoDisponivelNaqueleDia_JaContaNaEscala()
     {
         var admin = await AdminAsync();
         var carrinhoId = await CriarCarrinhoAsync(admin);
@@ -17,7 +17,10 @@ public class AdicionarSolicitacaoManualTests(ApiFixture fixture) : ApiTestBase(f
         var resposta = await AdicionarManualAsync(admin, carrinhoId, Segunda, Turno0810, "Caio");
 
         Assert.Equal(HttpStatusCode.Created, resposta.StatusCode);
-        Assert.Equal(2, (await JsonAsync(resposta)).GetProperty("status").GetInt32()); // Aprovada
+        Assert.False((await JsonAsync(resposta)).TryGetProperty("status", out _));
+        var grade = await admin.GetFromJsonAsync<JsonElement>($"/api/admin/escalas/{MesAlvo}/grade");
+        var celula = Assert.Single(grade.GetProperty("celulas").EnumerateArray());
+        Assert.Equal("Caio", Assert.Single(celula.GetProperty("publicadores").EnumerateArray()).GetProperty("publicadorNome").GetString());
     }
 
     [Fact]

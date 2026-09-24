@@ -16,7 +16,5 @@ public class Response
 
     public int TurnoId { get; set; }
 
-    public StatusSolicitacao Status { get; set; }
-
     public OrigemSolicitacao Origem { get; set; }
 }

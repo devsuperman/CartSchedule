@@ -23,21 +23,3 @@ export function formatarTurno(turnoId: number): string {
 export function formatarDia(diaSemana: number): string {
   return DIAS_SEMANA.find((d) => d.valor === diaSemana)?.label ?? `Dia ${diaSemana}`;
 }
-
-export const STATUS = {
-  Pendente: 1,
-  Aprovada: 2,
-  Rejeitada: 3,
-} as const;
-
-export const STATUS_LABELS: Record<number, string> = {
-  [STATUS.Pendente]: "Pendente",
-  [STATUS.Aprovada]: "Aprovada",
-  [STATUS.Rejeitada]: "Rejeitada",
-};
-
-export const STATUS_BADGE_VARIANT: Record<number, "pendente" | "aprovada" | "rejeitada"> = {
-  [STATUS.Pendente]: "pendente",
-  [STATUS.Aprovada]: "aprovada",
-  [STATUS.Rejeitada]: "rejeitada",
-};

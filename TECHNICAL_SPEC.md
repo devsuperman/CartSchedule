@@ -54,7 +54,6 @@ backend/
         Solicitacao.cs
         Enums/
           DiaSemana.cs
-          StatusSolicitacao.cs
           OrigemSolicitacao.cs
       Infrastructure/
         AppDbContext.cs
@@ -71,15 +70,14 @@ backend/
           ListarCarrinhosDisponiveis/# GET  /api/carrinhos  (id, nome, descricao, disponibilidades dia×turno por carrinho)
           CriarSolicitacao/          # POST /api/solicitacoes
           ListarHistorico/           # GET  /api/solicitacoes  (header X-Publicador-Token; carrinhoNome + carrinhoDescricao; sem data/hora do envio na resposta)
-          ExcluirSolicitacao/        # DELETE /api/solicitacoes/{id}  (apaga o registro; não há status Cancelada)
+          ExcluirSolicitacao/        # DELETE /api/solicitacoes/{id}  (apaga o registro; não há status)
         Administradores/
           Login/                    # POST /api/admin/login
           GerenciarCarrinhos/       # GET/POST/PUT /api/admin/carrinhos  (nome, descricao opcional, ativo)
           GerenciarTurnosDoCarrinho/# GET/PUT       /api/admin/carrinhos/{id}/turnos (disponibilidades dia×turno; turnos em si são fixos, ver 2.4)
           RevisarEscala/
             ListarSolicitacoesAgrupadas/ # GET  /api/admin/escalas/{mes}/solicitacoes
-            AprovarSolicitacao/          # POST /api/admin/solicitacoes/{id}/aprovar
-            RejeitarSolicitacao/         # POST /api/admin/solicitacoes/{id}/rejeitar
+            ExcluirSolicitacao/          # DELETE /api/admin/solicitacoes/{id}  (sem aprovação: o admin exclui; 204/404, sem janela)
             AdicionarSolicitacaoManual/  # POST /api/admin/escalas/{mes}/solicitacoes
           ObterEscalaFinal/         # GET  /api/admin/escalas/{mes}/grade
 ```
@@ -110,7 +108,7 @@ bloqueio de duplicidade e histórico):
 - O bloqueio de duplicidade (regra 10) e o histórico (regra 11) usam esse `publicadorToken` para saber quais solicitações são "do mesmo publicador".
 - Ao usar a adição manual, o administrador escolhe entre os nomes de publicadores já vistos pelo sistema (autocomplete) ou digita um nome novo:
   - Se o nome digitado **coincidir exatamente** com um `Publicador` já existente, a solicitação é associada a esse mesmo registro — inclusive aparecerá no histórico daquele publicador quando ele acessar pelo próprio celular.
-  - Caso contrário (nome novo, ou grafia diferente de um nome existente), o backend cria um `Publicador` novo com um token gerado no servidor. Isso é uma consequência aceita da regra de negócio 9 (sem verificação/bloqueio de nomes duplicados) — pequenas diferenças de grafia podem gerar registros distintos para a mesma pessoa; a escala final não é afetada, pois é montada pelos nomes aprovados, não pelo token.
+  - Caso contrário (nome novo, ou grafia diferente de um nome existente), o backend cria um `Publicador` novo com um token gerado no servidor. Isso é uma consequência aceita da regra de negócio 9 (sem verificação/bloqueio de nomes duplicados) — pequenas diferenças de grafia podem gerar registros distintos para a mesma pessoa; a escala final não é afetada, pois é montada pelos nomes, não pelo token.
 
 ### 2.4 Turnos e dias da semana fixos (dados de seed)
 
@@ -235,7 +233,7 @@ frontend/
         JanelaFechada.tsx         # tela exibida fora da janela de envio
         wizard/                   # formulário em 4 etapas: nome → carrinho (nome + descrição) → dia da semana → turno
         components/
-          SolicitacaoCard.tsx     # card de uma solicitação (status + excluir, só com janela aberta e no mês-alvo; sem data/hora)
+          SolicitacaoCard.tsx     # card de uma solicitação (excluir, só com janela aberta e no mês-alvo; sem status nem data/hora)
           ErroJanela.tsx          # erro ao consultar /api/janela, com "tentar novamente"
       admin/
         Login.tsx
@@ -270,12 +268,12 @@ Tabelas espelhando o modelo de dados do `PLANNING.md` (seção 9):
 | `turnos` | `id`, `hora_inicio`, `hora_fim` — **tabela com dado fixo (seed)**, sempre as mesmas 6 linhas, sem endpoint de criação/edição |
 | `carrinho_turnos` | `carrinho_id`, `dia_semana`, `turno_id` (PK composta) |
 | `escalas` | `id`, `mes_referencia` (ex: `2026-10-01`, primeiro dia do mês) |
-| `solicitacoes` | `id`, `publicador_id`, `escala_id`, `carrinho_id`, `dia_semana`, `turno_id`, `status` (1=Pendente, 2=Aprovada, 3=Rejeitada — não há Cancelada), `origem`, `criado_em`, `decidido_em` |
+| `solicitacoes` | `id`, `publicador_id`, `escala_id`, `carrinho_id`, `dia_semana`, `turno_id`, `origem`, `criado_em` — sem `status`: toda solicitação existente conta na escala (Fase 11 removeu `status`/`decidido_em`) |
 
 Índices/constraints relevantes:
 - Único: `(publicador_id, escala_id, carrinho_id, dia_semana, turno_id)` em `solicitacoes` (regra 10 — bloqueio de duplicidade).
 - Único: `(carrinho_id, dia_semana, turno_id)` em `carrinho_turnos` (a própria PK).
-- Índice em `(escala_id, carrinho_id, dia_semana, turno_id)` em `solicitacoes`, usado tanto para montar os grupos de aprovação quanto a grade final.
+- Índice em `(escala_id, carrinho_id, dia_semana, turno_id)` em `solicitacoes`, usado tanto para montar os grupos da revisão quanto a grade final.
 
 Migrations do EF Core cuidam da criação/evolução do schema — não há necessidade de scripts SQL manuais.
 
@@ -370,6 +368,6 @@ CartSchedule/
 Alinhado ao roadmap de negócio (`PLANNING.md`, seção 10):
 
 - **Fase 1**: modelo de dados + migrations (incluindo o seed dos 6 turnos fixos); slices do Publicador (janela, carrinhos disponíveis, criar solicitação, histórico, cancelamento); frontend da área do Publicador; `docker-compose` funcional com os 3 serviços.
-- **Fase 2**: autenticação do administrador (login + JWT); slice de gestão de carrinhos e da associação carrinho-turno; slices de revisão de escala (listagem agrupada, aprovar/rejeitar, contagem de apoio ao desempate, adição manual); frontend da área do Administrador.
+- **Fase 2**: autenticação do administrador (login + JWT); slice de gestão de carrinhos e da associação carrinho-turno; slices de revisão de escala (listagem agrupada, exclusão pelo admin — antes da Fase 11, aprovar/rejeitar —, contagem de apoio ao desempate, adição manual); frontend da área do Administrador.
 - **Fase 3**: slice e tela da escala mensal final (grade Carrinho × Dia × Turno).
 - **Fase 4 (opcional, futura)**: exportação da escala (PDF/Excel), relatórios de escalas passadas.

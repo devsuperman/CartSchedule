@@ -513,6 +513,25 @@ Só frontend — nenhuma regra de negócio muda.
 
 ---
 
+## Fase 11 — Sem aprovação: toda solicitação vale, o admin exclui
+
+O fluxo Aprovar/Rejeitar sai: toda solicitação existente já conta na escala e
+tirar alguém é excluir o registro de vez (publicador, como antes, ou admin).
+
+| ID | Entrega | Critério de aceite |
+|---|---|---|
+| F11-BE-01 | `Domain/Solicitacao.cs`, `Domain/Enums/`, migration `RemoveStatusSolicitacao` | `Status`, `DecididoEm` e o enum `StatusSolicitacao` deixam de existir. A migration apaga as Rejeitadas antes de dropar as colunas (as Pendentes passam a contar na escala). |
+| F11-BE-02 | `Features/Administradores/RevisarEscala/ExcluirSolicitacao/`, `Program.cs` | `DELETE /api/admin/solicitacoes/{id}` (JWT): 204 e o registro some; 404 se não existe; sem restrição de janela. Slices `AprovarSolicitacao` e `RejeitarSolicitacao` removidos. |
+| F11-BE-03 | `ListarSolicitacoesAgrupadas`, `ObterEscalaFinal`, `ListarHistorico`, `CriarSolicitacao`, `AdicionarSolicitacaoManual`, `Publicadores/ExcluirSolicitacao` | Nenhuma resposta tem `status`; revisão, excedente, contagem de apoio e grade usam todas as solicitações. A grade devolve `publicadores` (antes `aprovados`). |
+| F11-FE-01 | `routes/admin/RevisaoEscala.tsx` | Sem status nem Aprovar/Rejeitar; resumo com "Recebidos" e "Vagas com excesso". Cada pedido tem "Excluir", que abre um modal de confirmação; confirmar apaga, remove a linha, recalcula o excesso e a contagem do publicador e some com o grupo vazio. |
+| F11-FE-02 | `utils/formatacao.ts`, `components/ui/badge.tsx`, `SolicitacaoCard.tsx`, `InicioPublicador.tsx`, `EscalaFinal.tsx`, `AdicionarSolicitacao.tsx`, `App.tsx` | Sem `STATUS`/badges de status; textos sem "aprovado"/"rejeitado". |
+
+### Verificação da Fase 11
+
+`dotnet test`, `npm test`, `npm run lint`, `npm run build`.
+
+---
+
 ## Backlog (Fase 12 — opcional, fora do escopo inicial)
 
 Não paralelizar ainda — só entra depois que Fases 0–4 estiverem completas

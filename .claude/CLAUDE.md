@@ -4,8 +4,8 @@ Sistema web para organizar o uso de carrinhos de trabalho ao longo do mês.
 Na interface o sistema se chama **"Escala TPL"** — "CartSchedule" é só o
 nome interno (repo, namespaces, pastas); não renomear o código.
 Publicadores solicitam `(carrinho, dia da semana, turno)` em que querem
-trabalhar; um administrador aprova/rejeita e monta a escala mensal final
-(máx. 2 pessoas por combinação).
+trabalhar; todo pedido já entra na escala e um administrador exclui os
+excedentes (meta de máx. 2 pessoas por combinação).
 
 **Leia sempre, nesta ordem, antes de implementar algo:**
 1. [`PLANNING.md`](../PLANNING.md) — regras de negócio (fonte da verdade).
@@ -65,7 +65,7 @@ todas são intencionais, confirmadas no `PLANNING.md`:
 3. **Limite de 2 por trinca `(carrinho, dia, turno)` NÃO é bloqueado pelo
    sistema** — é só uma meta que o admin persegue manualmente. O sistema
    apenas **sinaliza visualmente** grupos com mais de 2. Nunca implementar
-   uma validação que impeça aprovar/adicionar a 3ª solicitação numa trinca.
+   uma validação que impeça enviar/adicionar a 3ª solicitação numa trinca.
 4. **O único bloqueio automático do sistema inteiro** é a duplicidade: um
    mesmo publicador não pode ter duas solicitações para a mesma
    `(escala, carrinho, dia_semana, turno)` — vale tanto para envio normal
@@ -78,18 +78,21 @@ todas são intencionais, confirmadas no `PLANNING.md`:
    aberta, escala-alvo = mês seguinte; fora disso → fechada. Fora da
    janela, o **histórico do publicador continua sempre acessível** (não é
    afetado pela janela).
-7. **Administrador não é limitado pela janela** — pode ver/aprovar/rejeitar/
+7. **Administrador não é limitado pela janela** — pode ver/excluir/
    adicionar em qualquer escala (passada, atual, futura) a qualquer momento.
-8. **Exclusão pelo publicador** (não existe "cancelar" nem status
-   Cancelada): só pode excluir uma solicitação sua (Pendente ou Aprovada)
-   **com a janela aberta e se ela for da escala do mês-alvo** — validado
+7a. **Sem aprovação nem status**: toda `Solicitacao` existente já conta na
+    escala (não há Pendente/Aprovada/Rejeitada). Tirar alguém = **excluir**
+    o registro, definitivamente — nunca reintroduzir um status.
+8. **Exclusão pelo publicador** (não existe "cancelar"): só pode excluir
+   uma solicitação sua **com a janela aberta e se ela for da escala do mês-alvo** — validado
    também no backend (`DELETE /api/solicitacoes/{id}`, apaga o registro).
    Fora da janela, a tela inicial mostra um aviso no lugar do botão
-   "Solicitar Nova Escala" e a lista fica só leitura. O admin não exclui:
-   ele pode reverter a decisão a qualquer momento (Aprovada ↔ Rejeitada).
+   "Solicitar Nova Escala" e a lista fica só leitura. O admin exclui
+   qualquer solicitação a qualquer momento (`DELETE /api/admin/solicitacoes/{id}`,
+   com modal de confirmação na tela).
    Recusas por janela fechada vêm com `codigo: "JANELA_FECHADA"` no
    ProblemDetails — o frontend decide por esse código, nunca por "qualquer 400".
-9. **Adição manual do admin**: nasce direto como `APROVADA`. Publicador por
+9. **Adição manual do admin**: entra na escala como qualquer outra. Publicador por
    nome livre — se o nome bater exatamente com um existente, reusa o
    registro; senão, cria um novo (pequenas diferenças de grafia podem
    gerar registros distintos — é uma consequência aceita, não um bug).
@@ -103,9 +106,8 @@ todas são intencionais, confirmadas no `PLANNING.md`:
 12. **Sem notificações** (e-mail/push) de nenhum tipo.
 13. **Contagem de apoio ao desempate**: em grupos excedentes (>2
     solicitações), mostrar ao lado de cada publicador quantas solicitações
-    (pendentes+aprovadas, todas as trincas) ele já tem na mesma escala —
-    é só informação de apoio, o sistema **nunca** decide ou sugere quem
-    aprovar.
+    (todas as trincas) ele já tem na mesma escala — é só informação de
+    apoio, o sistema **nunca** decide ou sugere quem excluir.
 
 ## Convenções de execução paralela (múltiplos agentes)
 

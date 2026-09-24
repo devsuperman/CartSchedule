@@ -14,7 +14,6 @@ public record SolicitacaoAgrupadaResponse(
     int Id,
     Guid PublicadorId,
     string PublicadorNome,
-    int Status,
     int Origem,
     DateTimeOffset CriadoEm,
     int TotalNaEscala);

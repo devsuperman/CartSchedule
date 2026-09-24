@@ -15,14 +15,15 @@ public class CriarSolicitacaoTests(ApiFixture fixture) : ApiTestBase(fixture)
     }
 
     [Fact]
-    public async Task TurnoDisponivelNaqueleDia_Cria201Pendente()
+    public async Task TurnoDisponivelNaqueleDia_Cria201SemStatus()
     {
         var carrinhoId = await CarrinhoComSegunda0810ETerca1012Async();
 
         var resposta = await SolicitarAsync(Publicador(), carrinhoId, Segunda, Turno0810);
 
         Assert.Equal(HttpStatusCode.Created, resposta.StatusCode);
-        Assert.Equal(1, (await JsonAsync(resposta)).GetProperty("status").GetInt32()); // Pendente
+        // Não há aprovação: toda solicitação já conta na escala (PLANNING.md regra 12a).
+        Assert.False((await JsonAsync(resposta)).TryGetProperty("status", out _));
     }
 
     [Fact]
