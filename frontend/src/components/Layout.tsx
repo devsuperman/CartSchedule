@@ -30,7 +30,7 @@ function Saudacao() {
       to="/nome"
       state={origem}
       aria-label={`Olá, ${primeiroNome}. Alterar nome`}
-      className="mb-[0.55rem] ml-auto flex max-w-[45%] items-center gap-1.5 rounded-md px-2 py-1 text-[0.95rem] font-semibold text-secondary-foreground/90 underline decoration-secondary-foreground/40 underline-offset-4 hover:bg-secondary-foreground/10 hover:text-secondary-foreground focus-visible:ring-2 focus-visible:ring-accent"
+      className="mb-[0.55rem] ml-auto flex min-w-0 items-center gap-1.5 rounded-md px-2 py-1 text-[0.95rem] font-semibold text-secondary-foreground/90 underline decoration-secondary-foreground/40 underline-offset-4 hover:bg-secondary-foreground/10 hover:text-secondary-foreground focus-visible:ring-2 focus-visible:ring-accent"
     >
       <span className="truncate">Olá, {primeiroNome}</span>
       <PencilIcon aria-hidden className="size-3.5 shrink-0" />
@@ -48,7 +48,8 @@ function Navegacao({ admin }: { admin: boolean }) {
   // "Escala TPL" também é um link para lá.
   if (!admin) {
     return (
-      <div className="flex flex-1 items-end">
+      // min-w-0: a saudação ocupa todo o espaço até o título e só corta ("…") se não couber.
+      <div className="flex min-w-0 flex-1 items-end">
         <Saudacao />
       </div>
     );
