@@ -1,5 +1,6 @@
 using CartSchedule.Api.Domain.Enums;
 using CartSchedule.Api.Infrastructure;
+using CartSchedule.Api.Infrastructure.RateLimiting;
 using CartSchedule.Api.Shared;
 using Microsoft.EntityFrameworkCore;
 
@@ -73,7 +74,8 @@ public static class Endpoint
             await db.SaveChangesAsync();
 
             return Results.NoContent();
-        });
+        })
+        .RequireRateLimiting(RateLimitingExtensions.PoliticaEscritaPublicador);
 
         return app;
     }

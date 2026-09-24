@@ -13,6 +13,7 @@ using CartSchedule.Api.Features.Publicadores.ListarCarrinhosDisponiveis;
 using CartSchedule.Api.Features.Publicadores.ListarHistorico;
 using CartSchedule.Api.Infrastructure;
 using CartSchedule.Api.Infrastructure.Auth;
+using CartSchedule.Api.Infrastructure.RateLimiting;
 using FluentValidation;
 using Microsoft.EntityFrameworkCore;
 
@@ -31,6 +32,8 @@ builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddProblemDetails();
 
 builder.Services.AddAdminAuthentication(builder.Configuration);
+
+builder.Services.AddRateLimiting(builder.Configuration);
 
 builder.Services.AddCors(options =>
 {
@@ -52,10 +55,14 @@ using (var scope = app.Services.CreateScope())
     db.Database.Migrate();
 }
 
+app.UseForwardedHeadersDoProxy();
+
 app.UseCors(FrontendCorsPolicy);
 
 app.UseExceptionHandler();
 app.UseStatusCodePages();
+
+app.UseRateLimiting();
 
 app.UseAdminAuth();
 

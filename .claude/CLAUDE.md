@@ -177,6 +177,10 @@ depender de teste manual no navegador/curl a cada alteração.
 - `VITE_API_URL` é embutida no bundle **em build time**; mudar exige rebuild.
 - `ADMIN_SENHA_HASH` (hash do `PasswordHasher` do ASP.NET) contém `$`: no
   `.env` do compose, escape cada `$` como `$$`.
+- Rate limiting por IP (`Infrastructure/RateLimiting/`) usa o `X-Forwarded-For`
+  com `ForwardLimit = 2` (Caddy → nginx → API): mudou a cadeia de proxies,
+  revise. Os testes rodam com limites altos (`ApiFixture`); para testar o
+  limite, suba um host com `RateLimit:*` baixo (ver `RateLimitingTests`).
 - No container da API as variáveis viram `ConnectionStrings__Default`,
   `Admin__Usuario`, `Admin__SenhaHash`, `Jwt__ChaveSecreta`.
 

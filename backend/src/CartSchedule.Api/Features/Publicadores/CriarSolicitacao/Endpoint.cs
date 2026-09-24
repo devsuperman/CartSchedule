@@ -1,6 +1,7 @@
 using CartSchedule.Api.Domain;
 using CartSchedule.Api.Domain.Enums;
 using CartSchedule.Api.Infrastructure;
+using CartSchedule.Api.Infrastructure.RateLimiting;
 using CartSchedule.Api.Shared;
 using Microsoft.EntityFrameworkCore;
 
@@ -11,7 +12,8 @@ public static class Endpoint
     public static IEndpointRouteBuilder MapCriarSolicitacao(this IEndpointRouteBuilder app)
     {
         app.MapPost("/api/solicitacoes", HandleAsync)
-            .AddEndpointFilter<ValidationFilter<Request>>();
+            .AddEndpointFilter<ValidationFilter<Request>>()
+            .RequireRateLimiting(RateLimitingExtensions.PoliticaEscritaPublicador);
 
         return app;
     }

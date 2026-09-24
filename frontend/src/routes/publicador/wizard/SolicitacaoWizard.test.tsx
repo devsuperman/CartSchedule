@@ -2,7 +2,7 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { apiFetch } from "../../../api/client";
+import { apiFetch, ApiError } from "../../../api/client";
 import { PUBLICADOR_NOME_STORAGE_KEY } from "../../../api/client";
 import { SolicitacaoWizard, type Carrinho } from "./SolicitacaoWizard";
 
@@ -146,6 +146,24 @@ describe("SolicitacaoWizard — carrinho antes do dia da semana", () => {
     );
     const [, opcoes] = mockApiFetch.mock.calls.find(([path]) => path === "/api/solicitacoes")!;
     expect(JSON.parse(opcoes!.body as string)).toEqual({ nome: "Bia", carrinhoId: 1, diaSemana: 2, turnoId: 3 });
+  });
+
+  it("quando o servidor limita o envio (429), mostra o aviso para aguardar", async () => {
+    mockApiFetch.mockImplementation(async (path) => {
+      if (path === "/api/carrinhos") return CARRINHOS;
+      throw new ApiError(429, "Muitas tentativas. Aguarde um pouco e tente novamente.", {
+        codigo: "MUITAS_REQUISICOES",
+      });
+    });
+    const user = renderWizard();
+    await irParaEtapaDoCarrinho();
+    await escolherCarrinho(user, /Carrinho 01/);
+    await user.click(screen.getByRole("radio", { name: /Terça-feira/ }));
+    await continuar(user);
+    await user.click(screen.getByRole("radio", { name: "10:00–12:00" }));
+    await user.click(screen.getByRole("button", { name: "Salvar" }));
+
+    expect(await screen.findByText("Muitas tentativas. Aguarde um pouco e tente novamente.")).toBeInTheDocument();
   });
 });
 

@@ -1,4 +1,5 @@
 using CartSchedule.Api.Infrastructure.Auth;
+using CartSchedule.Api.Infrastructure.RateLimiting;
 using CartSchedule.Api.Shared;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -20,6 +21,7 @@ public static class Endpoint
         app.MapPost("/api/admin/login", Handle)
             .AddEndpointFilter<ValidationFilter<LoginRequest>>()
             .AllowAnonymous()
+            .RequireRateLimiting(RateLimitingExtensions.PoliticaLogin)
             .WithName("AdminLogin");
 
         return app;
