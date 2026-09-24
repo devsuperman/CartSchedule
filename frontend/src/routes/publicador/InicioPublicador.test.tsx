@@ -202,7 +202,7 @@ describe("InicioPublicador — rodapé", () => {
       expect(
         within(dialogo).getByText("Que Jeová abençoe seu trabalho árduo! Vamos te redirecionar pro whatsapp"),
       ).toBeInTheDocument();
-      expect(within(dialogo).getByRole("link", { name: "Ir para o WhatsApp agora" })).toHaveAttribute("href", GRUPO);
+      expect(within(dialogo).queryByRole("link")).not.toBeInTheDocument();
 
       await act(() => vi.advanceTimersByTimeAsync(4000));
       expect(whatsapp.abrir).not.toHaveBeenCalled();
