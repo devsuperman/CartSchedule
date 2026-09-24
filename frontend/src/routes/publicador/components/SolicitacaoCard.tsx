@@ -29,7 +29,8 @@ interface SolicitacaoCardProps {
 /** Card de uma solicitação do publicador. A informação principal é o dia da semana com o
  * turno ao lado (os dois em destaque) e, abaixo, o carrinho, com a descrição logo abaixo do
  * nome quando houver. O status não aparece: a escala oficial é divulgada pelo administrador
- * fora do sistema (grupo de WhatsApp). Abaixo do carrinho, um link discreto para excluir,
+ * fora do sistema (grupo de WhatsApp). Abaixo do carrinho, um link discreto em vermelho ("Cancelar
+ * solicitação") para excluir,
  * quando Pendente/Aprovada e a exclusão é permitida — só com a janela aberta e para a
  * escala do mês-alvo (PLANNING.md regra 8). A exclusão pede confirmação no próprio card
  * (nunca window.confirm). Fora disso, só o administrador mexe no pedido. */
@@ -61,15 +62,15 @@ export function SolicitacaoCard({
           type="button"
           variant="link"
           size="sm"
-          className="h-auto self-start p-0 text-sm font-normal text-muted-foreground hover:text-destructive"
+          className="h-auto self-start p-0 text-sm font-normal text-destructive"
           onClick={() => setConfirmando(true)}
         >
-          Excluir pedido
+          Cancelar solicitação
         </Button>
       )}
       {podeExcluir && confirmando && (
         <div className="mt-2 flex flex-wrap items-center justify-end gap-2">
-          <span className="mr-auto text-[0.95rem] font-semibold">Excluir este pedido?</span>
+          <span className="mr-auto text-[0.95rem] font-semibold">Cancelar esta solicitação?</span>
           <Button
             type="button"
             variant="outline"
@@ -86,7 +87,7 @@ export function SolicitacaoCard({
             onClick={() => onExcluir(solicitacao.id)}
             disabled={excluindo}
           >
-            {excluindo ? "Excluindo…" : "Confirmar"}
+            {excluindo ? "Cancelando…" : "Confirmar"}
           </Button>
         </div>
       )}

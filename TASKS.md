@@ -451,7 +451,7 @@ aditivo: `GET /api/solicitacoes` ganha `carrinhoDescricao: string | null`.
 | F7-FE-05 | `InicioPublicador.tsx`, `SolicitacaoCard.tsx`, `wizard/EtapaNome.tsx`, `EtapaDiaSemana.tsx`, `SolicitacaoWizard.tsx` | Menos texto nas telas do publicador: sem "Minhas escalas"/"Pedidos deste mês e do próximo"; sem status no card e sem as rejeitadas na lista; título da lista "Minhas solicitações para <mês>"; etapa do nome sem rótulo/ajuda; etapa do dia sem "Vale para todas as semanas…" e sem os dias em que o carrinho não tem turno. |
 | F7-FE-06 | `components/SolicitacaoCard.tsx` | Card do histórico: turno ao lado do dia da semana, com o mesmo destaque; carrinho (nome + descrição) na linha de baixo. |
 | F7-FE-07 | `wizard/SolicitacaoWizard.tsx`, `EtapaNome.tsx` | Com nome já salvo no navegador, o wizard abre direto na etapa do carrinho; o nome só é alterado tocando em "Voltar". Sem nome salvo, começa pela etapa do nome como antes. |
-| F7-FE-08 | `components/SolicitacaoCard.tsx` | "Excluir pedido" vira um link pequeno e discreto (cinza, vermelho só no hover) abaixo da descrição do carrinho, sem disputar espaço com o dia e o turno; confirmação continua no próprio card. |
+| F7-FE-08 | `components/SolicitacaoCard.tsx`, `InicioPublicador.tsx` | O botão de excluir vira um link pequeno e discreto em vermelho, **"Cancelar solicitação"**, abaixo da descrição do carrinho, sem disputar espaço com o dia e o turno; a confirmação continua no próprio card ("Cancelar esta solicitação?"). Só muda o texto da tela: a ação continua sendo a exclusão (`DELETE`, sem status Cancelada). |
 
 Nenhuma tarefa compartilha arquivos (`F7-FE-04` só depende do contrato
 acima e ajusta a lista do `F7-FE-02` depois dele); podem rodar em paralelo.
