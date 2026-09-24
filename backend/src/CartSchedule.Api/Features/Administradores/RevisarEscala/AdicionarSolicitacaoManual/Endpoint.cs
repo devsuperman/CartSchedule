@@ -34,13 +34,17 @@ public static class Endpoint
         }
 
         var carrinhoTurnoExiste = await db.CarrinhoTurnos
-            .AnyAsync(ct2 => ct2.CarrinhoId == request.CarrinhoId && ct2.TurnoId == request.TurnoId, ct);
+            .AnyAsync(
+                ct2 => ct2.CarrinhoId == request.CarrinhoId
+                    && ct2.DiaSemana == request.DiaSemana
+                    && ct2.TurnoId == request.TurnoId,
+                ct);
 
         if (!carrinhoTurnoExiste)
         {
             return Results.ValidationProblem(new Dictionary<string, string[]>
             {
-                ["turnoId"] = ["O turno informado não está disponível para o carrinho informado."],
+                ["turnoId"] = ["O turno informado não está disponível para esse carrinho nesse dia da semana."],
             });
         }
 

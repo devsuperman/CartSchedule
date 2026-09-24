@@ -42,13 +42,17 @@ public static class Endpoint
         }
 
         var turnoPertenceAoCarrinho = await db.CarrinhoTurnos
-            .AnyAsync(ct2 => ct2.CarrinhoId == request.CarrinhoId && ct2.TurnoId == request.TurnoId, ct);
+            .AnyAsync(
+                ct2 => ct2.CarrinhoId == request.CarrinhoId
+                    && ct2.DiaSemana == request.DiaSemana
+                    && ct2.TurnoId == request.TurnoId,
+                ct);
 
         if (!turnoPertenceAoCarrinho)
         {
             return Results.Problem(
                 title: "Turno indisponível para o carrinho selecionado",
-                detail: "O turno escolhido não está configurado como disponível para o carrinho selecionado.",
+                detail: "O turno escolhido não está disponível para esse carrinho nesse dia da semana.",
                 statusCode: StatusCodes.Status400BadRequest);
         }
 

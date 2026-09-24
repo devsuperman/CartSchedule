@@ -8,7 +8,7 @@ namespace CartSchedule.Api.Features.Administradores.GerenciarCarrinhos;
 
 /// <summary>
 /// CRUD de Carrinho (nome, descrição opcional, ativo) para o administrador. A associação com os turnos fixos
-/// do sistema é responsabilidade do slice GerenciarTurnosDoCarrinho — aqui, TurnoIds é
+/// do sistema é responsabilidade do slice GerenciarTurnosDoCarrinho — aqui, Disponibilidades é
 /// apenas um campo de leitura de conveniência.
 /// </summary>
 public static class Endpoint
@@ -38,7 +38,11 @@ public static class Endpoint
                 c.Nome,
                 c.Descricao,
                 c.Ativo,
-                c.CarrinhoTurnos.Select(ct => ct.TurnoId).ToList()))
+                c.CarrinhoTurnos
+                    .OrderBy(ct => ct.DiaSemana)
+                    .ThenBy(ct => ct.TurnoId)
+                    .Select(ct => new DisponibilidadeResponse(ct.DiaSemana, ct.TurnoId))
+                    .ToList()))
             .ToListAsync();
 
         return TypedResults.Ok(carrinhos);
@@ -86,7 +90,11 @@ public static class Endpoint
             carrinho.Nome,
             carrinho.Descricao,
             carrinho.Ativo,
-            carrinho.CarrinhoTurnos.Select(ct => ct.TurnoId).ToList());
+            carrinho.CarrinhoTurnos
+                .OrderBy(ct => ct.DiaSemana)
+                .ThenBy(ct => ct.TurnoId)
+                .Select(ct => new DisponibilidadeResponse(ct.DiaSemana, ct.TurnoId))
+                .ToList());
 
         return TypedResults.Ok(response);
     }
