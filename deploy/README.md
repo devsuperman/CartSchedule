@@ -63,6 +63,11 @@ chmod 600 .env
 
 `DOMINIO` vai sem `https://` (ex.: `escala.seudominio.com.br`).
 
+Opcional: `WHATSAPP_GRUPO_URL` com o link de convite do grupo do WhatsApp
+(WhatsApp → dados do grupo → *Convidar via link*). Ele liga o botão
+"Terminei!", que devolve o publicador para o grupo. Quem abre o site vê esse
+link; se mudar, rode `dc up -d --build`.
+
 ## 5. Subir
 
 ```bash

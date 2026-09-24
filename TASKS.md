@@ -480,7 +480,24 @@ Detalhes em `TECHNICAL_SPEC.md` §2.9.
 
 ---
 
-## Backlog (Fase 9 — opcional, fora do escopo inicial)
+## Fase 9 — Rodapé do publicador
+
+O publicador chega pelo link do grupo do WhatsApp, no celular. Só frontend e
+configuração de build — nenhuma regra de negócio muda.
+
+| ID | Entrega | Critério de aceite |
+|---|---|---|
+| F9-FE-01 | `routes/publicador/InicioPublicador.tsx` | "Solicitar Nova Escala" sai do topo e vai para um rodapé fixo na base da tela (visível ao rolar, sem cobrir o último card). O aviso de janela fechada continua no topo. |
+| F9-FE-02 | `InicioPublicador.tsx`, `constants/whatsapp.ts`, `Dockerfile`, compose, `.env.example` | Botão "Terminei!" abaixo da lista de pedidos (janela aberta ou fechada) é um link para `WHATSAPP_GRUPO_URL`, que no celular abre o grupo no app do WhatsApp (o navegador não deixa o site fechar a aba). Sem a variável, o botão não aparece. |
+
+### Verificação da Fase 9
+
+`npm test`, `npm run lint`, `npm run build`; no celular, abrir o site pelo
+WhatsApp e tocar em "Terminei!".
+
+---
+
+## Backlog (Fase 10 — opcional, fora do escopo inicial)
 
 Não paralelizar ainda — só entra depois que Fases 0–4 estiverem completas
 e validadas:

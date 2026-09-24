@@ -4,6 +4,7 @@ import { apiFetch, ApiError } from "../../api/client";
 import { ehErroDeJanelaFechada, useJanela } from "../../hooks/useJanela";
 import { usePublicadorToken } from "../../hooks/usePublicadorToken";
 import { formatarNomeMes, STATUS } from "../../utils/formatacao";
+import { GRUPO_WHATSAPP_URL } from "../../constants/whatsapp";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -30,8 +31,10 @@ function ordenarPorDiaTurnoCarrinho(lista: Solicitacao[]): Solicitacao[] {
 /**
  * Rota "/": tela inicial do publicador. Mostra os pedidos do mês atual e do próximo
  * (mesAlvo). Com a janela aberta, há um botão para solicitar uma nova escala e os pedidos
- * do mês-alvo podem ser excluídos; com ela fechada, um aviso toma o lugar do botão e a
- * lista fica só para leitura (PLANNING.md regra 8). Se o publicador nunca fez nenhuma
+ * do mês-alvo podem ser excluídos; com ela fechada, um aviso aparece no topo, o botão some
+ * e a lista fica só para leitura (PLANNING.md regra 8). O botão fica num rodapé fixo na
+ * base da tela. Abaixo da lista, "Terminei!" volta para o grupo do WhatsApp (os navegadores
+ * não deixam o site fechar a própria aba). Se o publicador nunca fez nenhuma
  * solicitação e a janela está aberta, redireciona automaticamente para "/solicitar" —
  * sem precisar clicar em nada (fluxo de primeiro acesso).
  *
@@ -129,6 +132,8 @@ export default function InicioPublicador() {
     (s) => mesesRelevantes.has(s.escalaMesReferencia) && s.status !== STATUS.Rejeitada,
   );
 
+  const podeSolicitar = !erroJanela && janela?.aberta === true;
+
   const porMes = new Map<string, Solicitacao[]>();
   for (const s of relevantes) {
     const lista = porMes.get(s.escalaMesReferencia) ?? [];
@@ -140,11 +145,7 @@ export default function InicioPublicador() {
     <section className="flex flex-col gap-4">
       {erroJanela || !janela ? (
         <ErroJanela onTentarNovamente={tentarJanelaNovamente} />
-      ) : janela.aberta ? (
-        <Button asChild size="lg" className="w-full">
-          <Link to="/solicitar">Solicitar Nova Escala</Link>
-        </Button>
-      ) : (
+      ) : janela.aberta ? null : (
         <Alert>
           <AlertTitle>Envio de pedidos fechado</AlertTitle>
           <AlertDescription>
@@ -189,6 +190,27 @@ export default function InicioPublicador() {
             </ul>
           </div>
         ))}
+
+      {GRUPO_WHATSAPP_URL && (
+        // Link comum: no celular o sistema entrega o chat.whatsapp.com ao app do WhatsApp.
+        <Button asChild size="lg" variant="outline" className="w-full">
+          <a href={GRUPO_WHATSAPP_URL}>Terminei!</a>
+        </Button>
+      )}
+
+      {podeSolicitar && (
+        <>
+          {/* Reserva o espaço do rodapé fixo para ele não cobrir o fim da página. */}
+          <div aria-hidden className="h-[calc(2rem+env(safe-area-inset-bottom))]" />
+          <div className="fixed inset-x-0 bottom-0 z-10 border-t border-border bg-background">
+            <div className="mx-auto max-w-4xl px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+              <Button asChild size="lg" className="w-full">
+                <Link to="/solicitar">Solicitar Nova Escala</Link>
+              </Button>
+            </div>
+          </div>
+        </>
+      )}
     </section>
   );
 }
