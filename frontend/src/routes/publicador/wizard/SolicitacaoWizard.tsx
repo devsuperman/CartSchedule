@@ -4,7 +4,7 @@ import { apiFetch, ApiError } from "../../../api/client";
 import { usePublicadorToken } from "../../../hooks/usePublicadorToken";
 import { ehErroDeJanelaFechada } from "../../../hooks/useJanela";
 import { TURNOS } from "../../../constants/turnos";
-import type { DiaSemana } from "../../../constants/diasSemana";
+import { DIAS_SEMANA, type DiaSemana } from "../../../constants/diasSemana";
 import { formatarMes } from "../../../utils/formatacao";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -15,12 +15,21 @@ import { EtapaDiaSemana } from "./EtapaDiaSemana";
 import { EtapaCarrinho } from "./EtapaCarrinho";
 import { EtapaTurno } from "./EtapaTurno";
 
-/** Contrato de GET /api/carrinhos (TECHNICAL_SPEC.md, tarefas F1-BE-02/F5-BE-01). */
+/** Contrato de GET /api/carrinhos (TECHNICAL_SPEC.md, tarefas F1-BE-02/F5-BE-01/F6-BE-03):
+ * `disponibilidades` são os pares (dia da semana, turno) habilitados no carrinho. */
 export interface Carrinho {
   id: number;
   nome: string;
   descricao: string | null;
-  turnoIds: number[];
+  disponibilidades: { diaSemana: DiaSemana; turnoId: number }[];
+}
+
+function temTurnoNoDia(carrinho: Carrinho, dia: DiaSemana): boolean {
+  return carrinho.disponibilidades.some((d) => d.diaSemana === dia);
+}
+
+function temTurno(carrinho: Carrinho, dia: DiaSemana, turnoId: number): boolean {
+  return carrinho.disponibilidades.some((d) => d.diaSemana === dia && d.turnoId === turnoId);
 }
 
 /** Contrato de POST /api/solicitacoes (TECHNICAL_SPEC.md, tarefa F1-BE-03). */
@@ -102,10 +111,33 @@ export function SolicitacaoWizard({ mesAlvo }: SolicitacaoWizardProps) {
     [carrinhos, carrinhoId],
   );
 
+  // Os turnos agora dependem do dia (PLANNING.md regra 17): dias sem turno em nenhum
+  // carrinho ficam desabilitados, e só aparecem carrinhos/turnos daquele dia.
+  const diasComTurno = useMemo(
+    () => new Set(carrinhos.flatMap((c) => c.disponibilidades.map((d) => d.diaSemana))),
+    [carrinhos],
+  );
+
+  const carrinhosDoDia = useMemo(
+    () => (diaSemana == null ? [] : carrinhos.filter((c) => temTurnoNoDia(c, diaSemana))),
+    [carrinhos, diaSemana],
+  );
+
   const turnosDisponiveis = useMemo(() => {
-    if (!carrinhoSelecionado) return [];
-    return TURNOS.filter((t) => carrinhoSelecionado.turnoIds.includes(t.id));
-  }, [carrinhoSelecionado]);
+    if (!carrinhoSelecionado || diaSemana == null) return [];
+    return TURNOS.filter((t) => temTurno(carrinhoSelecionado, diaSemana, t.id));
+  }, [carrinhoSelecionado, diaSemana]);
+
+  function selecionarDia(dia: DiaSemana) {
+    setDiaSemana(dia);
+    // Carrinho/turno escolhidos antes (usuário voltou etapas) podem não valer no novo dia.
+    if (carrinhoSelecionado && !temTurnoNoDia(carrinhoSelecionado, dia)) {
+      setCarrinhoId(null);
+      setTurnoId(null);
+    } else if (carrinhoSelecionado && turnoId != null && !temTurno(carrinhoSelecionado, dia, turnoId)) {
+      setTurnoId(null);
+    }
+  }
 
   function selecionarCarrinho(id: number) {
     setCarrinhoId(id);
@@ -167,11 +199,18 @@ export function SolicitacaoWizard({ mesAlvo }: SolicitacaoWizardProps) {
       case 1:
         return <EtapaNome nome={nome} onChange={setNome} />;
       case 2:
-        return <EtapaDiaSemana valor={diaSemana} onSelecionar={setDiaSemana} />;
+        return (
+          <EtapaDiaSemana
+            valor={diaSemana}
+            diasDisponiveis={carregandoCarrinhos || erroCarrinhos ? null : diasComTurno}
+            onSelecionar={selecionarDia}
+          />
+        );
       case 3:
         return (
           <EtapaCarrinho
-            carrinhos={carrinhos}
+            carrinhos={carrinhosDoDia}
+            diaLabel={DIAS_SEMANA.find((d) => d.valor === diaSemana)?.label}
             carregando={carregandoCarrinhos}
             erro={erroCarrinhos}
             valor={carrinhoId}
