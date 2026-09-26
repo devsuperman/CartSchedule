@@ -12,7 +12,7 @@ namespace CartSchedule.Api.Tests.Infraestrutura;
 /// Sobe um PostgreSQL real (Testcontainers) e a API inteira em memória
 /// (WebApplicationFactory) uma única vez para todos os testes da coleção "api". As
 /// migrations rodam no startup da API, como em produção. O relógio é um
-/// RelogioDeTeste para os testes controlarem a janela de envio (dias 15–25).
+/// RelogioDeTeste para os testes controlarem a janela de envio (dias 15–27).
 /// </summary>
 public sealed class ApiFixture : IAsyncLifetime
 {

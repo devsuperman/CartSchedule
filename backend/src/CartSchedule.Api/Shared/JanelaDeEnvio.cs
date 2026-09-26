@@ -3,10 +3,10 @@ namespace CartSchedule.Api.Shared;
 /// <summary>
 /// Calcula em tempo real (sem job/cron) se a janela de envio do publicador está aberta
 /// e para qual mês-alvo, a partir da data atual do servidor (PLANNING.md §4,
-/// TECHNICAL_SPEC.md §2.5). Aberta do dia 15 ao dia 25 (inclusive) do mês corrente;
+/// TECHNICAL_SPEC.md §2.5). Aberta do dia 15 ao dia 27 (inclusive) do mês corrente;
 /// a escala-alvo é sempre o mês seguinte ao mês corrente.
 /// "Hoje" é a data no horário de Brasília, e não em UTC: servidores/containers rodam
-/// em UTC, o que abriria e fecharia a janela 3h antes (às 21h dos dias 14 e 25).
+/// em UTC, o que abriria e fecharia a janela 3h antes (às 21h dos dias 14 e 27).
 /// </summary>
 public static class JanelaDeEnvio
 {
@@ -17,7 +17,7 @@ public static class JanelaDeEnvio
     public const string CodigoJanelaFechada = "JANELA_FECHADA";
 
     private const int DiaAbertura = 15;
-    private const int DiaFechamento = 25;
+    private const int DiaFechamento = 27;
 
     public static JanelaStatus Calcular(DateOnly hoje)
     {

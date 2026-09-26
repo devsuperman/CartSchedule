@@ -146,7 +146,7 @@ Não há job agendado nem tarefa de background: a janela de envio (regra
 partir da data atual do servidor, toda vez que uma requisição chega
 (função utilitária em `Shared/JanelaDeEnvio.cs`):
 
-- Dia do mês entre 15 e 25 (inclusive) → janela aberta; escala-alvo = mês seguinte ao atual.
+- Dia do mês entre 15 e 27 (inclusive) → janela aberta; escala-alvo = mês seguinte ao atual.
 - Fora desse intervalo → janela fechada.
 
 Requests recusados por a janela estar fechada (`CriarSolicitacao`, `ExcluirSolicitacao`
