@@ -3,15 +3,15 @@ using CartSchedule.Api.Tests.Infraestrutura;
 
 namespace CartSchedule.Api.Tests.Shared;
 
-/// <summary>PLANNING.md regra 6: janela aberta do dia 15 ao 25 (inclusive), mês-alvo = mês seguinte.</summary>
+/// <summary>PLANNING.md regra 6: janela aberta do dia 15 ao 27 (inclusive), mês-alvo = mês seguinte.</summary>
 public class JanelaDeEnvioTests
 {
     [Theory]
     [InlineData(14, false)]
     [InlineData(15, true)]
-    [InlineData(25, true)]
-    [InlineData(26, false)]
-    public void Calcular_AbreSoDoDia15Ao25(int dia, bool aberta)
+    [InlineData(27, true)]
+    [InlineData(28, false)]
+    public void Calcular_AbreSoDoDia15Ao27(int dia, bool aberta)
     {
         var status = JanelaDeEnvio.Calcular(new DateOnly(2026, 9, dia));
 
@@ -28,9 +28,9 @@ public class JanelaDeEnvioTests
     [Fact]
     public void CalcularParaHoje_UsaHorarioDeBrasilia_NaoUtc()
     {
-        // 25/09 às 23:30 em Brasília já é 26/09 em UTC — a janela ainda deve estar aberta.
-        var fimDoDia25 = new RelogioDeTeste(new DateTimeOffset(2026, 9, 26, 2, 30, 0, TimeSpan.Zero));
-        Assert.True(JanelaDeEnvio.CalcularParaHoje(fimDoDia25).Aberta);
+        // 27/09 às 23:30 em Brasília já é 28/09 em UTC — a janela ainda deve estar aberta.
+        var fimDoDia27 = new RelogioDeTeste(new DateTimeOffset(2026, 9, 28, 2, 30, 0, TimeSpan.Zero));
+        Assert.True(JanelaDeEnvio.CalcularParaHoje(fimDoDia27).Aberta);
 
         // 14/09 às 22:00 em Brasília já é 15/09 em UTC — a janela ainda deve estar fechada.
         var noiteDoDia14 = new RelogioDeTeste(new DateTimeOffset(2026, 9, 15, 1, 0, 0, TimeSpan.Zero));

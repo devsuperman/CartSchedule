@@ -150,7 +150,7 @@ export default function InicioPublicador() {
         <Alert>
           <AlertTitle>Envio de pedidos fechado</AlertTitle>
           <AlertDescription>
-            Os pedidos podem ser enviados do dia 15 ao dia 25 de cada mês. Fora desse período,
+            Os pedidos podem ser enviados do dia 15 ao dia 27 de cada mês. Fora desse período,
             para excluir um pedido, fale com o administrador.
           </AlertDescription>
         </Alert>

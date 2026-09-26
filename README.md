@@ -48,7 +48,7 @@ commit, não com IA como ajuda pontual.
 - **6 turnos fixos**, não cadastráveis: 06–08, 08–10, 10–12, 14–16, 16–18,
   18–20. O admin só escolhe quais deles cada carrinho oferece em cada dia
   da semana.
-- **Janela de envio automática**, sem cron: do dia 15 ao dia 25 do mês, o
+- **Janela de envio automática**, sem cron: do dia 15 ao dia 27 do mês, o
   publicador envia para a escala do mês seguinte. Fora disso, o envio fica
   fechado, mas o histórico continua acessível. O admin não é limitado pela
   janela.

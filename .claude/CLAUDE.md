@@ -77,7 +77,7 @@ todas são intencionais, confirmadas no `PLANNING.md`:
    pelo publicador ("Olá, Fulano" → `PUT /api/publicador`) e pelo admin
    (`PUT /api/admin/publicadores/{id}`). Nomes repetidos são permitidos.
 6. **Janela de envio automática**, sem job/cron: calculada em tempo real a
-   cada request a partir da data do servidor — dia do mês entre 15 e 25 →
+   cada request a partir da data do servidor — dia do mês entre 15 e 27 →
    aberta, escala-alvo = mês seguinte; fora disso → fechada. Fora da
    janela, o **histórico do publicador continua sempre acessível** (não é
    afetado pela janela).

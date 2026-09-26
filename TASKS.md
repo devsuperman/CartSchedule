@@ -375,7 +375,7 @@ de `F5-BE-02` pode ser feito antes, em paralelo.
 
 `dotnet build backend/CartSchedule.Api.slnx`, `npm run build`,
 `npm run lint`, e `docker compose up --build` (com data do servidor dentro
-da janela, dias 15–25):
+da janela, dias 15–27):
 1. Header "Escala TPL".
 2. Admin cria um carrinho com descrição, edita nome/descrição,
    desativa/ativa sem perder a descrição.

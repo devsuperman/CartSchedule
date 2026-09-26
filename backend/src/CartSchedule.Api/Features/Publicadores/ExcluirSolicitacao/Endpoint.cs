@@ -47,7 +47,7 @@ public static class Endpoint
             {
                 return Results.Problem(
                     title: "Janela de envio fechada",
-                    detail: "Solicitações só podem ser excluídas entre os dias 15 e 25 do mês. Fora desse período, fale com o administrador.",
+                    detail: "Solicitações só podem ser excluídas entre os dias 15 e 27 do mês. Fora desse período, fale com o administrador.",
                     statusCode: StatusCodes.Status400BadRequest,
                     extensions: new Dictionary<string, object?> { ["codigo"] = JanelaDeEnvio.CodigoJanelaFechada });
             }
