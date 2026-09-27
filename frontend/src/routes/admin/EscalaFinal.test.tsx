@@ -110,6 +110,13 @@ describe("EscalaFinal (gestão da escala)", () => {
     expect(within(barra).getByRole("button", { name: "Editar nome" })).toBeInTheDocument();
     expect(within(barra).getByRole("button", { name: "Excluir pedido" })).toBeInTheDocument();
     expect(within(barra).queryByRole("button", { name: /cancelar/i })).not.toBeInTheDocument();
+    // Editar nome e Excluir à esquerda, Mover à direita.
+    expect(within(barra).getAllByRole("button").map((b) => b.textContent || b.getAttribute("aria-label"))).toEqual([
+      "Fechar",
+      "Editar nome",
+      "Excluir pedido",
+      "Mover",
+    ]);
 
     await user.click(within(barra).getByRole("button", { name: "Fechar" }));
     expect(screen.queryByRole("region", { name: "Ações do pedido selecionado" })).not.toBeInTheDocument();

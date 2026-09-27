@@ -355,11 +355,9 @@ export default function EscalaFinal() {
                 </Button>
               </div>
               {modo === "acoes" && (
-                <>
-                  <div className="flex gap-2">
-                    <Button type="button" size="lg" className="flex-1" onClick={() => setEscolhendoDestino(true)}>
-                      Mover
-                    </Button>
+                // Esquerda: Editar nome e, embaixo, o Excluir discreto. Direita: Mover, a ação principal.
+                <div className="flex items-start gap-3">
+                  <div className="flex flex-col items-start gap-1">
                     <Button
                       type="button"
                       variant="outline"
@@ -373,19 +371,20 @@ export default function EscalaFinal() {
                     >
                       Editar nome
                     </Button>
-                  </div>
-                  <div className="flex justify-end">
                     <Button
                       type="button"
                       variant="link"
                       size="sm"
-                      className="h-auto px-1 py-0.5 text-[0.85rem] font-normal text-destructive"
+                      className="h-auto px-1 py-1 text-[0.85rem] font-normal text-destructive"
                       onClick={() => setExclusao({ pedido: selecionado.pedido, celula: selecionado.celula })}
                     >
                       Excluir pedido
                     </Button>
                   </div>
-                </>
+                  <Button type="button" size="lg" className="flex-1" onClick={() => setEscolhendoDestino(true)}>
+                    Mover
+                  </Button>
+                </div>
               )}
             </div>
           </div>
