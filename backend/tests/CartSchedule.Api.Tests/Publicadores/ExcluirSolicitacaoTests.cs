@@ -32,7 +32,7 @@ public class ExcluirSolicitacaoTests(ApiFixture fixture) : ApiTestBase(fixture)
     public async Task ForaDaJanela_Retorna400ComCodigoJanelaFechada()
     {
         var (publicador, _, solicitacaoId) = await SolicitacaoCriadaAsync();
-        Fixture.Relogio.Agora = new DateTimeOffset(2026, 9, 27, 15, 0, 0, TimeSpan.Zero);
+        Fixture.Relogio.Agora = new DateTimeOffset(2026, 9, 28, 15, 0, 0, TimeSpan.Zero);
 
         var resposta = await publicador.DeleteAsync($"/api/solicitacoes/{solicitacaoId}");
 
