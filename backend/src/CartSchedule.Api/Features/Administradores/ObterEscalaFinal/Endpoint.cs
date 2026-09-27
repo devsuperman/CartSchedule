@@ -83,7 +83,8 @@ public static class Endpoint
                         s.PublicadorId,
                         s.Publicador.Nome,
                         s.Origem,
-                        totalPorPublicador[s.PublicadorId]))
+                        totalPorPublicador[s.PublicadorId],
+                        s.Publicador.CriancaOuIdoso))
                     .ToList()))
             .ToList();
 

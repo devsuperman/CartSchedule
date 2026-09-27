@@ -46,6 +46,36 @@ public class RenomearPublicadorTests(ApiFixture fixture) : ApiTestBase(fixture)
     }
 
     [Fact]
+    public async Task MarcaEDesmarcaCriancaOuIdoso_EmTodosOsPedidos()
+    {
+        var (admin, id) = await PublicadorComPedidoAsync();
+
+        var marcar = await admin.PutAsJsonAsync($"/api/admin/publicadores/{id}", new { nome = "Joao", criancaOuIdoso = true });
+
+        Assert.Equal(HttpStatusCode.NoContent, marcar.StatusCode);
+        Assert.All(PedidosDaGrade(await GradeAsync(admin)), p => Assert.True(p.GetProperty("criancaOuIdoso").GetBoolean()));
+
+        await admin.PutAsJsonAsync($"/api/admin/publicadores/{id}", new { nome = "Joao", criancaOuIdoso = false });
+
+        Assert.All(PedidosDaGrade(await GradeAsync(admin)), p => Assert.False(p.GetProperty("criancaOuIdoso").GetBoolean()));
+    }
+
+    [Fact]
+    public async Task SoONome_MantemAMarca()
+    {
+        var (admin, id) = await PublicadorComPedidoAsync();
+        await admin.PutAsJsonAsync($"/api/admin/publicadores/{id}", new { nome = "Joao", criancaOuIdoso = true });
+
+        Assert.Equal(HttpStatusCode.NoContent, (await RenomearAsync(admin, id, "João")).StatusCode);
+
+        Assert.All(PedidosDaGrade(await GradeAsync(admin)), p =>
+        {
+            Assert.Equal("João", p.GetProperty("publicadorNome").GetString());
+            Assert.True(p.GetProperty("criancaOuIdoso").GetBoolean());
+        });
+    }
+
+    [Fact]
     public async Task Inexistente_Retorna404()
     {
         var admin = await AdminAsync();

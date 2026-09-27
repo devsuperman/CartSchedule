@@ -10,6 +10,8 @@ public class Response
 
     public string PublicadorNome { get; set; } = string.Empty;
 
+    public bool CriancaOuIdoso { get; set; }
+
     public int CarrinhoId { get; set; }
 
     public DiaSemana DiaSemana { get; set; }

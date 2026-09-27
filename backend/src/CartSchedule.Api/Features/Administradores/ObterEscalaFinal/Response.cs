@@ -27,10 +27,13 @@ public record EscalaFinalCelulaResponse(
 /// <summary>
 /// Um pedido na célula. <see cref="TotalNaEscala"/> é a contagem de apoio (regra 13): quantos
 /// pedidos o publicador tem na escala inteira — só informação, nunca critério automático.
+/// <see cref="CriancaOuIdoso"/> deixa o frontend aceitar uma 3ª pessoa na vaga sem sinalizar
+/// excesso (regra 1); o backend não calcula limite.
 /// </summary>
 public record PublicadorNaEscalaResponse(
     int SolicitacaoId,
     Guid PublicadorId,
     string PublicadorNome,
     OrigemSolicitacao Origem,
-    int TotalNaEscala);
+    int TotalNaEscala,
+    bool CriancaOuIdoso);
