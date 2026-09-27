@@ -573,7 +573,29 @@ passa para a tela da Escala, usada em celular/tablet; Revisão e Adicionar saem.
 
 ---
 
-## Backlog (Fase 14 — opcional, fora do escopo inicial)
+## Fase 14 — Criança ou idoso como 3ª pessoa e vagas por cor
+
+Uma vaga pode ter uma 3ª pessoa se ela for criança ou idoso. A tela da
+Escala deixa de escrever a ocupação ("livre", "1 de 2", "cheia") e passa a
+usar só a cor: verde para vaga completa, vermelho para vaga com 1 pessoa ou
+com excesso (PLANNING.md regras 1, 3 e 4). Continua sem nenhum bloqueio.
+
+| ID | Entrega | Critério de aceite |
+|---|---|---|
+| F14-DOC-01 | `PLANNING.md`, `TECHNICAL_SPEC.md`, `.claude/CLAUDE.md`, `TASKS.md` | Regras 1, 3 e 4 com a meta 2 (ou 3 com criança/idoso) e os estados vazia / incompleta / completa / excesso; `Publicador.crianca_ou_idoso`; contratos abaixo. |
+| F14-BE-01 | `Domain/Publicador.cs`, `AppDbContext`, migration | `CriancaOuIdoso bool`, não nulo, padrão `false` (publicadores existentes ficam `false`). |
+| F14-BE-02 | `RenomearPublicador`, `ObterEscalaFinal`, `AdicionarSolicitacaoManual`, testes | `PUT /api/admin/publicadores/{id}` aceita `{ nome, criancaOuIdoso? }` (ausente = não muda). Cada pedido da grade traz `criancaOuIdoso`. A adição manual aceita `criancaOuIdoso?`: `true` marca a pessoa (nova ou reusada), nunca desmarca; a resposta traz `criancaOuIdoso`. Vaga com 3 ou 4 pessoas continua sem bloqueio. |
+| F14-FE-01 | `routes/admin/components/gradeEscala.ts` (+ teste) | Saem `LIMITE_POR_VAGA` e `ocupacao()`. `estadoVaga(c)`: 0 → `vazia`; 1 → `incompleta`; 2, ou 3 com alguém marcado → `completa`; resto → `excesso`. `precisaAtencao` (incompleta/excesso), `estadoCom`/`estadoSem` (como a vaga fica se alguém entra/sai) e `rotuloEstado` (texto só para leitor de tela). |
+| F14-FE-02 | `routes/admin/EscalaFinal.tsx`, `routes/admin/components/CelulaEscala.tsx` (+ testes) | Sem texto de ocupação na célula. Fundo verde (`success-muted`) na completa; vermelho (`destructive-muted` + barra) na incompleta e no excesso; vazia neutra. Resumo: Pedidos / Vagas com 1 pessoa / Vagas com excesso. Seletor de dia (celular): ponto vermelho nos dias com vaga que precisa de atenção. Mover: cada destino tem a cor de como ficaria com a pessoa. Chip de quem é criança/idoso tem um ícone; a barra do rodapé diz "criança ou idoso". Estado no `aria-label`. |
+| F14-FE-03 | `routes/admin/components/ModalEditarNome.tsx` ("Editar pessoa"), `ModaisEscala.tsx` (+ testes) | "Editar pessoa": nome + caixa "Criança ou idoso (pode ser a 3ª pessoa da vaga)". O "+" também tem a caixa. Aviso (sem bloqueio) quando o destino fica com excesso e quando a origem de um mover fica com 1 pessoa. |
+
+### Verificação da Fase 14
+
+`dotnet test`, `npm test`, `npm run lint`, `npm run build`.
+
+---
+
+## Backlog (Fase 15 — opcional, fora do escopo inicial)
 
 Não paralelizar ainda — só entra depois que Fases 0–4 estiverem completas
 e validadas:

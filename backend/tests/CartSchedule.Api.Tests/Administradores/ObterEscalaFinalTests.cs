@@ -75,5 +75,6 @@ public class ObterEscalaFinalTests(ApiFixture fixture) : ApiTestBase(fixture)
         var bia = pedidos.Single(p => p.GetProperty("publicadorNome").GetString() == "Bia");
         Assert.Equal(2, bia.GetProperty("origem").GetInt32());
         Assert.Equal(1, bia.GetProperty("totalNaEscala").GetInt32());
+        Assert.All(pedidos, p => Assert.False(p.GetProperty("criancaOuIdoso").GetBoolean()));
     }
 }

@@ -15,4 +15,10 @@ public class Request
     public DiaSemana DiaSemana { get; set; }
 
     public int TurnoId { get; set; }
+
+    /// <summary>
+    /// true marca a pessoa como criança ou idoso (PLANNING.md regra 1), seja ela nova ou
+    /// reusada pelo nome; a adição nunca desmarca (isso é feito em "Editar pessoa").
+    /// </summary>
+    public bool? CriancaOuIdoso { get; set; }
 }

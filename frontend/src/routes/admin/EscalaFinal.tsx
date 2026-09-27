@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import { XIcon } from "lucide-react";
+import { HandHeartIcon, XIcon } from "lucide-react";
 import { apiFetch } from "../../api/client";
 import { DIAS_SEMANA } from "../../constants/diasSemana";
 import { TURNOS } from "../../constants/turnos";
@@ -15,13 +15,15 @@ import { CelulaEscala, type ModoGestao } from "./components/CelulaEscala";
 import { ModalEditarNome, type PublicadorEmEdicao } from "./components/ModalEditarNome";
 import { ModalAdicionar, ModalExcluir, ModalMover, type Exclusao, type Movimento } from "./components/ModaisEscala";
 import {
+  atualizarPessoa,
   chaveCelula,
+  classeEstado,
   comPedido,
   descreverCelula,
-  LIMITE_POR_VAGA,
+  estadoVaga,
   localizarPedido,
   moverPedido,
-  renomear,
+  precisaAtencao,
   semPedido,
   type CelulaGrade,
   type EscalaGradeResponse,
@@ -46,18 +48,18 @@ function agruparPorCarrinho(celulas: CelulaGrade[]): CarrinhoGrade[] {
   return carrinhos;
 }
 
-function temEspaco(c: CelulaGrade): boolean {
-  return c.disponivel && c.publicadores.length < LIMITE_POR_VAGA;
+function pedeAtencao(c: CelulaGrade): boolean {
+  return precisaAtencao(estadoVaga(c));
 }
 
 /**
- * Gestão da escala do mês pelo administrador (F13-FE-01), pensada para celular e tablet.
- * Mostra todas as vagas configuradas, inclusive as vazias, para o admin encaixar cada pessoa
- * onde há espaço. "Toque para selecionar, toque para colocar": tocar num nome abre a barra de
- * ações no rodapé — Mover (a ação mais comum), Editar nome e, discreto, Excluir (último
- * recurso). O "+" de cada vaga adiciona alguém manualmente. O limite de 2 por vaga é só
- * sinalização: mover ou adicionar numa vaga cheia avisa, mas nunca bloqueia (regra 3), e o
- * sistema nunca sugere quem mover ou excluir (regra 13).
+ * Gestão da escala do mês pelo administrador (F13-FE-01, F14-FE-02), pensada para celular e
+ * tablet. Mostra todas as vagas configuradas, inclusive as vazias, coloridas pelo estado
+ * (regra 1): verde completa, vermelho com 1 pessoa ou com excesso — sem texto na célula.
+ * "Toque para selecionar, toque para colocar": tocar num nome abre a barra de ações no rodapé
+ * — Mover (a ação mais comum), Editar pessoa e, discreto, Excluir (último recurso). O "+" de
+ * cada vaga adiciona alguém manualmente. A meta é só sinalização: mover ou adicionar avisa,
+ * mas nunca bloqueia (regra 3), e o sistema nunca sugere quem mover ou excluir (regra 13).
  */
 export default function EscalaFinal() {
   const { mes } = useParams<{ mes: string }>();
@@ -148,9 +150,10 @@ export default function EscalaFinal() {
 
   const carrinhos = agruparPorCarrinho(lista);
   const pedidos = lista.flatMap((c) => c.publicadores);
-  const excedentes = lista.filter((c) => c.publicadores.length > LIMITE_POR_VAGA).length;
-  const comEspaco = lista.filter(temEspaco).length;
+  const incompletas = lista.filter((c) => estadoVaga(c) === "incompleta").length;
+  const excedentes = lista.filter((c) => estadoVaga(c) === "excesso").length;
   const nomesSugeridos = [...new Set(pedidos.map((p) => p.publicadorNome))].sort((a, b) => a.localeCompare(b, "pt-BR"));
+  const nomesCriancaOuIdoso = [...new Set(pedidos.filter((p) => p.criancaOuIdoso).map((p) => p.publicadorNome))];
 
   function limparSelecao() {
     setSelecionadoId(null);
@@ -178,6 +181,7 @@ export default function EscalaFinal() {
         celula={celula}
         modo={modo}
         selecionadoId={selecionadoId}
+        movendo={modo === "destino" && selecionado ? selecionado.pedido : null}
         ehOrigem={celula !== undefined && chaveCelula(celula) === chaveOrigem}
         onTocarPedido={tocarPedido}
         onEscolherDestino={escolherDestino}
@@ -187,6 +191,11 @@ export default function EscalaFinal() {
         }}
       />
     );
+  }
+
+  /** Cor do estado da vaga; ao escolher destino, quem colore é o botão de cada vaga. */
+  function corDaVaga(celula: CelulaGrade | undefined) {
+    return celula !== undefined && modo !== "destino" && classeEstado(estadoVaga(celula));
   }
 
   function renderTabela(carrinho: CarrinhoGrade) {
@@ -217,12 +226,7 @@ export default function EscalaFinal() {
                   return (
                     <TableCell
                       key={dia.valor}
-                      className={cn(
-                        "p-1.5 align-top whitespace-normal",
-                        celula &&
-                          celula.publicadores.length > LIMITE_POR_VAGA &&
-                          "bg-destructive-muted shadow-[inset_3px_0_0_var(--color-destructive)]",
-                      )}
+                      className={cn("p-1.5 align-top whitespace-normal", corDaVaga(celula))}
                     >
                       {renderCelula(celula)}
                     </TableCell>
@@ -246,14 +250,16 @@ export default function EscalaFinal() {
         <div role="group" aria-label={`Dia da semana — ${carrinho.carrinhoNome}`} className="grid grid-cols-5 gap-1">
           {DIAS_SEMANA.map((d) => {
             const celulasDoDia = carrinho.celulas.filter((c) => c.diaSemana === d.valor);
-            const livres = celulasDoDia.filter(temEspaco).length;
+            const atencao = celulasDoDia.filter(pedeAtencao).length;
             const ativo = d.valor === dia;
             return (
               <button
                 key={d.valor}
                 type="button"
                 aria-pressed={ativo}
-                aria-label={`${d.label}${livres > 0 ? `, ${livres} ${livres === 1 ? "vaga" : "vagas"} com espaço` : ""}`}
+                aria-label={`${d.label}${
+                  atencao > 0 ? `, ${atencao} ${atencao === 1 ? "vaga precisa" : "vagas precisam"} de atenção` : ""
+                }`}
                 disabled={celulasDoDia.length === 0}
                 onClick={() => setDiaPorCarrinho((atual) => ({ ...atual, [carrinho.carrinhoId]: d.valor }))}
                 className={cn(
@@ -262,8 +268,11 @@ export default function EscalaFinal() {
                 )}
               >
                 {d.curto}
-                {livres > 0 && (
-                  <span aria-hidden className="absolute top-1 right-1 size-2 rounded-full bg-success" />
+                {atencao > 0 && (
+                  <span
+                    aria-hidden
+                    className="absolute top-1 right-1 size-2 rounded-full bg-destructive ring-1 ring-card"
+                  />
                 )}
               </button>
             );
@@ -275,11 +284,7 @@ export default function EscalaFinal() {
             return (
               <li
                 key={turno.id}
-                className={cn(
-                  "flex gap-3 border-t border-border p-2.5 first:border-t-0",
-                  celula.publicadores.length > LIMITE_POR_VAGA &&
-                    "bg-destructive-muted shadow-[inset_3px_0_0_var(--color-destructive)]",
-                )}
+                className={cn("flex gap-3 border-t border-border p-2.5 first:border-t-0", corDaVaga(celula))}
               >
                 <span className="w-[6.5rem] shrink-0 pt-2.5 text-sm font-semibold tabular-nums">
                   {formatarTurno(turno.id)}
@@ -298,8 +303,9 @@ export default function EscalaFinal() {
       <div className="flex flex-col gap-1.5">
         <h1>Escala</h1>
         <p className="text-muted-foreground">
-          {formatarMes(mes)}. Toque num nome para mover a pessoa de vaga. Meta: até {LIMITE_POR_VAGA} pessoas por
-          vaga.
+          {formatarMes(mes)}. Toque num nome para mover a pessoa de vaga. Meta: 2 pessoas por vaga, ou 3 com
+          uma criança ou idoso
+          <HandHeartIcon aria-hidden className="mx-1 inline size-4 align-[-0.15em]" />.
         </p>
       </div>
 
@@ -309,8 +315,8 @@ export default function EscalaFinal() {
           <dd className="m-0 text-[1.5rem] font-bold tabular-nums">{pedidos.length}</dd>
         </Card>
         <Card className="gap-1 p-3">
-          <dt className="text-sm text-muted-foreground">Vagas com espaço</dt>
-          <dd className="m-0 text-[1.5rem] font-bold tabular-nums">{comEspaco}</dd>
+          <dt className="text-sm text-muted-foreground">Vagas com 1 pessoa</dt>
+          <dd className="m-0 text-[1.5rem] font-bold tabular-nums">{incompletas}</dd>
         </Card>
         <Card className="gap-1 p-3">
           <dt className="text-sm text-muted-foreground">Vagas com excesso</dt>
@@ -341,7 +347,12 @@ export default function EscalaFinal() {
             <div className="mx-auto flex max-w-4xl flex-col gap-3 px-4 pt-3 pb-[calc(env(safe-area-inset-bottom)+0.75rem)]">
               <div className="flex items-start gap-2">
                 <div className="min-w-0 flex-1">
-                  <strong className="block truncate text-[1.05rem]">{selecionado.pedido.publicadorNome}</strong>
+                  <strong className="block truncate text-[1.05rem]">
+                    {selecionado.pedido.publicadorNome}
+                    {selecionado.pedido.criancaOuIdoso && (
+                      <span className="ml-2 text-sm font-normal text-muted-foreground">criança ou idoso</span>
+                    )}
+                  </strong>
                   <span className="block text-sm text-muted-foreground">
                     {modo === "destino"
                       ? `Toque na vaga para onde ${selecionado.pedido.publicadorNome} vai.`
@@ -355,7 +366,7 @@ export default function EscalaFinal() {
                 </Button>
               </div>
               {modo === "acoes" && (
-                // Esquerda: Editar nome e, embaixo, o Excluir discreto. Direita: Mover, a ação principal.
+                // Esquerda: Editar pessoa e, embaixo, o Excluir discreto. Direita: Mover, a ação principal.
                 <div className="flex items-start gap-3">
                   <div className="flex flex-col items-start gap-1">
                     <Button
@@ -366,10 +377,11 @@ export default function EscalaFinal() {
                         setEditandoNome({
                           id: selecionado.pedido.publicadorId,
                           nome: selecionado.pedido.publicadorNome,
+                          criancaOuIdoso: selecionado.pedido.criancaOuIdoso,
                         })
                       }
                     >
-                      Editar nome
+                      Editar pessoa
                     </Button>
                     <Button
                       type="button"
@@ -417,16 +429,22 @@ export default function EscalaFinal() {
         mes={mes}
         celula={adicionando}
         nomesSugeridos={nomesSugeridos}
+        nomesCriancaOuIdoso={nomesCriancaOuIdoso}
         onFechar={() => setAdicionando(null)}
         onAdicionado={(celula, criada) => {
           setCelulas((atual) =>
             atual
-              ? comPedido(atual, chaveCelula(celula), {
-                  solicitacaoId: criada.id,
-                  publicadorId: criada.publicadorId,
-                  publicadorNome: criada.publicadorNome,
-                  origem: criada.origem,
-                })
+              ? atualizarPessoa(
+                  comPedido(atual, chaveCelula(celula), {
+                    solicitacaoId: criada.id,
+                    publicadorId: criada.publicadorId,
+                    publicadorNome: criada.publicadorNome,
+                    origem: criada.origem,
+                    criancaOuIdoso: criada.criancaOuIdoso,
+                  }),
+                  criada.publicadorId,
+                  { criancaOuIdoso: criada.criancaOuIdoso },
+                )
               : atual,
           );
           setAdicionando(null);
@@ -437,8 +455,8 @@ export default function EscalaFinal() {
       <ModalEditarNome
         publicador={editandoNome}
         onFechar={() => setEditandoNome(null)}
-        onSalvo={(id, nome) => {
-          setCelulas((atual) => (atual ? renomear(atual, id, nome) : atual));
+        onSalvo={({ id, nome, criancaOuIdoso }) => {
+          setCelulas((atual) => (atual ? atualizarPessoa(atual, id, { publicadorNome: nome, criancaOuIdoso }) : atual));
           setEditandoNome(null);
         }}
       />

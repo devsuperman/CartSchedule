@@ -71,6 +71,11 @@ public static class Endpoint
             db.Publicadores.Add(publicador);
         }
 
+        if (request.CriancaOuIdoso == true)
+        {
+            publicador.CriancaOuIdoso = true;
+        }
+
         var jaExiste = await db.Solicitacoes.AnyAsync(
             s => s.PublicadorId == publicador.Id
                 && s.EscalaId == escala.Id
@@ -108,6 +113,7 @@ public static class Endpoint
             Id = solicitacao.Id,
             PublicadorId = publicador.Id,
             PublicadorNome = publicador.Nome,
+            CriancaOuIdoso = publicador.CriancaOuIdoso,
             CarrinhoId = solicitacao.CarrinhoId,
             DiaSemana = solicitacao.DiaSemana,
             TurnoId = solicitacao.TurnoId,

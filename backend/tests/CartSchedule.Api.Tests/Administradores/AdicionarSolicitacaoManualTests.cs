@@ -50,6 +50,70 @@ public class AdicionarSolicitacaoManualTests(ApiFixture fixture) : ApiTestBase(f
     }
 
     [Fact]
+    public async Task QuartaPessoaComCriancaOuIdoso_NaoEhBloqueada()
+    {
+        // Regra 1: a meta é 3 com criança/idoso, mas nem 3 nem 4 são bloqueados.
+        var admin = await AdminAsync();
+        var carrinhoId = await CriarCarrinhoAsync(admin);
+        await DefinirTurnosAsync(admin, carrinhoId, (Segunda, Turno0810));
+
+        foreach (var (nome, marca) in new[] { ("Ana", false), ("Bia", false), ("Vô Zé", true), ("Caio", false) })
+        {
+            var resposta = await AdicionarComMarcaAsync(admin, carrinhoId, nome, marca);
+            Assert.Equal(HttpStatusCode.Created, resposta.StatusCode);
+        }
+    }
+
+    [Fact]
+    public async Task CriancaOuIdoso_MarcaPublicadorNovo()
+    {
+        var admin = await AdminAsync();
+        var carrinhoId = await CriarCarrinhoAsync(admin);
+        await DefinirTurnosAsync(admin, carrinhoId, (Segunda, Turno0810));
+
+        var resposta = await AdicionarComMarcaAsync(admin, carrinhoId, "Vô Zé", true);
+
+        Assert.Equal(HttpStatusCode.Created, resposta.StatusCode);
+        Assert.True((await JsonAsync(resposta)).GetProperty("criancaOuIdoso").GetBoolean());
+        Assert.True(Assert.Single(PedidosDaGrade(await GradeAsync(admin))).GetProperty("criancaOuIdoso").GetBoolean());
+    }
+
+    [Fact]
+    public async Task CriancaOuIdoso_MarcaPublicadorReusado_ENuncaDesmarca()
+    {
+        var admin = await AdminAsync();
+        var carrinhoId = await CriarCarrinhoAsync(admin);
+        await DefinirTurnosAsync(admin, carrinhoId, (Segunda, Turno0810), (Terca, Turno0810), (Quarta, Turno0810));
+        await SolicitarAsync(Publicador(), carrinhoId, Segunda, Turno0810, "Vó Lia");
+
+        await AdicionarComMarcaAsync(admin, carrinhoId, "Vó Lia", true, Terca);
+        var semMarca = await AdicionarComMarcaAsync(admin, carrinhoId, "Vó Lia", false, Quarta);
+
+        Assert.True((await JsonAsync(semMarca)).GetProperty("criancaOuIdoso").GetBoolean());
+        var pedidos = PedidosDaGrade(await GradeAsync(admin));
+        Assert.Equal(3, pedidos.Length);
+        Assert.All(pedidos, p => Assert.True(p.GetProperty("criancaOuIdoso").GetBoolean()));
+    }
+
+    [Fact]
+    public async Task SemMarca_PublicadorNovoNaoEhCriancaOuIdoso()
+    {
+        var admin = await AdminAsync();
+        var carrinhoId = await CriarCarrinhoAsync(admin);
+        await DefinirTurnosAsync(admin, carrinhoId, (Segunda, Turno0810));
+
+        var resposta = await AdicionarManualAsync(admin, carrinhoId, Segunda, Turno0810, "Caio");
+
+        Assert.False((await JsonAsync(resposta)).GetProperty("criancaOuIdoso").GetBoolean());
+    }
+
+    private static Task<HttpResponseMessage> AdicionarComMarcaAsync(
+        HttpClient admin, int carrinhoId, string nome, bool criancaOuIdoso, int dia = Segunda) =>
+        admin.PostAsJsonAsync(
+            $"/api/admin/escalas/{MesAlvo}/solicitacoes",
+            new { nome, carrinhoId, diaSemana = dia, turnoId = Turno0810, criancaOuIdoso });
+
+    [Fact]
     public async Task MesmoNomeNaMesmaTrinca_Retorna409()
     {
         // Regra 9: nome igual reusa o publicador, então cai no bloqueio de duplicidade.
