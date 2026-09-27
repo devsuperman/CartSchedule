@@ -10,5 +10,11 @@ public class Publicador
 
     public string Nome { get; set; } = string.Empty;
 
+    /// <summary>
+    /// Criança ou idoso: pode ser a 3ª pessoa de uma vaga sem que ela fique com excesso
+    /// (PLANNING.md regra 1). Só o administrador marca; o sistema nunca bloqueia por isso.
+    /// </summary>
+    public bool CriancaOuIdoso { get; set; }
+
     public List<Solicitacao> Solicitacoes { get; set; } = [];
 }
