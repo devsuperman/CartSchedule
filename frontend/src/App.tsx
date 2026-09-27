@@ -7,8 +7,7 @@ import { formatarMes } from "./utils/formatacao";
 import { Card } from "@/components/ui/card";
 import Login from "./routes/admin/Login";
 import GestaoCarrinhos from "./routes/admin/GestaoCarrinhos";
-import RevisaoEscala from "./routes/admin/RevisaoEscala";
-import AdicionarSolicitacao from "./routes/admin/AdicionarSolicitacao";
+import RedirecionaParaEscala from "./routes/admin/RedirecionaParaEscala";
 import EscalaFinal from "./routes/admin/EscalaFinal";
 import InicioPublicador from "./routes/publicador/InicioPublicador";
 import SolicitarEscala from "./routes/publicador/SolicitarEscala";
@@ -46,31 +45,11 @@ function AdminHome() {
         {mes && (
           <>
             <li>
-              <Link to={`/admin/revisao/${mes}`} className="block h-full no-underline">
-                <Card className="h-full gap-1 transition-colors hover:border-primary">
-                  <strong className="text-[1.1rem] font-bold text-primary">Revisão da escala</strong>
-                  <span className="text-[0.95rem] font-normal text-muted-foreground">
-                    Veja os pedidos recebidos e exclua os excedentes.
-                  </span>
-                </Card>
-              </Link>
-            </li>
-            <li>
-              <Link to={`/admin/adicionar/${mes}`} className="block h-full no-underline">
-                <Card className="h-full gap-1 transition-colors hover:border-primary">
-                  <strong className="text-[1.1rem] font-bold text-primary">Adicionar solicitação</strong>
-                  <span className="text-[0.95rem] font-normal text-muted-foreground">
-                    Inclua alguém direto na escala.
-                  </span>
-                </Card>
-              </Link>
-            </li>
-            <li>
               <Link to={`/admin/escalas/${mes}`} className="block h-full no-underline">
                 <Card className="h-full gap-1 transition-colors hover:border-primary">
-                  <strong className="text-[1.1rem] font-bold text-primary">Escala final</strong>
+                  <strong className="text-[1.1rem] font-bold text-primary">Escala</strong>
                   <span className="text-[0.95rem] font-normal text-muted-foreground">
-                    Veja quem trabalha em cada carrinho, dia e turno.
+                    Veja as vagas e mova, adicione ou exclua pedidos.
                   </span>
                 </Card>
               </Link>
@@ -121,22 +100,8 @@ export default function App() {
               </RequireAdminAuth>
             }
           />
-          <Route
-            path="/admin/revisao/:mes"
-            element={
-              <RequireAdminAuth>
-                <RevisaoEscala />
-              </RequireAdminAuth>
-            }
-          />
-          <Route
-            path="/admin/adicionar/:mes"
-            element={
-              <RequireAdminAuth>
-                <AdicionarSolicitacao />
-              </RequireAdminAuth>
-            }
-          />
+          <Route path="/admin/revisao/:mes" element={<RedirecionaParaEscala />} />
+          <Route path="/admin/adicionar/:mes" element={<RedirecionaParaEscala />} />
           <Route
             path="/admin/escalas/:mes"
             element={

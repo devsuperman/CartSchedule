@@ -22,20 +22,15 @@ public class RenomearPublicadorTests(ApiFixture fixture) : ApiTestBase(fixture)
         client.PutAsJsonAsync($"/api/admin/publicadores/{id}", new { nome });
 
     [Fact]
-    public async Task Renomeia_EmTodosOsPedidosDaRevisaoEDaGrade()
+    public async Task Renomeia_EmTodosOsPedidosDaGrade()
     {
         var (admin, id) = await PublicadorComPedidoAsync();
 
         var resposta = await RenomearAsync(admin, id, " João Silva ");
 
         Assert.Equal(HttpStatusCode.NoContent, resposta.StatusCode);
-        var revisao = await admin.GetFromJsonAsync<JsonElement>($"/api/admin/escalas/{MesAlvo}/solicitacoes");
         Assert.All(
-            revisao.GetProperty("grupos").EnumerateArray().SelectMany(g => g.GetProperty("solicitacoes").EnumerateArray()),
-            s => Assert.Equal("João Silva", s.GetProperty("publicadorNome").GetString()));
-        var grade = await admin.GetFromJsonAsync<JsonElement>($"/api/admin/escalas/{MesAlvo}/grade");
-        Assert.All(
-            grade.GetProperty("celulas").EnumerateArray().SelectMany(c => c.GetProperty("publicadores").EnumerateArray()),
+            PedidosDaGrade(await GradeAsync(admin)),
             p => Assert.Equal("João Silva", p.GetProperty("publicadorNome").GetString()));
     }
 

@@ -44,7 +44,7 @@ backend/src/CartSchedule.Api/
 frontend/src/
   api/                     # client.ts + wrappers por área
   routes/publicador/       # NovaSolicitacao, Historico, JanelaFechada
-  routes/admin/            # Login, GestaoCarrinhos, RevisaoEscala, AdicionarSolicitacao, EscalaFinal
+  routes/admin/            # Login, GestaoCarrinhos, EscalaFinal (gestão da escala: mover/adicionar/excluir)
   hooks/                   # usePublicadorToken, useJanela, useAdminAuth
   constants/                # turnos.ts, diasSemana.ts (espelham enums do backend)
 ```
@@ -102,15 +102,21 @@ todas são intencionais, confirmadas no `PLANNING.md`:
 9a. **Carrinho** tem `Nome`, `Descricao` (opcional, exibida ao publicador
     abaixo do nome no wizard) e `Ativo`; o admin pode editar nome e
     descrição a qualquer momento.
+9b. **Mover (admin)** é a ação principal da gestão: `PATCH /api/admin/solicitacoes/{id}`
+    muda a vaga `(carrinho, dia, turno)` dentro da mesma escala, mantendo o registro.
+    Destino precisa estar configurado; vaga cheia só avisa; duplicidade → 409.
+    Toda a gestão (mover, adicionar pelo "+", editar nome, excluir — discreto,
+    último recurso) fica na tela da Escala (`/admin/escalas/:mes`), feita para
+    toque em celular/tablet; não há mais telas Revisão/Adicionar.
 10. **Remover turno de um carrinho (em qualquer dia) / desativar carrinho**: nunca altera ou
     remove `Solicitacao` já existentes — só afeta novos envios a partir dali.
 11. **Um único administrador**, sem múltiplos papéis/permissões — login
     simples usuário/senha via variáveis de ambiente, JWT curto.
 12. **Sem notificações** (e-mail/push) de nenhum tipo.
-13. **Contagem de apoio ao desempate**: em grupos excedentes (>2
-    solicitações), mostrar ao lado de cada publicador quantas solicitações
-    (todas as trincas) ele já tem na mesma escala — é só informação de
-    apoio, o sistema **nunca** decide ou sugere quem excluir.
+13. **Contagem de apoio ao desempate**: ao selecionar uma pessoa na tela da
+    Escala, mostrar quantas solicitações (todas as trincas) ela já tem na
+    mesma escala — é só informação de apoio, o sistema **nunca** decide ou
+    sugere quem mover ou excluir.
 
 ## Convenções de execução paralela (múltiplos agentes)
 

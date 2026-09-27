@@ -7,14 +7,11 @@ namespace CartSchedule.Api.Tests.Administradores;
 
 public class ExcluirSolicitacaoAdminTests(ApiFixture fixture) : ApiTestBase(fixture)
 {
-    private static async Task<JsonElement> RevisaoAsync(HttpClient admin, string mes = MesAlvo) =>
-        await admin.GetFromJsonAsync<JsonElement>($"/api/admin/escalas/{mes}/solicitacoes");
-
-    private static int[] IdsDoGrupo(JsonElement grupo) =>
-        grupo.GetProperty("solicitacoes").EnumerateArray().Select(s => s.GetProperty("id").GetInt32()).ToArray();
+    private static int[] IdsDaCelula(JsonElement celula) =>
+        celula.GetProperty("publicadores").EnumerateArray().Select(p => p.GetProperty("solicitacaoId").GetInt32()).ToArray();
 
     [Fact]
-    public async Task TodaSolicitacaoApareceNaRevisaoENaGrade_SemStatus()
+    public async Task TodaSolicitacaoApareceNaGrade_SemStatus()
     {
         var admin = await AdminAsync();
         var carrinhoId = await CriarCarrinhoAsync(admin);
@@ -22,18 +19,15 @@ public class ExcluirSolicitacaoAdminTests(ApiFixture fixture) : ApiTestBase(fixt
         await SolicitarAsync(Publicador(), carrinhoId, Segunda, Turno0810, "Ana");
         await AdicionarManualAsync(admin, carrinhoId, Segunda, Turno0810, "Bia");
 
-        var grupo = Assert.Single((await RevisaoAsync(admin)).GetProperty("grupos").EnumerateArray());
-        Assert.All(grupo.GetProperty("solicitacoes").EnumerateArray(),
-            s => Assert.False(s.TryGetProperty("status", out _)));
-
-        var grade = await admin.GetFromJsonAsync<JsonElement>($"/api/admin/escalas/{MesAlvo}/grade");
+        var grade = await GradeAsync(admin);
+        Assert.All(PedidosDaGrade(grade), p => Assert.False(p.TryGetProperty("status", out _)));
         var celula = Assert.Single(grade.GetProperty("celulas").EnumerateArray());
         Assert.Equal(["Ana", "Bia"], celula.GetProperty("publicadores").EnumerateArray()
             .Select(p => p.GetProperty("publicadorNome").GetString()).Order());
     }
 
     [Fact]
-    public async Task Excluir_ApagaERetiraOExcedente()
+    public async Task Excluir_ApagaERetiraDaCelula()
     {
         var admin = await AdminAsync();
         var carrinhoId = await CriarCarrinhoAsync(admin);
@@ -43,16 +37,16 @@ public class ExcluirSolicitacaoAdminTests(ApiFixture fixture) : ApiTestBase(fixt
             await SolicitarAsync(Publicador(), carrinhoId, Segunda, Turno0810, nome);
         }
 
-        var grupo = Assert.Single((await RevisaoAsync(admin)).GetProperty("grupos").EnumerateArray());
-        Assert.True(grupo.GetProperty("excedente").GetBoolean());
-        var excluir = IdsDoGrupo(grupo)[0];
+        var celula = Assert.Single((await GradeAsync(admin)).GetProperty("celulas").EnumerateArray());
+        Assert.Equal(3, IdsDaCelula(celula).Length);
+        var excluir = IdsDaCelula(celula)[0];
 
         var resposta = await admin.DeleteAsync($"/api/admin/solicitacoes/{excluir}");
 
         Assert.Equal(HttpStatusCode.NoContent, resposta.StatusCode);
-        grupo = Assert.Single((await RevisaoAsync(admin)).GetProperty("grupos").EnumerateArray());
-        Assert.False(grupo.GetProperty("excedente").GetBoolean());
-        Assert.DoesNotContain(excluir, IdsDoGrupo(grupo));
+        celula = Assert.Single((await GradeAsync(admin)).GetProperty("celulas").EnumerateArray());
+        Assert.Equal(2, IdsDaCelula(celula).Length);
+        Assert.DoesNotContain(excluir, IdsDaCelula(celula));
     }
 
     [Fact]
@@ -85,7 +79,7 @@ public class ExcluirSolicitacaoAdminTests(ApiFixture fixture) : ApiTestBase(fixt
         var resposta = await admin.DeleteAsync($"/api/admin/solicitacoes/{id}");
 
         Assert.Equal(HttpStatusCode.NoContent, resposta.StatusCode);
-        Assert.Empty((await RevisaoAsync(admin, "2026-07")).GetProperty("grupos").EnumerateArray());
+        Assert.Empty(PedidosDaGrade(await GradeAsync(admin, "2026-07")));
     }
 
     [Fact]
@@ -110,6 +104,6 @@ public class ExcluirSolicitacaoAdminTests(ApiFixture fixture) : ApiTestBase(fixt
         var resposta = await Fixture.Factory.CreateClient().DeleteAsync($"/api/admin/solicitacoes/{id}");
 
         Assert.Equal(HttpStatusCode.Unauthorized, resposta.StatusCode);
-        Assert.Single((await RevisaoAsync(admin)).GetProperty("grupos").EnumerateArray());
+        Assert.Single(PedidosDaGrade(await GradeAsync(admin)));
     }
 }
