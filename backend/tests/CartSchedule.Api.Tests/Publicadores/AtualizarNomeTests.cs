@@ -10,11 +10,9 @@ public class AtualizarNomeTests(ApiFixture fixture) : ApiTestBase(fixture)
     private static Task<HttpResponseMessage> AtualizarNomeAsync(HttpClient publicador, string nome) =>
         publicador.PutAsJsonAsync("/api/publicador", new { nome });
 
-    private static async Task<string?[]> NomesNaRevisaoAsync(HttpClient admin) =>
-        (await admin.GetFromJsonAsync<JsonElement>($"/api/admin/escalas/{MesAlvo}/solicitacoes"))
-            .GetProperty("grupos").EnumerateArray()
-            .SelectMany(g => g.GetProperty("solicitacoes").EnumerateArray())
-            .Select(s => s.GetProperty("publicadorNome").GetString())
+    private static async Task<string?[]> NomesNaGradeAsync(HttpClient admin) =>
+        PedidosDaGrade(await GradeAsync(admin))
+            .Select(p => p.GetProperty("publicadorNome").GetString())
             .ToArray();
 
     [Fact]
@@ -29,7 +27,7 @@ public class AtualizarNomeTests(ApiFixture fixture) : ApiTestBase(fixture)
         var resposta = await AtualizarNomeAsync(publicador, "  João Silva ");
 
         Assert.Equal(HttpStatusCode.NoContent, resposta.StatusCode);
-        Assert.Equal(["João Silva"], await NomesNaRevisaoAsync(admin));
+        Assert.Equal(["João Silva"], await NomesNaGradeAsync(admin));
     }
 
     [Fact]
@@ -61,7 +59,7 @@ public class AtualizarNomeTests(ApiFixture fixture) : ApiTestBase(fixture)
         var resposta = await AtualizarNomeAsync(publicador, "João");
 
         Assert.Equal(HttpStatusCode.NoContent, resposta.StatusCode);
-        Assert.Equal(["João"], await NomesNaRevisaoAsync(admin));
+        Assert.Equal(["João"], await NomesNaGradeAsync(admin));
     }
 
     [Theory]

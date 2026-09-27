@@ -69,6 +69,15 @@ public abstract class ApiTestBase(ApiFixture fixture) : IAsyncLifetime
         HttpClient admin, int carrinhoId, int dia, int turno, string nome, string mes = MesAlvo) =>
         admin.PostAsJsonAsync($"/api/admin/escalas/{mes}/solicitacoes", new { nome, carrinhoId, diaSemana = dia, turnoId = turno });
 
+    protected static async Task<JsonElement> GradeAsync(HttpClient admin, string mes = MesAlvo) =>
+        await admin.GetFromJsonAsync<JsonElement>($"/api/admin/escalas/{mes}/grade");
+
+    /// <summary>Todos os pedidos da grade (os "publicadores" de todas as células).</summary>
+    protected static JsonElement[] PedidosDaGrade(JsonElement grade) =>
+        grade.GetProperty("celulas").EnumerateArray()
+            .SelectMany(c => c.GetProperty("publicadores").EnumerateArray())
+            .ToArray();
+
     protected static async Task<JsonElement> JsonAsync(HttpResponseMessage resposta) =>
         await resposta.Content.ReadFromJsonAsync<JsonElement>();
 

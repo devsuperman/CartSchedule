@@ -1,10 +1,10 @@
 using CartSchedule.Api.Features.Administradores.GerenciarCarrinhos;
 using CartSchedule.Api.Features.Administradores.GerenciarTurnosDoCarrinho;
 using CartSchedule.Api.Features.Administradores.Login;
+using CartSchedule.Api.Features.Administradores.MoverSolicitacao;
 using CartSchedule.Api.Features.Administradores.ObterEscalaFinal;
 using CartSchedule.Api.Features.Administradores.RenomearPublicador;
 using CartSchedule.Api.Features.Administradores.RevisarEscala.AdicionarSolicitacaoManual;
-using CartSchedule.Api.Features.Administradores.RevisarEscala.ListarSolicitacoesAgrupadas;
 using CartSchedule.Api.Features.Administradores.RevisarEscala.ExcluirSolicitacao;
 using CartSchedule.Api.Features.Publicadores.ExcluirSolicitacao;
 using CartSchedule.Api.Features.Publicadores.AtualizarNome;
@@ -81,10 +81,10 @@ app.MapAtualizarNome();
 app.MapLogin();
 app.MapGerenciarCarrinhos();
 app.MapGerenciarTurnosDoCarrinho();
-app.MapListarSolicitacoesAgrupadas();
 app.MapExcluirSolicitacaoAdmin();
 app.MapAdicionarSolicitacaoManual();
 app.MapObterEscalaFinal();
 app.MapRenomearPublicador();
+app.MapMoverSolicitacao();
 
 app.Run();
