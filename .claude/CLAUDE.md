@@ -5,7 +5,7 @@ Na interface o sistema se chama **"Escala TPL"** — "CartSchedule" é só o
 nome interno (repo, namespaces, pastas); não renomear o código.
 Publicadores solicitam `(carrinho, dia da semana, turno)` em que querem
 trabalhar; todo pedido já entra na escala e um administrador exclui os
-excedentes (meta de máx. 2 pessoas por combinação).
+excedentes (meta de 2 pessoas por combinação, ou 3 com uma criança/idoso).
 
 **Leia sempre, nesta ordem, antes de implementar algo:**
 1. [`PLANNING.md`](../PLANNING.md) — regras de negócio (fonte da verdade).
@@ -62,10 +62,13 @@ todas são intencionais, confirmadas no `PLANNING.md`:
    18:00–20:00`. O admin só escolhe, por carrinho **e por dia da semana**,
    **quais** desses 6 ficam disponíveis (`CarrinhoTurno` com chave
    `(carrinho, dia_semana, turno)` — ex: 08–10 só na Segunda). Não criar endpoint de CRUD de `Turno`.
-3. **Limite de 2 por trinca `(carrinho, dia, turno)` NÃO é bloqueado pelo
-   sistema** — é só uma meta que o admin persegue manualmente. O sistema
-   apenas **sinaliza visualmente** grupos com mais de 2. Nunca implementar
-   uma validação que impeça enviar/adicionar a 3ª solicitação numa trinca.
+3. **Limite por trinca `(carrinho, dia, turno)` NÃO é bloqueado pelo
+   sistema** — é só uma meta que o admin persegue manualmente: 2 pessoas,
+   ou 3 se ao menos uma for criança/idoso (`Publicador.CriancaOuIdoso`,
+   marcado só pelo admin). O sistema apenas **sinaliza pela cor, sem texto**
+   (`estadoVaga` em `gradeEscala.ts`, só no frontend): vazia sem cor,
+   1 pessoa (incompleta) e excesso em vermelho, completa em verde. Nunca
+   implementar uma validação que impeça enviar/adicionar/mover para uma trinca.
 4. **O único bloqueio automático do sistema inteiro** é a duplicidade: um
    mesmo publicador não pode ter duas solicitações para a mesma
    `(escala, carrinho, dia_semana, turno)` — vale tanto para envio normal
@@ -104,8 +107,9 @@ todas são intencionais, confirmadas no `PLANNING.md`:
     descrição a qualquer momento.
 9b. **Mover (admin)** é a ação principal da gestão: `PATCH /api/admin/solicitacoes/{id}`
     muda a vaga `(carrinho, dia, turno)` dentro da mesma escala, mantendo o registro.
-    Destino precisa estar configurado; vaga cheia só avisa; duplicidade → 409.
-    Toda a gestão (mover, adicionar pelo "+", editar nome, excluir — discreto,
+    Destino precisa estar configurado; destino com excesso ou origem com 1 pessoa só
+    avisam; duplicidade → 409.
+    Toda a gestão (mover, adicionar pelo "+", editar pessoa — nome e criança/idoso —, excluir — discreto,
     último recurso) fica na tela da Escala (`/admin/escalas/:mes`), feita para
     toque em celular/tablet; não há mais telas Revisão/Adicionar.
 10. **Remover turno de um carrinho (em qualquer dia) / desativar carrinho**: nunca altera ou

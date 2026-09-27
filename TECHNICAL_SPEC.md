@@ -78,10 +78,10 @@ backend/
           GerenciarTurnosDoCarrinho/# GET/PUT       /api/admin/carrinhos/{id}/turnos (disponibilidades dia×turno; turnos em si são fixos, ver 2.4)
           RevisarEscala/
             ExcluirSolicitacao/          # DELETE /api/admin/solicitacoes/{id}  (sem aprovação: o admin exclui; 204/404, sem janela)
-            AdicionarSolicitacaoManual/  # POST /api/admin/escalas/{mes}/solicitacoes
-          ObterEscalaFinal/         # GET  /api/admin/escalas/{mes}/grade  (todas as vagas configuradas + células com pedidos; disponivel; por pedido: solicitacaoId, origem, totalNaEscala)
-          MoverSolicitacao/         # PATCH /api/admin/solicitacoes/{id}  ({carrinhoId, diaSemana, turnoId}; 204; 400 destino não configurado; 409 duplicidade; 404; sem janela; vaga cheia não bloqueia)
-          RenomearPublicador/       # PUT  /api/admin/publicadores/{id}  (204/404; nomes repetidos permitidos)
+            AdicionarSolicitacaoManual/  # POST /api/admin/escalas/{mes}/solicitacoes  ({nome, carrinhoId, diaSemana, turnoId, criancaOuIdoso?}; true marca a pessoa, nunca desmarca)
+          ObterEscalaFinal/         # GET  /api/admin/escalas/{mes}/grade  (todas as vagas configuradas + células com pedidos; disponivel; por pedido: solicitacaoId, origem, totalNaEscala, criancaOuIdoso)
+          MoverSolicitacao/         # PATCH /api/admin/solicitacoes/{id}  ({carrinhoId, diaSemana, turnoId}; 204; 400 destino não configurado; 409 duplicidade; 404; sem janela; vaga com excesso não bloqueia)
+          RenomearPublicador/       # PUT  /api/admin/publicadores/{id}  ({nome, criancaOuIdoso?}; ausente = não muda; 204/404; nomes repetidos permitidos)
 ```
 
 Cada slice de `Features/` segue o mesmo padrão de arquivos:
@@ -111,6 +111,7 @@ bloqueio de duplicidade e histórico):
 - Ao usar a adição manual, o administrador escolhe entre os nomes de publicadores já vistos pelo sistema (autocomplete) ou digita um nome novo:
   - Se o nome digitado **coincidir exatamente** com um `Publicador` já existente (havendo homônimos, o de pedido mais antigo, desempate pelo `Id`), a solicitação é associada a esse mesmo registro — inclusive aparecerá no histórico daquele publicador quando ele acessar pelo próprio celular.
   - Caso contrário (nome novo, ou grafia diferente de um nome existente), o backend cria um `Publicador` novo com um token gerado no servidor. Isso é uma consequência aceita da regra de negócio 9 (sem verificação/bloqueio de nomes duplicados) — pequenas diferenças de grafia podem gerar registros distintos para a mesma pessoa; a escala final não é afetada, pois é montada pelos nomes, não pelo token.
+- `Publicador.CriancaOuIdoso` (regra 1 do `PLANNING.md`) é só do administrador: marcado em "Editar pessoa" (`PUT /api/admin/publicadores/{id}`) ou na adição manual. O publicador não vê nem altera. O estado de cada vaga (vazia / incompleta / completa / excesso) é calculado **no frontend** a partir da grade (`routes/admin/components/gradeEscala.ts`, `estadoVaga`) — o backend não tem nenhuma regra de limite, só a de duplicidade.
 
 ### 2.4 Turnos e dias da semana fixos (dados de seed)
 
@@ -258,7 +259,7 @@ frontend/
 ### 3.3 Duas áreas da aplicação
 
 - **Área do Publicador** (`/`): fluxo mobile-first (a maioria acessa pelo celular) — nome (só no primeiro acesso), carrinho, dia da semana, turno, envio, histórico com exclusão. Sem login.
-- **Área do Administrador** (`/admin/*`): protegida por login (JWT armazenado no cliente); gestão de carrinhos (com associação aos turnos fixos) e a tela da Escala, onde toda a gestão do mês acontece (mover, adicionar, excluir, editar nome). Pensada para celular/tablet: seletor de dia no celular, grade Turno × Dia a partir de 768px; ações por toque numa barra fixa no rodapé.
+- **Área do Administrador** (`/admin/*`): protegida por login (JWT armazenado no cliente); gestão de carrinhos (com associação aos turnos fixos) e a tela da Escala, onde toda a gestão do mês acontece (mover, adicionar, excluir, editar pessoa). Pensada para celular/tablet: seletor de dia no celular, grade Turno × Dia a partir de 768px; ações por toque numa barra fixa no rodapé.
 
 ## 4. Banco de Dados — PostgreSQL
 
@@ -266,7 +267,7 @@ Tabelas espelhando o modelo de dados do `PLANNING.md` (seção 9):
 
 | Tabela | Colunas principais |
 |---|---|
-| `publicadores` | `id` (uuid/token), `nome` |
+| `publicadores` | `id` (uuid/token), `nome`, `crianca_ou_idoso` (bool, padrão `false`) |
 | `carrinhos` | `id`, `nome`, `descricao` (opcional, até 500), `ativo` |
 | `turnos` | `id`, `hora_inicio`, `hora_fim` — **tabela com dado fixo (seed)**, sempre as mesmas 6 linhas, sem endpoint de criação/edição |
 | `carrinho_turnos` | `carrinho_id`, `dia_semana`, `turno_id` (PK composta) |

@@ -6,7 +6,7 @@ Sistema web para organizar o uso de carrinhos de trabalho ao longo do mês.
 Publicadores solicitam em quais carrinhos, dias da semana e turnos desejam
 trabalhar; todo pedido entra direto na escala e um administrador a ajusta,
 excluindo os excedentes, buscando o limite de **2 pessoas por carrinho, por dia da
-semana, por turno**.
+semana, por turno** — ou 3, quando uma delas é criança ou idoso (regra 1).
 
 ## 2. Atores
 
@@ -30,7 +30,8 @@ semana, por turno**.
 | **Turno** | Faixa de horário **fixa do sistema**, não cadastrável pelo administrador. São sempre estes 6 turnos: **06:00–08:00, 08:00–10:00, 10:00–12:00, 14:00–16:00, 16:00–18:00, 18:00–20:00**. Os mesmos horários valem para todos os carrinhos que usarem aquele turno. |
 | **Turnos disponíveis do carrinho** | Cada carrinho usa apenas um subconjunto dos turnos fixos, definido pelo administrador **por dia da semana**. Um carrinho pode ter turnos diferentes de outro, e o mesmo carrinho pode ter turnos diferentes em cada dia (ex: Carrinho 01 tem 08:00–10:00 na Segunda, mas só 10:00–12:00 na Terça). |
 | **Solicitação** | O pedido para trabalhar em `(carrinho, dia da semana, turno)` dentro de uma escala (mês). Pode ter sido criada por um Publicador (fluxo normal) ou pelo Administrador (adição manual). Não há aprovação: **toda solicitação existente já faz parte da escala**; tirar alguém é excluir a solicitação. |
-| **Escala mensal (resultado final)** | Para cada `(carrinho, dia da semana, turno)`, todos os publicadores com solicitação (a meta é até 2). |
+| **Escala mensal (resultado final)** | Para cada `(carrinho, dia da semana, turno)`, todos os publicadores com solicitação (a meta é 2, ou 3 com uma criança/idoso — regra 1). |
+| **Criança ou idoso** | Marca que o administrador põe na pessoa (vale para todos os pedidos dela). Quem tem a marca pode ser a 3ª pessoa de uma vaga sem que ela fique com excesso (regra 1). |
 
 ## 4. Janela de Envio (automática)
 
@@ -93,17 +94,21 @@ mesma combinação `(escala, carrinho, dia da semana, turno)`.
    futura).
 4. Toda a gestão é feita na **tela da Escala** (usada em celular e
    tablet, por toque). Ela mostra um **resumo geral** (total de pedidos,
-   vagas com espaço e vagas com excesso) e a grade Carrinho × Dia × Turno
-   com **todas as vagas configuradas, inclusive as vazias**, cada uma com
-   a ocupação: livre, 1 de 2, cheia ou N pessoas (excesso sinalizado).
+   vagas com 1 pessoa e vagas com excesso) e a grade Carrinho × Dia × Turno
+   com **todas as vagas configuradas, inclusive as vazias**, cada uma
+   colorida pelo estado (regra 1): sem cor se vazia, verde se completa,
+   vermelho se incompleta (1 pessoa) ou com excesso. Quem é criança ou
+   idoso aparece com um ícone ao lado do nome.
 5. Tocando no nome de uma pessoa, o administrador vê em que vaga ela está
    e quantos pedidos tem na escala, e escolhe o que fazer:
    - **Mover** (a ação mais comum): depois de conversar com o
      publicador, toca na vaga de destino (outro carrinho, dia ou turno
      da mesma escala) e confirma. O pedido continua o mesmo (mesma
-     origem), só muda de vaga. Mover para uma vaga cheia é permitido —
-     a tela apenas avisa. Vale a regra de duplicidade (regra 10).
-   - **Editar nome** (vale para todos os pedidos daquela pessoa).
+     origem), só muda de vaga. Mover para uma vaga que ficaria com
+     excesso, ou deixar a vaga de origem com 1 pessoa, é permitido — a
+     tela apenas avisa. Vale a regra de duplicidade (regra 10).
+   - **Editar pessoa**: nome e marca "criança ou idoso" (valem para
+     todos os pedidos daquela pessoa).
    - **Excluir** (último recurso, discreto na tela, com confirmação).
 6. Não há aprovação nem rejeição: toda solicitação já conta na escala. O objetivo é **encaixar cada publicador numa vaga disponível**, de preferência movendo; quando não houver jeito, o administrador **exclui** (com confirmação — é definitivo) as solicitações que decidir tirar. **O critério de desempate é de uso exclusivo do administrador** — o sistema não sugere nem impõe nenhum critério (ordem de chegada, prioridade, etc.); a escolha de quem fica é inteiramente sua. Para ajudá-lo nessa decisão, o sistema mostra, ao lado de cada publicador do grupo, **quantas solicitações esse publicador já tem na mesma escala** (contando todas as trincas, não só a que está em desempate).
 7. **A qualquer momento**, o administrador também pode **adicionar
@@ -122,6 +127,8 @@ mesma combinação `(escala, carrinho, dia da semana, turno)`.
      uma que aquele publicador já tenha na mesma escala.
    - A solicitação criada dessa forma entra na escala como qualquer
      outra.
+   - Pode marcar a pessoa como **criança ou idoso** (regra 1). Se o nome
+     já existe, a marca passa a valer para ela; a adição nunca desmarca.
    - **Não há bloqueio do sistema** caso uma trinca fique com mais de
      2 pessoas (seja por adição manual, seja por envios normais) — a
      tela apenas **sinaliza visualmente** o excesso, e cabe ao
@@ -136,21 +143,25 @@ mesma combinação `(escala, carrinho, dia da semana, turno)`.
 
 ## 7. Regras de Negócio
 
-1. **Limite alvo por combinação**: cada trinca `(carrinho, dia da semana, turno)` em uma escala deve ter **no máximo 2 pessoas** — vale tanto para solicitações de publicadores quanto para adições manuais do administrador. Esse limite **não é imposto automaticamente pelo sistema**; é uma meta que o administrador persegue manualmente ao revisar a escala (o sistema apenas sinaliza visualmente quando uma trinca está com excesso).
+1. **Limite alvo por combinação**: cada trinca `(carrinho, dia da semana, turno)` em uma escala deve ter **2 pessoas** — ou **3, se pelo menos uma delas for criança ou idoso** (marca que o administrador põe na pessoa, na tela da Escala: em "Editar pessoa" ou ao adicionar alguém). Vale tanto para solicitações de publicadores quanto para adições manuais do administrador. Esse limite **não é imposto automaticamente pelo sistema**; é uma meta que o administrador persegue manualmente ao revisar a escala. O sistema apenas **sinaliza pela cor** cada vaga, sem texto:
+   - **vazia** (0 pessoas): sem cor;
+   - **incompleta** (1 pessoa, mesmo que seja criança ou idoso): cor de perigo (vermelho) — precisa de atenção;
+   - **completa** (2 pessoas, ou 3 com pelo menos uma criança/idoso): cor de sucesso (verde);
+   - **com excesso** (3 sem nenhuma criança/idoso, ou 4 ou mais): cor de perigo (vermelho) — precisa de atenção.
 2. **Combinação sem solicitação**: se não houver nenhuma solicitação para uma trinca, ela é **ignorada** — não entra na escala e não aparece como pendência para o administrador decidir.
-3. **Combinação com excesso**: se houver mais de 2 solicitações para a mesma trinca, o sistema **sinaliza** o excesso na tela do administrador, mas **não bloqueia** nada — o administrador decide sozinho, sem nenhum critério sugerido pelo sistema, quando e como reduzir para 2 (movendo para outra vaga — regra 12b — ou, em último caso, excluindo).
-4. **Combinação dentro do limite** (1 ou 2 solicitações): já está resolvida, sem conflito.
+3. **Combinação com excesso**: se a trinca passar do limite da regra 1, o sistema **sinaliza** o excesso na tela do administrador, mas **não bloqueia** nada — o administrador decide sozinho, sem nenhum critério sugerido pelo sistema, quando e como reduzir (movendo para outra vaga — regra 12b — ou, em último caso, excluindo).
+4. **Combinação incompleta** (1 solicitação): também é **sinalizada** como precisando de atenção (regra 1) — o administrador procura completá-la (movendo ou adicionando alguém), mas nada é bloqueado. Com 2 solicitações (ou 3 com uma criança/idoso) a trinca está completa.
 5. **Escala mensal**: é composta por **todas as solicitações existentes** da escala (não há aprovação); toda trinca sem solicitação simplesmente não aparece na escala.
 6. **Janela de envio automática**: publicadores só enviam solicitações do dia 15 ao dia 27 do mês corrente, sempre para a escala do mês seguinte. Fora disso, o envio fica fechado para eles.
 7. **Administrador sem restrição de janela**: pode gerenciar (ver, excluir, adicionar) qualquer escala a qualquer momento, independentemente da janela de envio. A partir do dia 27, esse é o período esperado para os ajustes finais antes do mês seguinte começar.
 8. **Sem limite** de quantas trincas um mesmo publicador pode ter em uma escala — pode trabalhar em vários carrinhos/dias/turnos livremente.
 9. **Identificação do publicador**: não há cadastro com login e senha — o nome é informado livremente, pelo publicador no primeiro acesso ou na adição manual pelo administrador. O nome pode ser corrigido a qualquer momento pelo próprio publicador ("Olá, Fulano") ou pelo administrador (na tela da Escala); a correção vale para todos os pedidos daquela pessoa. Se depois o publicador enviar um pedido ou editar o nome, prevalece o nome salvo no aparelho dele. **Nomes repetidos são permitidos** (não é bloqueio — a regra 10 continua sendo o único).
-10. **Bloqueio de duplicidade (único bloqueio automático do sistema)**: um publicador não pode ter duas solicitações para a mesma combinação `(escala, carrinho, dia da semana, turno)`. Ao tentar enviar uma solicitação idêntica a uma já existente sua, o sistema recusa o novo envio. Vale para o envio normal do publicador, para uma adição manual feita pelo administrador em nome dele e para a mudança de vaga pelo administrador (regra 12b). Este é o único bloqueio automático de todo o sistema — o limite de 2 por trinca (regras 1 e 3) **não** é bloqueado, apenas sinalizado.
+10. **Bloqueio de duplicidade (único bloqueio automático do sistema)**: um publicador não pode ter duas solicitações para a mesma combinação `(escala, carrinho, dia da semana, turno)`. Ao tentar enviar uma solicitação idêntica a uma já existente sua, o sistema recusa o novo envio. Vale para o envio normal do publicador, para uma adição manual feita pelo administrador em nome dele e para a mudança de vaga pelo administrador (regra 12b). Este é o único bloqueio automático de todo o sistema — o limite por trinca (regras 1 e 3) **não** é bloqueado, apenas sinalizado.
 11. **Histórico de solicitações**: o publicador deve conseguir consultar as solicitações que ele mesmo enviou, sem precisar de cadastro formal. Essa consulta fica **sempre disponível**, mesmo fora da janela de envio (dia 28 ao dia 14). A forma de identificá-lo para isso será definida na fase de implementação.
 12. **Exclusão pelo publicador**: através da tela de histórico, o publicador pode excluir uma solicitação sua **somente enquanto a janela de envio estiver aberta (dia 15 ao 27) e apenas se ela for da escala do mês-alvo** — solicitações do mês corrente ou de meses passados não podem mais ser excluídas por ele. A exclusão **apaga o registro** — o sistema não guarda solicitações canceladas/excluídas, e o publicador pode voltar a pedir a mesma trinca depois. Fora da janela, a tela inicial não oferece o envio nem a exclusão e orienta o publicador a falar com o administrador. O bloqueio vale também no backend. Uma solicitação excluída libera a vaga que ocupava na trinca `(carrinho, dia da semana, turno)`.
 12a. **Sem aprovação — o administrador exclui**: toda solicitação existente já conta na escala; não há Pendente, Aprovada nem Rejeitada. O administrador tira alguém da escala **excluindo** a solicitação, a qualquer momento e em qualquer escala (regra 7). A exclusão é **definitiva** (apaga o registro, com confirmação na tela) e libera o publicador a pedir a mesma trinca de novo. Quando esta regra entrou (Fase 11), as solicitações que estavam Rejeitadas foram apagadas e as Pendentes passaram a contar na escala.
-12b. **Mover solicitação (administrador)**: o administrador pode mudar uma solicitação de vaga — outro carrinho, dia da semana e/ou turno **da mesma escala** —, a qualquer momento e em qualquer escala (regra 7). A solicitação continua a mesma (origem e data do pedido não mudam); o destino precisa ser um turno configurado para aquele carrinho naquele dia (regra 17); mover para uma vaga que já tem 2 ou mais pessoas **não é bloqueado**, só avisado (regras 1/3); o único bloqueio é a duplicidade (regra 10). O publicador vê a nova vaga no seu histórico; não há notificação (regra 14). O sistema nunca sugere quem mover nem para onde.
-13. **Critério de desempate exclusivo do administrador**: quando há mais de 2 solicitações para a mesma trinca, a escolha de quem fica (e de quem mover ou excluir) é inteiramente do administrador — o sistema não sugere nem aplica nenhum critério. Como apoio (não como critério imposto), o sistema mostra quantas solicitações cada publicador envolvido já tem na mesma escala (regra 16).
+12b. **Mover solicitação (administrador)**: o administrador pode mudar uma solicitação de vaga — outro carrinho, dia da semana e/ou turno **da mesma escala** —, a qualquer momento e em qualquer escala (regra 7). A solicitação continua a mesma (origem e data do pedido não mudam); o destino precisa ser um turno configurado para aquele carrinho naquele dia (regra 17); mover para uma vaga que ficaria com excesso **não é bloqueado**, só avisado (regras 1/3); se a vaga de origem ficar com 1 pessoa, a tela também avisa; o único bloqueio é a duplicidade (regra 10). O publicador vê a nova vaga no seu histórico; não há notificação (regra 14). O sistema nunca sugere quem mover nem para onde.
+13. **Critério de desempate exclusivo do administrador**: quando uma trinca passa do limite (regra 1), a escolha de quem fica (e de quem mover ou excluir) é inteiramente do administrador — o sistema não sugere nem aplica nenhum critério. Como apoio (não como critério imposto), o sistema mostra quantas solicitações cada publicador envolvido já tem na mesma escala (regra 16).
 14. **Sem notificações**: o sistema não envia avisos (e-mail, push, etc.) ao publicador sobre suas solicitações; a escala oficial é divulgada pelo administrador no grupo de WhatsApp.
 15. **Um único administrador**: não há necessidade de múltiplos administradores nem de controle de acesso por diferentes papéis administrativos.
 16. **Contagem de apoio ao desempate**: para cada publicador selecionado na tela da Escala (inclusive num grupo excedente), o sistema exibe o total de solicitações (somando todas as trincas) que ele já tem naquela mesma escala — para ajudar o administrador a decidir, sem determinar a decisão.
@@ -176,6 +187,7 @@ EXISTE ──(admin exclui, a qualquer momento)──► (registro apagado)
 **Publicador**
 - `id`
 - `nome`
+- `crianca_ou_idoso` (booleano, padrão falso; marcado pelo administrador — regra 1)
 
 **Carrinho**
 - `id`
@@ -215,7 +227,7 @@ EXISTE ──(admin exclui, a qualquer momento)──► (registro apagado)
 - Restrição de unicidade: `(publicador_id, escala_id, carrinho_id, dia_semana, turno_id)`
 
 **EscalaMensal (grade final)** (pode ser calculada sob demanda, sem precisar de tabela própria)
-- Para cada `(escala_id, carrinho_id, dia_semana, turno_id)`: lista das `Solicitacao` existentes (a meta é 0, 1 ou 2 registros).
+- Para cada `(escala_id, carrinho_id, dia_semana, turno_id)`: lista das `Solicitacao` existentes (a meta é 2 registros, ou 3 com uma criança/idoso — regra 1).
 
 ## 10. Roadmap Sugerido
 
