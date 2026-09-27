@@ -67,17 +67,9 @@ function Navegacao({ admin }: { admin: boolean }) {
         Carrinhos
       </NavLink>
       {mes && (
-        <>
-          <NavLink to={`/admin/revisao/${mes}`} className={navLinkClasses}>
-            Revisão
-          </NavLink>
-          <NavLink to={`/admin/adicionar/${mes}`} className={navLinkClasses}>
-            Adicionar
-          </NavLink>
-          <NavLink to={`/admin/escalas/${mes}`} className={navLinkClasses}>
-            Escala final
-          </NavLink>
-        </>
+        <NavLink to={`/admin/escalas/${mes}`} className={navLinkClasses}>
+          Escala
+        </NavLink>
       )}
       <Button
         type="button"
