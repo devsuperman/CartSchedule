@@ -77,10 +77,10 @@ backend/
           GerenciarCarrinhos/       # GET/POST/PUT /api/admin/carrinhos  (nome, descricao opcional, ativo)
           GerenciarTurnosDoCarrinho/# GET/PUT       /api/admin/carrinhos/{id}/turnos (disponibilidades dia×turno; turnos em si são fixos, ver 2.4)
           RevisarEscala/
-            ListarSolicitacoesAgrupadas/ # GET  /api/admin/escalas/{mes}/solicitacoes
             ExcluirSolicitacao/          # DELETE /api/admin/solicitacoes/{id}  (sem aprovação: o admin exclui; 204/404, sem janela)
             AdicionarSolicitacaoManual/  # POST /api/admin/escalas/{mes}/solicitacoes
-          ObterEscalaFinal/         # GET  /api/admin/escalas/{mes}/grade
+          ObterEscalaFinal/         # GET  /api/admin/escalas/{mes}/grade  (todas as vagas configuradas + células com pedidos; disponivel; por pedido: solicitacaoId, origem, totalNaEscala)
+          MoverSolicitacao/         # PATCH /api/admin/solicitacoes/{id}  ({carrinhoId, diaSemana, turnoId}; 204; 400 destino não configurado; 409 duplicidade; 404; sem janela; vaga cheia não bloqueia)
           RenomearPublicador/       # PUT  /api/admin/publicadores/{id}  (204/404; nomes repetidos permitidos)
 ```
 
@@ -240,10 +240,10 @@ frontend/
           ErroJanela.tsx          # erro ao consultar /api/janela, com "tentar novamente"
       admin/
         Login.tsx
-        RevisaoEscala.tsx         # solicitações agrupadas por carrinho/dia/turno + desempate; excluir e editar nome do publicador
-        AdicionarSolicitacao.tsx  # adição manual
         GestaoCarrinhos.tsx       # cadastro/edição de carrinhos (nome, descrição) e associação com os 6 turnos fixos
-        EscalaFinal.tsx           # grade final do mês
+        EscalaFinal.tsx           # gestão da escala por toque: vagas com ocupação; mover, adicionar (+), editar nome e excluir
+        RedirecionaParaEscala.tsx # /admin/revisao/:mes e /admin/adicionar/:mes (telas antigas) → /admin/escalas/:mes
+        components/               # CelulaEscala, ModaisEscala, gradeEscala (tipos + atualização local), ModalEditarNome
     hooks/
       usePublicadorToken.ts       # lê/gera o token; nome no localStorage, compartilhado entre telas (useSyncExternalStore)
       useJanela.ts
@@ -258,7 +258,7 @@ frontend/
 ### 3.3 Duas áreas da aplicação
 
 - **Área do Publicador** (`/`): fluxo mobile-first (a maioria acessa pelo celular) — nome (só no primeiro acesso), carrinho, dia da semana, turno, envio, histórico com exclusão. Sem login.
-- **Área do Administrador** (`/admin/*`): protegida por login (JWT armazenado no cliente); painel de revisão de escala, gestão de carrinhos (com associação aos turnos fixos) e escala final.
+- **Área do Administrador** (`/admin/*`): protegida por login (JWT armazenado no cliente); gestão de carrinhos (com associação aos turnos fixos) e a tela da Escala, onde toda a gestão do mês acontece (mover, adicionar, excluir, editar nome). Pensada para celular/tablet: seletor de dia no celular, grade Turno × Dia a partir de 768px; ações por toque numa barra fixa no rodapé.
 
 ## 4. Banco de Dados — PostgreSQL
 
@@ -276,7 +276,7 @@ Tabelas espelhando o modelo de dados do `PLANNING.md` (seção 9):
 Índices/constraints relevantes:
 - Único: `(publicador_id, escala_id, carrinho_id, dia_semana, turno_id)` em `solicitacoes` (regra 10 — bloqueio de duplicidade).
 - Único: `(carrinho_id, dia_semana, turno_id)` em `carrinho_turnos` (a própria PK).
-- Índice em `(escala_id, carrinho_id, dia_semana, turno_id)` em `solicitacoes`, usado tanto para montar os grupos da revisão quanto a grade final.
+- Índice em `(escala_id, carrinho_id, dia_semana, turno_id)` em `solicitacoes`, usado para montar a grade da escala.
 
 Migrations do EF Core cuidam da criação/evolução do schema — não há necessidade de scripts SQL manuais.
 
