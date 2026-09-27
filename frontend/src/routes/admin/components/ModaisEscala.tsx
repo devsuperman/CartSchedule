@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from "react";
+import { useState, type FormEvent, type ReactNode } from "react";
 import { apiFetch, ApiError } from "../../../api/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,23 +12,41 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { descreverCelula, LIMITE_POR_VAGA, type CelulaGrade, type PedidoGrade } from "./gradeEscala";
+import { CampoCriancaOuIdoso } from "./ModalEditarNome";
+import { descreverCelula, estadoCom, estadoSem, type CelulaGrade, type PedidoGrade } from "./gradeEscala";
 
 function mensagemErro(erro: unknown, duplicado: string, fallback: string): string {
   if (erro instanceof ApiError && erro.status === 409) return duplicado;
   return erro instanceof ApiError ? erro.message : fallback;
 }
 
-/** Aviso (nunca bloqueio — regra 3) quando a vaga já está no limite. */
-function AvisoVagaCheia({ destino, nome }: { destino: CelulaGrade; nome: string }) {
-  const n = destino.publicadores.length;
-  if (n < LIMITE_POR_VAGA) return null;
+function Aviso({ children }: { children: ReactNode }) {
   return (
     <Alert className="border-warning bg-warning-muted text-foreground">
-      <AlertDescription>
-        Essa vaga já tem {n} pessoas. Com {nome}, ficará com {n + 1}.
-      </AlertDescription>
+      <AlertDescription>{children}</AlertDescription>
     </Alert>
+  );
+}
+
+/** Aviso (nunca bloqueio — regra 3) quando a vaga passaria da meta da regra 1. */
+function AvisoExcesso({ destino, nome, criancaOuIdoso }: { destino: CelulaGrade; nome: string; criancaOuIdoso: boolean }) {
+  if (estadoCom(destino, { criancaOuIdoso }) !== "excesso") return null;
+  const n = destino.publicadores.length;
+  return (
+    <Aviso>
+      Essa vaga já tem {n} {n === 1 ? "pessoa" : "pessoas"}. Com {nome}, ficará com excesso.
+    </Aviso>
+  );
+}
+
+/** Aviso quando quem sai deixa a vaga de origem com uma pessoa só. */
+function AvisoOrigem({ origem, pedido }: { origem: CelulaGrade; pedido: PedidoGrade }) {
+  if (estadoSem(origem, pedido.solicitacaoId) !== "incompleta") return null;
+  const fica = origem.publicadores.find((p) => p.solicitacaoId !== pedido.solicitacaoId)!;
+  return (
+    <Aviso>
+      {descreverCelula(origem)} ficará só com {fica.publicadorNome}.
+    </Aviso>
   );
 }
 
@@ -88,7 +106,12 @@ export function ModalMover({
                 De {descreverCelula(movimento.origem)} para {descreverCelula(movimento.destino)}.
               </DialogDescription>
             </DialogHeader>
-            <AvisoVagaCheia destino={movimento.destino} nome={movimento.pedido.publicadorNome} />
+            <AvisoExcesso
+              destino={movimento.destino}
+              nome={movimento.pedido.publicadorNome}
+              criancaOuIdoso={movimento.pedido.criancaOuIdoso}
+            />
+            <AvisoOrigem origem={movimento.origem} pedido={movimento.pedido} />
             {erro && (
               <Alert variant="destructive">
                 <AlertDescription>{erro}</AlertDescription>
@@ -193,23 +216,28 @@ interface SolicitacaoCriada {
   publicadorId: string;
   publicadorNome: string;
   origem: number;
+  criancaOuIdoso: boolean;
 }
 
 /**
  * Adição manual numa vaga (regra 9): POST /api/admin/escalas/{mes}/solicitacoes. Nome livre;
  * se bater exatamente com um existente, a API reaproveita o publicador — as sugestões ajudam
- * a digitar o nome igual.
+ * a digitar o nome igual. "Criança ou idoso" marcado vale para a pessoa (nova ou não); a API
+ * nunca desmarca por aqui. `nomesCriancaOuIdoso` são os já marcados na escala, para o aviso de
+ * excesso considerar a marca mesmo sem a caixa.
  */
 export function ModalAdicionar({
   mes,
   celula,
   nomesSugeridos,
+  nomesCriancaOuIdoso,
   onFechar,
   onAdicionado,
 }: {
   mes: string;
   celula: CelulaGrade | null;
   nomesSugeridos: string[];
+  nomesCriancaOuIdoso: string[];
   onFechar: () => void;
   onAdicionado: (celula: CelulaGrade, criada: SolicitacaoCriada) => void;
 }) {
@@ -222,6 +250,7 @@ export function ModalAdicionar({
             mes={mes}
             celula={celula}
             nomesSugeridos={nomesSugeridos}
+            nomesCriancaOuIdoso={nomesCriancaOuIdoso}
             onAdicionado={onAdicionado}
           />
         )}
@@ -234,14 +263,17 @@ function FormularioAdicionar({
   mes,
   celula,
   nomesSugeridos,
+  nomesCriancaOuIdoso,
   onAdicionado,
 }: {
   mes: string;
   celula: CelulaGrade;
   nomesSugeridos: string[];
+  nomesCriancaOuIdoso: string[];
   onAdicionado: (celula: CelulaGrade, criada: SolicitacaoCriada) => void;
 }) {
   const [nome, setNome] = useState("");
+  const [criancaOuIdoso, setCriancaOuIdoso] = useState(false);
   const [salvando, setSalvando] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
   const valido = nome.trim() !== "";
@@ -259,6 +291,7 @@ function FormularioAdicionar({
           carrinhoId: celula.carrinhoId,
           diaSemana: celula.diaSemana,
           turnoId: celula.turnoId,
+          criancaOuIdoso,
         }),
       });
       onAdicionado(celula, criada);
@@ -291,7 +324,12 @@ function FormularioAdicionar({
           <option key={n} value={n} />
         ))}
       </datalist>
-      <AvisoVagaCheia destino={celula} nome={nome.trim() || "essa pessoa"} />
+      <CampoCriancaOuIdoso marcado={criancaOuIdoso} onMudar={setCriancaOuIdoso} />
+      <AvisoExcesso
+        destino={celula}
+        nome={nome.trim() || "essa pessoa"}
+        criancaOuIdoso={criancaOuIdoso || nomesCriancaOuIdoso.includes(nome.trim())}
+      />
       {erro && (
         <Alert variant="destructive">
           <AlertDescription>{erro}</AlertDescription>

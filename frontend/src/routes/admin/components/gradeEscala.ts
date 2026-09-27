@@ -8,6 +8,8 @@ export interface PedidoGrade {
   origem: number; // 1=Publicador, 2=Administrador
   /** Contagem de apoio (regra 13): pedidos desta pessoa na escala inteira. */
   totalNaEscala: number;
+  /** Pode ser a 3ª pessoa da vaga sem excesso (PLANNING.md regra 1). */
+  criancaOuIdoso: boolean;
 }
 
 export interface CelulaGrade {
@@ -26,8 +28,54 @@ export interface EscalaGradeResponse {
   celulas: CelulaGrade[];
 }
 
-/** Meta de pessoas por vaga — só sinalização, nunca bloqueio (regra 3). */
-export const LIMITE_POR_VAGA = 2;
+/**
+ * Estado da vaga pela meta da regra 1 do PLANNING.md — só sinalização, nunca bloqueio (regra 3):
+ * 2 pessoas, ou 3 se ao menos uma for criança ou idoso. Vaga com 1 pessoa (mesmo criança ou
+ * idoso) e vaga com excesso pedem a atenção do admin; a tela mostra o estado só pela cor.
+ */
+export type EstadoVaga = "vazia" | "incompleta" | "completa" | "excesso";
+
+export function estadoDe(pessoas: Pick<PedidoGrade, "criancaOuIdoso">[]): EstadoVaga {
+  const n = pessoas.length;
+  if (n === 0) return "vazia";
+  if (n === 1) return "incompleta";
+  if (n === 2) return "completa";
+  if (n === 3 && pessoas.some((p) => p.criancaOuIdoso)) return "completa";
+  return "excesso";
+}
+
+export function estadoVaga(c: CelulaGrade): EstadoVaga {
+  return estadoDe(c.publicadores);
+}
+
+/** Como a vaga fica se essa pessoa entrar nela. */
+export function estadoCom(c: CelulaGrade, pessoa: Pick<PedidoGrade, "criancaOuIdoso">): EstadoVaga {
+  return estadoDe([...c.publicadores, pessoa]);
+}
+
+/** Como a vaga fica se esse pedido sair dela. */
+export function estadoSem(c: CelulaGrade, solicitacaoId: number): EstadoVaga {
+  return estadoDe(c.publicadores.filter((p) => p.solicitacaoId !== solicitacaoId));
+}
+
+export function precisaAtencao(estado: EstadoVaga): boolean {
+  return estado === "incompleta" || estado === "excesso";
+}
+
+/** O estado em palavras — só para leitor de tela; na tela, é a cor que fala. */
+export const ROTULO_ESTADO: Record<EstadoVaga, string> = {
+  vazia: "vaga vazia",
+  incompleta: "vaga com 1 pessoa",
+  completa: "vaga completa",
+  excesso: "vaga com excesso",
+};
+
+/** Fundo + barra à esquerda: verde na completa, vermelho quando precisa de atenção. */
+export function classeEstado(estado: EstadoVaga): string | false {
+  if (estado === "completa") return "bg-success-muted shadow-[inset_3px_0_0_var(--color-success)]";
+  if (precisaAtencao(estado)) return "bg-destructive-muted shadow-[inset_3px_0_0_var(--color-destructive)]";
+  return false;
+}
 
 export type ChaveCelula = string;
 
@@ -37,14 +85,6 @@ export function chaveCelula(c: { carrinhoId: number; diaSemana: number; turnoId:
 
 export function descreverCelula(c: CelulaGrade): string {
   return `${c.carrinhoNome}, ${formatarDia(c.diaSemana)}, ${formatarTurno(c.turnoId)}`;
-}
-
-export function ocupacao(c: CelulaGrade): string {
-  const n = c.publicadores.length;
-  if (n === 0) return "livre";
-  if (n < LIMITE_POR_VAGA) return `${n} de ${LIMITE_POR_VAGA}`;
-  if (n === LIMITE_POR_VAGA) return "cheia";
-  return `${n} pessoas`;
 }
 
 export function localizarPedido(
@@ -111,9 +151,14 @@ export function comPedido(
   );
 }
 
-export function renomear(celulas: CelulaGrade[], publicadorId: string, nome: string): CelulaGrade[] {
+/** Aplica a todos os pedidos da pessoa o que é dela: nome e marca criança/idoso. */
+export function atualizarPessoa(
+  celulas: CelulaGrade[],
+  publicadorId: string,
+  dados: Partial<Pick<PedidoGrade, "publicadorNome" | "criancaOuIdoso">>,
+): CelulaGrade[] {
   return celulas.map((c) => ({
     ...c,
-    publicadores: c.publicadores.map((p) => (p.publicadorId === publicadorId ? { ...p, publicadorNome: nome } : p)),
+    publicadores: c.publicadores.map((p) => (p.publicadorId === publicadorId ? { ...p, ...dados } : p)),
   }));
 }
