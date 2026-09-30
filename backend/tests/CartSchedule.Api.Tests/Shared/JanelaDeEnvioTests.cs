@@ -3,37 +3,47 @@ using CartSchedule.Api.Tests.Infraestrutura;
 
 namespace CartSchedule.Api.Tests.Shared;
 
-/// <summary>PLANNING.md regra 6: janela aberta do dia 15 ao 27 (inclusive), mês-alvo = mês seguinte.</summary>
+/// <summary>
+/// PLANNING.md §4: a escala do mês seguinte abre no dia 15 e só fecha pelo administrador;
+/// até o dia 15 seguinte a escala em envio continua sendo a que abriu no dia 15 anterior.
+/// </summary>
 public class JanelaDeEnvioTests
 {
     [Theory]
-    [InlineData(14, false)]
-    [InlineData(15, true)]
-    [InlineData(27, true)]
-    [InlineData(28, false)]
-    public void Calcular_AbreSoDoDia15Ao27(int dia, bool aberta)
+    [InlineData(1, 9)]
+    [InlineData(14, 9)]
+    [InlineData(15, 10)]
+    [InlineData(27, 10)]
+    [InlineData(28, 10)]
+    [InlineData(30, 10)]
+    public void MesAlvo_EhOAbertoNoUltimoDia15(int dia, int mesEsperado)
     {
-        var status = JanelaDeEnvio.Calcular(new DateOnly(2026, 9, dia));
+        Assert.Equal(new DateOnly(2026, mesEsperado, 1), JanelaDeEnvio.MesAlvo(new DateOnly(2026, 9, dia)));
+    }
+
+    [Fact]
+    public void MesAlvo_EmDezembro_EhJaneiroDoAnoSeguinte()
+    {
+        Assert.Equal(new DateOnly(2027, 1, 1), JanelaDeEnvio.MesAlvo(new DateOnly(2026, 12, 20)));
+    }
+
+    [Theory]
+    [InlineData(false, true)]
+    [InlineData(true, false)]
+    public void Calcular_SoFechaPeloAdministrador(bool envioFechado, bool aberta)
+    {
+        var status = JanelaDeEnvio.Calcular(new DateOnly(2026, 9, 28), envioFechado);
 
         Assert.Equal(aberta, status.Aberta);
         Assert.Equal(new DateOnly(2026, 10, 1), status.MesAlvo);
     }
 
     [Fact]
-    public void Calcular_EmDezembro_MesAlvoEhJaneiroDoAnoSeguinte()
+    public void Hoje_UsaHorarioDeBrasilia_NaoUtc()
     {
-        Assert.Equal(new DateOnly(2027, 1, 1), JanelaDeEnvio.Calcular(new DateOnly(2026, 12, 20)).MesAlvo);
-    }
-
-    [Fact]
-    public void CalcularParaHoje_UsaHorarioDeBrasilia_NaoUtc()
-    {
-        // 27/09 às 23:30 em Brasília já é 28/09 em UTC — a janela ainda deve estar aberta.
-        var fimDoDia27 = new RelogioDeTeste(new DateTimeOffset(2026, 9, 28, 2, 30, 0, TimeSpan.Zero));
-        Assert.True(JanelaDeEnvio.CalcularParaHoje(fimDoDia27).Aberta);
-
-        // 14/09 às 22:00 em Brasília já é 15/09 em UTC — a janela ainda deve estar fechada.
+        // 14/09 às 22:00 em Brasília já é 15/09 em UTC — a escala de Outubro ainda não abriu.
         var noiteDoDia14 = new RelogioDeTeste(new DateTimeOffset(2026, 9, 15, 1, 0, 0, TimeSpan.Zero));
-        Assert.False(JanelaDeEnvio.CalcularParaHoje(noiteDoDia14).Aberta);
+        Assert.Equal(new DateOnly(2026, 9, 14), JanelaDeEnvio.Hoje(noiteDoDia14));
+        Assert.Equal(new DateOnly(2026, 9, 1), JanelaDeEnvio.MesAlvo(JanelaDeEnvio.Hoje(noiteDoDia14)));
     }
 }

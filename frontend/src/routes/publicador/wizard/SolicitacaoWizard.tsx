@@ -76,8 +76,8 @@ export function SolicitacaoWizard({ mesAlvo }: SolicitacaoWizardProps) {
 
   const [salvando, setSalvando] = useState(false);
   const [erroSalvar, setErroSalvar] = useState<string | null>(null);
-  // Corner case: a janela fecha entre o usuário abrir o wizard e enviar (ex: passou da
-  // meia-noite do dia 27 enquanto ele preenchia). O backend recusa com codigo
+  // Corner case: a janela fecha entre o usuário abrir o wizard e enviar (ex: o
+  // administrador encerrou o envio enquanto ele preenchia). O backend recusa com codigo
   // JANELA_FECHADA (outros 400 viram mensagem de erro normal); em vez de
   // inventar uma segunda mensagem de erro, reaproveitamos a tela já existente.
   const [janelaFechouAgora, setJanelaFechouAgora] = useState(false);

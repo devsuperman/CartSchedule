@@ -62,7 +62,7 @@ backend/
           AdminAuthOptions.cs        # usuário/senha (hash) via configuração
           JwtTokenService.cs
       Shared/
-        JanelaDeEnvio.cs             # calcula, a partir da data atual, se a janela está aberta e para qual mês
+        JanelaDeEnvio.cs             # mês-alvo pela data (dia 15) + se o admin fechou o envio (Escala.EnvioFechado)
         EscalaHelpers.cs             # cálculo da escala do "mês seguinte"
       Features/
         Publicadores/
@@ -79,7 +79,8 @@ backend/
           RevisarEscala/
             ExcluirSolicitacao/          # DELETE /api/admin/solicitacoes/{id}  (sem aprovação: o admin exclui; 204/404, sem janela)
             AdicionarSolicitacaoManual/  # POST /api/admin/escalas/{mes}/solicitacoes  ({nome, carrinhoId, diaSemana, turnoId, criancaOuIdoso?}; true marca a pessoa, nunca desmarca)
-          ObterEscalaFinal/         # GET  /api/admin/escalas/{mes}/grade  (todas as vagas configuradas + células com pedidos; disponivel; por pedido: solicitacaoId, origem, totalNaEscala, criancaOuIdoso)
+          ObterEscalaFinal/         # GET  /api/admin/escalas/{mes}/grade  (todas as vagas configuradas + células com pedidos; disponivel; por pedido: solicitacaoId, origem, totalNaEscala, criancaOuIdoso; envio: {aberto} só na escala em envio, senão null)
+          AlterarEnvioEscala/       # PUT  /api/admin/escalas/{mes}/envio  ({aberto}; 204; 400 se o mês não é a escala em envio; idempotente; cria a escala se preciso)
           MoverSolicitacao/         # PATCH /api/admin/solicitacoes/{id}  ({carrinhoId, diaSemana, turnoId}; 204; 400 destino não configurado; 409 duplicidade; 404; sem janela; vaga com excesso não bloqueia)
           RenomearPublicador/       # PUT  /api/admin/publicadores/{id}  ({nome, criancaOuIdoso?}; ausente = não muda; 204/404; nomes repetidos permitidos)
 ```
@@ -140,15 +141,16 @@ Conforme regras de negócio 19 e 20 (`PLANNING.md`):
   listá-los (ela ainda existe via `GET /api/carrinhos`, que já retorna
   as disponibilidades dia×turno de cada carrinho).
 
-### 2.5 Janela de Envio e Escala — cálculo automático
+### 2.5 Janela de Envio e Escala — abre pela data, fecha pelo administrador
 
 Não há job agendado nem tarefa de background: a janela de envio (regra
-6) e a escala-alvo (mês seguinte) são **calculadas em tempo real** a
-partir da data atual do servidor, toda vez que uma requisição chega
-(função utilitária em `Shared/JanelaDeEnvio.cs`):
+6) e a escala-alvo são **calculadas em tempo real** a cada requisição
+(`Shared/JanelaDeEnvio.cs`), a partir da data atual no horário de Brasília
+e da flag `Escala.EnvioFechado`:
 
-- Dia do mês entre 15 e 27 (inclusive) → janela aberta; escala-alvo = mês seguinte ao atual.
-- Fora desse intervalo → janela fechada.
+- Escala-alvo (escala em envio) = a aberta no último dia 15: dia ≥ 15 → mês seguinte; dia 1–14 → mês corrente.
+- Janela aberta ⇔ a escala-alvo não tem `EnvioFechado = true` (escala ainda inexistente = aberta).
+- O administrador fecha/reabre com `PUT /api/admin/escalas/{mes}/envio` (`{ aberto }`), só para a escala-alvo. Não há fechamento automático; no dia 15 a escala-alvo muda e a anterior deixa de receber pedidos.
 
 Requests recusados por a janela estar fechada (`CriarSolicitacao`, `ExcluirSolicitacao`
 do publicador) respondem 400 com a extensão `codigo: "JANELA_FECHADA"` no ProblemDetails

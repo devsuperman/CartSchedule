@@ -1,12 +1,18 @@
+using CartSchedule.Api.Infrastructure;
+using Microsoft.EntityFrameworkCore;
+
 namespace CartSchedule.Api.Shared;
 
 /// <summary>
 /// Calcula em tempo real (sem job/cron) se a janela de envio do publicador está aberta
-/// e para qual mês-alvo, a partir da data atual do servidor (PLANNING.md §4,
-/// TECHNICAL_SPEC.md §2.5). Aberta do dia 15 ao dia 27 (inclusive) do mês corrente;
-/// a escala-alvo é sempre o mês seguinte ao mês corrente.
+/// e para qual mês-alvo (PLANNING.md §4, TECHNICAL_SPEC.md §2.5).
+/// A abertura é automática: todo dia 15 abre a escala do mês seguinte. O fechamento é só
+/// manual — o administrador fecha (e pode reabrir) quando quiser (<see cref="Domain.Escala.EnvioFechado"/>).
+/// Por isso a escala-alvo é a aberta mais recentemente: do dia 15 em diante, a do mês
+/// seguinte; do dia 1 ao 14, a do mês corrente (aberta no dia 15 anterior). Só uma escala
+/// fica em envio por vez: no dia 15 a anterior deixa de receber pedidos sozinha.
 /// "Hoje" é a data no horário de Brasília, e não em UTC: servidores/containers rodam
-/// em UTC, o que abriria e fecharia a janela 3h antes (às 21h dos dias 14 e 27).
+/// em UTC, o que abriria a janela 3h antes (às 21h do dia 14).
 /// </summary>
 public static class JanelaDeEnvio
 {
@@ -17,24 +23,37 @@ public static class JanelaDeEnvio
     public const string CodigoJanelaFechada = "JANELA_FECHADA";
 
     private const int DiaAbertura = 15;
-    private const int DiaFechamento = 27;
 
-    public static JanelaStatus Calcular(DateOnly hoje)
+    /// <summary>Mês da escala em envio: a aberta no último dia 15 (inclusive hoje).</summary>
+    public static DateOnly MesAlvo(DateOnly hoje)
     {
-        var aberta = hoje.Day >= DiaAbertura && hoje.Day <= DiaFechamento;
-        var mesAlvo = new DateOnly(hoje.Year, hoje.Month, 1).AddMonths(1);
+        var primeiroDoMes = new DateOnly(hoje.Year, hoje.Month, 1);
 
-        return new JanelaStatus(aberta, mesAlvo);
+        return hoje.Day >= DiaAbertura ? primeiroDoMes.AddMonths(1) : primeiroDoMes;
     }
 
-    private static readonly TimeZoneInfo FusoHorario = ObterFusoHorario();
+    public static JanelaStatus Calcular(DateOnly hoje, bool envioFechado) =>
+        new(!envioFechado, MesAlvo(hoje));
 
     /// <summary>
     /// O relógio vem por injeção (TimeProvider.System registrado em Program.cs) para os
-    /// testes de integração poderem fixar a data e abrir/fechar a janela.
+    /// testes de integração poderem fixar a data. Escala ainda inexistente = envio aberto.
     /// </summary>
-    public static JanelaStatus CalcularParaHoje(TimeProvider relogio) =>
-        Calcular(DateOnly.FromDateTime(TimeZoneInfo.ConvertTimeFromUtc(relogio.GetUtcNow().UtcDateTime, FusoHorario)));
+    public static async Task<JanelaStatus> CalcularParaHojeAsync(AppDbContext db, TimeProvider relogio, CancellationToken ct = default)
+    {
+        var mesAlvo = MesAlvo(Hoje(relogio));
+        var envioFechado = await db.Escalas
+            .AsNoTracking()
+            .AnyAsync(e => e.MesReferencia == mesAlvo && e.EnvioFechado, ct);
+
+        return new JanelaStatus(!envioFechado, mesAlvo);
+    }
+
+    /// <summary>Data de hoje no horário de Brasília.</summary>
+    public static DateOnly Hoje(TimeProvider relogio) =>
+        DateOnly.FromDateTime(TimeZoneInfo.ConvertTimeFromUtc(relogio.GetUtcNow().UtcDateTime, FusoHorario));
+
+    private static readonly TimeZoneInfo FusoHorario = ObterFusoHorario();
 
     private static TimeZoneInfo ObterFusoHorario()
     {

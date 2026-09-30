@@ -5,7 +5,8 @@ import { cn } from "@/lib/utils";
 
 /**
  * Tela informativa exibida ao publicador quando a janela de envio está
- * fechada (dia 28 ao dia 14 do mês seguinte — PLANNING.md §4).
+ * fechada — o administrador fechou o envio; o próximo abre sozinho no dia 15
+ * (PLANNING.md §4).
  *
  * Puramente apresentacional: não faz chamadas à API. A decisão de QUANDO
  * mostrar esta tela (via useJanela()) é responsabilidade do roteamento,
@@ -20,8 +21,8 @@ export default function JanelaFechada() {
       </p>
       <p>Novos pedidos abrem novamente no dia 15.</p>
       <p className="text-muted-foreground">
-        Os pedidos para a escala do mês seguinte podem ser enviados do dia 15 ao dia 27 de cada
-        mês.
+        Todo dia 15 abre o envio de pedidos para a escala do mês seguinte, até o administrador
+        encerrar.
       </p>
       <Link to="/" className={cn(buttonVariants({ variant: "outline" }), "mt-2")}>
         Voltar para o início

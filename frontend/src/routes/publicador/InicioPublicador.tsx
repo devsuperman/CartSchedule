@@ -31,8 +31,8 @@ function ordenarPorDiaTurnoCarrinho(lista: Solicitacao[]): Solicitacao[] {
 }
 
 /**
- * Rota "/": tela inicial do publicador. Mostra os pedidos do mês atual e do próximo
- * (mesAlvo). Com a janela aberta, há um botão para solicitar uma nova escala e os pedidos
+ * Rota "/": tela inicial do publicador. Mostra os pedidos do mês atual e do mês-alvo
+ * (o próximo; do dia 1 ao 14, o próprio mês atual). Com a janela aberta, há um botão para solicitar uma nova escala e os pedidos
  * do mês-alvo podem ser excluídos; com ela fechada, um aviso aparece no topo, o botão some
  * e a lista fica só para leitura (PLANNING.md regra 8). Os botões ficam num rodapé fixo na
  * base da tela: "Pronto! Terminei minha escala!" em cima (janela aberta ou fechada) e
@@ -104,7 +104,7 @@ export default function InicioPublicador() {
       const mensagem =
         err instanceof ApiError ? err.message : "Não foi possível cancelar a solicitação. Tente novamente.";
       setErrosExclusao((prev) => ({ ...prev, [id]: mensagem }));
-      // A janela fechou enquanto a tela estava aberta (ex: virou o dia 26): reconsulta a
+      // A janela fechou enquanto a tela estava aberta (o admin encerrou o envio): reconsulta a
       // janela para a tela passar ao modo só leitura, com o aviso no lugar do botão.
       if (ehErroDeJanelaFechada(err)) {
         tentarJanelaNovamente();
@@ -150,8 +150,8 @@ export default function InicioPublicador() {
         <Alert>
           <AlertTitle>Envio de pedidos fechado</AlertTitle>
           <AlertDescription>
-            Os pedidos podem ser enviados do dia 15 ao dia 27 de cada mês. Fora desse período,
-            para excluir um pedido, fale com o administrador.
+            Novos pedidos abrem no dia 15. Até lá, para excluir um pedido, fale com o
+            administrador.
           </AlertDescription>
         </Alert>
       )}

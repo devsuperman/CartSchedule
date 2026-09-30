@@ -48,10 +48,10 @@ commit, não com IA como ajuda pontual.
 - **6 turnos fixos**, não cadastráveis: 06–08, 08–10, 10–12, 14–16, 16–18,
   18–20. O admin só escolhe quais deles cada carrinho oferece em cada dia
   da semana.
-- **Janela de envio automática**, sem cron: do dia 15 ao dia 27 do mês, o
-  publicador envia para a escala do mês seguinte. Fora disso, o envio fica
-  fechado, mas o histórico continua acessível. O admin não é limitado pela
-  janela.
+- **Janela de envio**, sem cron: todo dia 15 abre sozinha para a escala do
+  mês seguinte e fica aberta até o admin fechar (ele pode reabrir) na tela
+  da Escala. Com o envio fechado, o histórico continua acessível. O admin
+  não é limitado pela janela.
 - **O limite de 2 por trinca não é bloqueado**, apenas sinalizado
   visualmente. O critério de desempate é do admin; o sistema mostra só uma
   contagem de apoio (quantas solicitações cada publicador já tem na escala).

@@ -34,12 +34,12 @@ public static class Endpoint
                 statusCode: StatusCodes.Status400BadRequest);
         }
 
-        var janela = JanelaDeEnvio.CalcularParaHoje(relogio);
+        var janela = await JanelaDeEnvio.CalcularParaHojeAsync(db, relogio, ct);
         if (!janela.Aberta)
         {
             return Results.Problem(
                 title: "Janela de envio fechada",
-                detail: "O envio de novas solicitações só é permitido entre os dias 15 e 27 do mês.",
+                detail: "O envio de novas solicitações está fechado. Ele abre novamente no dia 15.",
                 statusCode: StatusCodes.Status400BadRequest,
                 extensions: new Dictionary<string, object?> { ["codigo"] = JanelaDeEnvio.CodigoJanelaFechada });
         }

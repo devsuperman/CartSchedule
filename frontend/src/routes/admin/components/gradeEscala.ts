@@ -23,9 +23,16 @@ export interface CelulaGrade {
   publicadores: PedidoGrade[];
 }
 
+/** Envio de pedidos dos publicadores (PLANNING.md §4): abre sozinho no dia 15, só o admin fecha. */
+export interface EnvioEscala {
+  aberto: boolean;
+}
+
 export interface EscalaGradeResponse {
   mes: string;
   celulas: CelulaGrade[];
+  /** Só na escala em envio (a única que pode ser fechada/reaberta); nas demais, null. */
+  envio: EnvioEscala | null;
 }
 
 /**

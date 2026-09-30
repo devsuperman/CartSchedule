@@ -1,3 +1,4 @@
+using CartSchedule.Api.Features.Administradores.AlterarEnvioEscala;
 using CartSchedule.Api.Features.Administradores.GerenciarCarrinhos;
 using CartSchedule.Api.Features.Administradores.GerenciarTurnosDoCarrinho;
 using CartSchedule.Api.Features.Administradores.Login;
@@ -27,7 +28,7 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 
 builder.Services.AddValidatorsFromAssemblyContaining<Program>();
 
-// Relógio injetável: a janela de envio depende da data (os testes fixam uma data).
+// Relógio injetável: a abertura da janela de envio depende da data (os testes fixam uma data).
 builder.Services.AddSingleton(TimeProvider.System);
 
 builder.Services.AddProblemDetails();
@@ -86,5 +87,6 @@ app.MapAdicionarSolicitacaoManual();
 app.MapObterEscalaFinal();
 app.MapRenomearPublicador();
 app.MapMoverSolicitacao();
+app.MapAlterarEnvioEscala();
 
 app.Run();

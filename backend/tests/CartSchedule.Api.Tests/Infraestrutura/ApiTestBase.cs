@@ -69,6 +69,10 @@ public abstract class ApiTestBase(ApiFixture fixture) : IAsyncLifetime
         HttpClient admin, int carrinhoId, int dia, int turno, string nome, string mes = MesAlvo) =>
         admin.PostAsJsonAsync($"/api/admin/escalas/{mes}/solicitacoes", new { nome, carrinhoId, diaSemana = dia, turnoId = turno });
 
+    /// <summary>Fecha (aberto = false) ou reabre o envio dos publicadores para a escala do mês.</summary>
+    protected static Task<HttpResponseMessage> AlterarEnvioAsync(HttpClient admin, bool aberto, string mes = MesAlvo) =>
+        admin.PutAsJsonAsync($"/api/admin/escalas/{mes}/envio", new { aberto });
+
     protected static async Task<JsonElement> GradeAsync(HttpClient admin, string mes = MesAlvo) =>
         await admin.GetFromJsonAsync<JsonElement>($"/api/admin/escalas/{mes}/grade");
 

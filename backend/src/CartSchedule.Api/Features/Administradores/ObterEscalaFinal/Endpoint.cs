@@ -1,5 +1,6 @@
 using System.Globalization;
 using CartSchedule.Api.Infrastructure;
+using CartSchedule.Api.Shared;
 using Microsoft.EntityFrameworkCore;
 
 namespace CartSchedule.Api.Features.Administradores.ObterEscalaFinal;
@@ -19,7 +20,7 @@ public static class Endpoint
         return app;
     }
 
-    private static async Task<IResult> HandleAsync(string mes, AppDbContext db, CancellationToken ct)
+    private static async Task<IResult> HandleAsync(string mes, AppDbContext db, TimeProvider relogio, CancellationToken ct)
     {
         if (!TryParseMes(mes, out var mesReferencia))
         {
@@ -88,7 +89,11 @@ public static class Endpoint
                     .ToList()))
             .ToList();
 
-        return Results.Ok(new EscalaFinalResponse(mes, celulas));
+        var envio = mesReferencia == JanelaDeEnvio.MesAlvo(JanelaDeEnvio.Hoje(relogio))
+            ? new EnvioDaEscalaResponse(escala is not { EnvioFechado: true })
+            : null;
+
+        return Results.Ok(new EscalaFinalResponse(mes, celulas, envio));
     }
 
     private static bool TryParseMes(string mes, out DateOnly mesReferencia)

@@ -396,4 +396,78 @@ describe("RedirecionaParaEscala", () => {
 
     expect(await screen.findByRole("heading", { name: "Escala" })).toBeInTheDocument();
   });
+
+  describe("envio dos publicadores", () => {
+    function comEnvio(envio: { aberto: boolean } | null) {
+      const padrao = mockApiFetch.getMockImplementation()!;
+      mockApiFetch.mockImplementation(async (path, init) =>
+        path === "/api/admin/escalas/2026-10/grade" ? { ...structuredClone(GRADE), envio } : padrao(path, init),
+      );
+    }
+
+    it("fora da escala em envio, não mostra a faixa", async () => {
+      comEnvio(null);
+      await renderTela();
+
+      expect(screen.queryByText("Envio aberto")).not.toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: "Fechar envio" })).not.toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: "Reabrir envio" })).not.toBeInTheDocument();
+    });
+
+    it("fecha o envio com confirmação e depois pode reabrir", async () => {
+      comEnvio({ aberto: true });
+      const user = await renderTela();
+      expect(screen.getByText("Envio aberto")).toBeInTheDocument();
+
+      await user.click(screen.getByRole("button", { name: "Fechar envio" }));
+      const confirmar = screen.getByRole("dialog", { name: "Fechar o envio?" });
+      expect(chamadas("PUT")).toHaveLength(0);
+      await user.click(within(confirmar).getByRole("button", { name: "Fechar envio" }));
+
+      expect(await screen.findByText("Envio fechado")).toBeInTheDocument();
+      expect(screen.getByRole("status")).toHaveTextContent("Envio fechado para os publicadores.");
+      expect(chamadas("PUT")).toEqual([
+        ["/api/admin/escalas/2026-10/envio", expect.objectContaining({ body: JSON.stringify({ aberto: false }) })],
+      ]);
+
+      await user.click(screen.getByRole("button", { name: "Reabrir envio" }));
+      await user.click(
+        within(screen.getByRole("dialog", { name: "Reabrir o envio?" })).getByRole("button", { name: "Reabrir envio" }),
+      );
+
+      expect(await screen.findByText("Envio aberto")).toBeInTheDocument();
+      expect(chamadas("PUT")[1]).toEqual([
+        "/api/admin/escalas/2026-10/envio",
+        expect.objectContaining({ body: JSON.stringify({ aberto: true }) }),
+      ]);
+    });
+
+    it("Voltar no modal não altera o envio", async () => {
+      comEnvio({ aberto: true });
+      const user = await renderTela();
+
+      await user.click(screen.getByRole("button", { name: "Fechar envio" }));
+      await user.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Voltar" }));
+
+      expect(chamadas("PUT")).toHaveLength(0);
+      expect(screen.getByText("Envio aberto")).toBeInTheDocument();
+    });
+
+    it("erro da API aparece no modal e o estado não muda", async () => {
+      comEnvio({ aberto: true });
+      const padrao = mockApiFetch.getMockImplementation()!;
+      mockApiFetch.mockImplementation(async (path, init) => {
+        if (init?.method === "PUT") throw new ApiError(400, "Só a escala em envio pode ser fechada.", null);
+        return padrao(path, init);
+      });
+      const user = await renderTela();
+
+      await user.click(screen.getByRole("button", { name: "Fechar envio" }));
+      const modal = screen.getByRole("dialog");
+      await user.click(within(modal).getByRole("button", { name: "Fechar envio" }));
+
+      expect(await within(modal).findByText("Só a escala em envio pode ser fechada.")).toBeInTheDocument();
+      expect(screen.getByText("Envio aberto")).toBeInTheDocument();
+    });
+  });
 });

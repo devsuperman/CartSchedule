@@ -348,3 +348,76 @@ function FormularioAdicionar({
     </form>
   );
 }
+
+/**
+ * Confirma fechar ou reabrir o envio de pedidos dos publicadores para a escala em envio:
+ * PUT /api/admin/escalas/{mes}/envio. A abertura é automática no dia 15; fechar é só aqui.
+ */
+export function ModalEnvio({
+  mes,
+  abrir,
+  onFechar,
+  onAlterado,
+}: {
+  mes: string;
+  /** null = modal fechado; true = reabrir o envio; false = fechar o envio. */
+  abrir: boolean | null;
+  onFechar: () => void;
+  onAlterado: (aberto: boolean) => void;
+}) {
+  const [salvando, setSalvando] = useState(false);
+  const [erro, setErro] = useState<string | null>(null);
+
+  async function alterar(aberto: boolean) {
+    setSalvando(true);
+    setErro(null);
+    try {
+      await apiFetch(`/api/admin/escalas/${mes}/envio`, { method: "PUT", body: JSON.stringify({ aberto }) });
+      onAlterado(aberto);
+    } catch (e) {
+      setErro(e instanceof ApiError ? e.message : "Não foi possível alterar o envio.");
+    } finally {
+      setSalvando(false);
+    }
+  }
+
+  function fechar() {
+    if (salvando) return;
+    setErro(null);
+    onFechar();
+  }
+
+  return (
+    <Dialog open={abrir !== null} onOpenChange={(aberto) => !aberto && fechar()}>
+      <DialogContent>
+        {abrir !== null && (
+          <>
+            <DialogHeader>
+              <DialogTitle>{abrir ? "Reabrir o envio?" : "Fechar o envio?"}</DialogTitle>
+              <DialogDescription>
+                {abrir
+                  ? "Os publicadores voltam a poder enviar e excluir pedidos para esta escala."
+                  : "Os publicadores não poderão mais enviar nem excluir pedidos para esta escala. Você pode reabrir depois."}
+              </DialogDescription>
+            </DialogHeader>
+            {erro && (
+              <Alert variant="destructive">
+                <AlertDescription>{erro}</AlertDescription>
+              </Alert>
+            )}
+            <DialogFooter>
+              <DialogClose asChild>
+                <Button type="button" variant="outline" disabled={salvando}>
+                  Voltar
+                </Button>
+              </DialogClose>
+              <Button type="button" disabled={salvando} onClick={() => alterar(abrir)}>
+                {salvando ? "Salvando…" : abrir ? "Reabrir envio" : "Fechar envio"}
+              </Button>
+            </DialogFooter>
+          </>
+        )}
+      </DialogContent>
+    </Dialog>
+  );
+}
