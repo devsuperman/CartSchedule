@@ -7,8 +7,13 @@ namespace CartSchedule.Api.Features.Administradores.ObterEscalaFinal;
 /// Solicitacao da escala (toda solicitação existente conta) — não existe tabela própria de
 /// "escala final" (PLANNING.md §9). É a tela onde o administrador gere a escala: move,
 /// adiciona e exclui pedidos vendo onde há vaga.
+/// <see cref="Envio"/> só vem quando o mês é a escala em envio (a única que o administrador
+/// pode fechar/reabrir); nas demais é null.
 /// </summary>
-public record EscalaFinalResponse(string Mes, List<EscalaFinalCelulaResponse> Celulas);
+public record EscalaFinalResponse(string Mes, List<EscalaFinalCelulaResponse> Celulas, EnvioDaEscalaResponse? Envio);
+
+/// <summary>Estado do envio de pedidos dos publicadores para a escala em envio (PLANNING.md §4).</summary>
+public record EnvioDaEscalaResponse(bool Aberto);
 
 /// <summary>
 /// Uma célula da grade Carrinho × Dia × Turno. Aparecem todas as vagas configuradas dos

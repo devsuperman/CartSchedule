@@ -64,15 +64,69 @@ public class CriarSolicitacaoTests(ApiFixture fixture) : ApiTestBase(fixture)
     }
 
     [Fact]
-    public async Task ForaDaJanela_Retorna400ComCodigoJanelaFechada()
+    public async Task EnvioFechadoPeloAdmin_Retorna400ComCodigoJanelaFechada()
     {
         var carrinhoId = await CarrinhoComSegunda0810ETerca1012Async();
-        Fixture.Relogio.Agora = new DateTimeOffset(2026, 9, 10, 15, 0, 0, TimeSpan.Zero);
+        (await AlterarEnvioAsync(await AdminAsync(), aberto: false)).EnsureSuccessStatusCode();
 
         var resposta = await SolicitarAsync(Publicador(), carrinhoId, Segunda, Turno0810);
 
         Assert.Equal(HttpStatusCode.BadRequest, resposta.StatusCode);
         Assert.Equal("JANELA_FECHADA", (await JsonAsync(resposta)).GetProperty("codigo").GetString());
+    }
+
+    [Fact]
+    public async Task EnvioReaberto_AceitaDeNovo()
+    {
+        var carrinhoId = await CarrinhoComSegunda0810ETerca1012Async();
+        var admin = await AdminAsync();
+        await AlterarEnvioAsync(admin, aberto: false);
+        await AlterarEnvioAsync(admin, aberto: true);
+
+        var resposta = await SolicitarAsync(Publicador(), carrinhoId, Segunda, Turno0810);
+
+        Assert.Equal(HttpStatusCode.Created, resposta.StatusCode);
+    }
+
+    [Fact]
+    public async Task Dia28SemOAdminFechar_ContinuaAberto()
+    {
+        // O fechamento não é mais automático no dia 27 (PLANNING.md §4).
+        var carrinhoId = await CarrinhoComSegunda0810ETerca1012Async();
+        Fixture.Relogio.Agora = new DateTimeOffset(2026, 9, 28, 15, 0, 0, TimeSpan.Zero);
+
+        var resposta = await SolicitarAsync(Publicador(), carrinhoId, Segunda, Turno0810);
+
+        Assert.Equal(HttpStatusCode.Created, resposta.StatusCode);
+        Assert.Single(PedidosDaGrade(await GradeAsync(await AdminAsync(), "2026-10")));
+    }
+
+    [Fact]
+    public async Task AntesDoDia15_SemOAdminFechar_VaiParaAEscalaDoMesCorrente()
+    {
+        // Em 05/10 a escala de Outubro (aberta em 15/09) segue em envio até o admin fechar.
+        var carrinhoId = await CarrinhoComSegunda0810ETerca1012Async();
+        Fixture.Relogio.Agora = new DateTimeOffset(2026, 10, 5, 15, 0, 0, TimeSpan.Zero);
+
+        var resposta = await SolicitarAsync(Publicador(), carrinhoId, Segunda, Turno0810);
+
+        Assert.Equal(HttpStatusCode.Created, resposta.StatusCode);
+        Assert.Single(PedidosDaGrade(await GradeAsync(await AdminAsync(), "2026-10")));
+    }
+
+    [Fact]
+    public async Task NoDia15_AbreAEscalaSeguinte_MesmoComAAnteriorFechada()
+    {
+        var carrinhoId = await CarrinhoComSegunda0810ETerca1012Async();
+        var admin = await AdminAsync();
+        await AlterarEnvioAsync(admin, aberto: false, mes: "2026-10");
+        Fixture.Relogio.Agora = new DateTimeOffset(2026, 10, 15, 15, 0, 0, TimeSpan.Zero);
+
+        var resposta = await SolicitarAsync(Publicador(), carrinhoId, Segunda, Turno0810);
+
+        Assert.Equal(HttpStatusCode.Created, resposta.StatusCode);
+        Assert.Single(PedidosDaGrade(await GradeAsync(admin, "2026-11")));
+        Assert.Empty(PedidosDaGrade(await GradeAsync(admin, "2026-10")));
     }
 
     [Fact]

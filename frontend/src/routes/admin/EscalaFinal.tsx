@@ -13,7 +13,14 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { cn } from "@/lib/utils";
 import { CelulaEscala, type ModoGestao } from "./components/CelulaEscala";
 import { ModalEditarNome, type PublicadorEmEdicao } from "./components/ModalEditarNome";
-import { ModalAdicionar, ModalExcluir, ModalMover, type Exclusao, type Movimento } from "./components/ModaisEscala";
+import {
+  ModalAdicionar,
+  ModalEnvio,
+  ModalExcluir,
+  ModalMover,
+  type Exclusao,
+  type Movimento,
+} from "./components/ModaisEscala";
 import {
   atualizarPessoa,
   chaveCelula,
@@ -26,6 +33,7 @@ import {
   precisaAtencao,
   semPedido,
   type CelulaGrade,
+  type EnvioEscala,
   type EscalaGradeResponse,
 } from "./components/gradeEscala";
 
@@ -60,11 +68,15 @@ function pedeAtencao(c: CelulaGrade): boolean {
  * — Mover (a ação mais comum), Editar pessoa e, discreto, Excluir (último recurso). O "+" de
  * cada vaga adiciona alguém manualmente. A meta é só sinalização: mover ou adicionar avisa,
  * mas nunca bloqueia (regra 3), e o sistema nunca sugere quem mover ou excluir (regra 13).
+ * Na escala em envio, uma faixa no topo mostra se os publicadores ainda podem enviar pedidos
+ * e deixa o admin fechar ou reabrir o envio (PLANNING.md §4 — abre sozinho no dia 15).
  */
 export default function EscalaFinal() {
   const { mes } = useParams<{ mes: string }>();
   const telaLarga = useTelaLarga();
   const [celulas, setCelulas] = useState<CelulaGrade[] | null>(null);
+  const [envio, setEnvio] = useState<EnvioEscala | null>(null);
+  const [alterandoEnvio, setAlterandoEnvio] = useState<boolean | null>(null);
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState<string | null>(null);
 
@@ -90,6 +102,7 @@ export default function EscalaFinal() {
       .then((resposta) => {
         if (!cancelado) {
           setCelulas(resposta.celulas);
+          setEnvio(resposta.envio ?? null);
         }
       })
       .catch(() => {
@@ -130,10 +143,51 @@ export default function EscalaFinal() {
 
   const lista = celulas ?? [];
 
+  const faixaEnvio = envio && (
+    <>
+      <Card
+        className={cn(
+          "flex-row flex-wrap items-center justify-between gap-3 p-3",
+          envio.aberto ? "border-success bg-success-muted" : "border-border-strong bg-muted",
+        )}
+      >
+        <div className="min-w-0">
+          <strong className="block">{envio.aberto ? "Envio aberto" : "Envio fechado"}</strong>
+          <span className="block text-sm text-muted-foreground">
+            {envio.aberto
+              ? "Os publicadores ainda podem enviar e excluir pedidos."
+              : "Os publicadores não podem enviar nem excluir pedidos."}
+          </span>
+        </div>
+        <Button
+          type="button"
+          variant={envio.aberto ? "default" : "outline"}
+          onClick={() => setAlterandoEnvio(!envio.aberto)}
+        >
+          {envio.aberto ? "Fechar envio" : "Reabrir envio"}
+        </Button>
+      </Card>
+      <ModalEnvio
+        mes={mes}
+        abrir={alterandoEnvio}
+        onFechar={() => setAlterandoEnvio(null)}
+        onAlterado={(aberto) => {
+          setEnvio({ aberto });
+          setAlterandoEnvio(null);
+          setAviso(aberto ? "Envio reaberto para os publicadores." : "Envio fechado para os publicadores.");
+        }}
+      />
+    </>
+  );
+
   if (lista.length === 0) {
     return (
       <div className="flex flex-col gap-4">
         <h1>Escala</h1>
+        {faixaEnvio}
+        <p role="status" className={cn("text-[0.95rem] font-semibold text-success", !aviso && "sr-only")}>
+          {aviso}
+        </p>
         <Card className="items-center gap-2 py-10 text-center text-muted-foreground">
           <strong className="block text-[1.1rem] text-foreground">Nenhuma vaga em {formatarMes(mes)}</strong>
           <span>
@@ -308,6 +362,8 @@ export default function EscalaFinal() {
           <HandHeartIcon aria-hidden className="mx-1 inline size-4 align-[-0.15em]" />.
         </p>
       </div>
+
+      {faixaEnvio}
 
       <dl className="grid grid-cols-3 gap-2 sm:gap-3">
         <Card className="gap-1 p-3">

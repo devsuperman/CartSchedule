@@ -29,15 +29,28 @@ public class ExcluirSolicitacaoTests(ApiFixture fixture) : ApiTestBase(fixture)
     }
 
     [Fact]
-    public async Task ForaDaJanela_Retorna400ComCodigoJanelaFechada()
+    public async Task EnvioFechadoPeloAdmin_Retorna400ComCodigoJanelaFechada()
     {
         var (publicador, _, solicitacaoId) = await SolicitacaoCriadaAsync();
-        Fixture.Relogio.Agora = new DateTimeOffset(2026, 9, 28, 15, 0, 0, TimeSpan.Zero);
+        await AlterarEnvioAsync(await AdminAsync(), aberto: false);
 
         var resposta = await publicador.DeleteAsync($"/api/solicitacoes/{solicitacaoId}");
 
         Assert.Equal(HttpStatusCode.BadRequest, resposta.StatusCode);
         Assert.Equal("JANELA_FECHADA", (await JsonAsync(resposta)).GetProperty("codigo").GetString());
+    }
+
+    [Fact]
+    public async Task EscalaQueJaSaiuDoEnvio_Retorna400()
+    {
+        // Em 15/10 a escala em envio passa a ser Novembro: o pedido de Outubro fica só leitura.
+        var (publicador, _, solicitacaoId) = await SolicitacaoCriadaAsync();
+        Fixture.Relogio.Agora = new DateTimeOffset(2026, 10, 15, 15, 0, 0, TimeSpan.Zero);
+
+        var resposta = await publicador.DeleteAsync($"/api/solicitacoes/{solicitacaoId}");
+
+        Assert.Equal(HttpStatusCode.BadRequest, resposta.StatusCode);
+        Assert.False((await JsonAsync(resposta)).TryGetProperty("codigo", out _));
     }
 
     [Fact]

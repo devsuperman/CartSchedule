@@ -595,7 +595,28 @@ com excesso (PLANNING.md regras 1, 3 e 4). Continua sem nenhum bloqueio.
 
 ---
 
-## Backlog (Fase 15 — opcional, fora do escopo inicial)
+## Fase 15 — Fechamento manual do envio
+
+Fechar o envio no dia 27 fixo não serve: o administrador decide quando parar
+de receber pedidos, e pode reabrir. A abertura continua automática no dia 15
+(PLANNING.md §4, regra 6).
+
+| ID | Entrega | Critério de aceite |
+|---|---|---|
+| F15-DOC-01 | `PLANNING.md`, `TECHNICAL_SPEC.md`, `.claude/CLAUDE.md`, `TASKS.md` | §4 e regra 6 com abertura no dia 15 e fechamento só pelo administrador; `Escala.envio_fechado`; contratos abaixo. |
+| F15-BE-01 | `Domain/Escala.cs`, migration | `EnvioFechado bool`, não nulo, padrão `false`; as escalas que já existiam ficam `true` (pela regra antiga estavam fechadas). |
+| F15-BE-02 | `Shared/JanelaDeEnvio.cs`, `ConsultarJanela`, `CriarSolicitacao`, `ExcluirSolicitacao` (publicador) | Escala-alvo: dia ≥ 15 → mês seguinte; dia 1–14 → mês corrente. Aberta ⇔ escala-alvo sem `EnvioFechado`. Sem fechamento automático. Recusas continuam com `codigo: "JANELA_FECHADA"`. |
+| F15-BE-03 | `Features/Administradores/AlterarEnvioEscala/`, `ObterEscalaFinal`, `Program.cs` | `PUT /api/admin/escalas/{mes}/envio` (JWT) com `{ aberto }` obrigatório: 204, idempotente, cria a escala se preciso; 400 se `mes` não é a escala-alvo ou é inválido. A grade traz `envio: { aberto }` só na escala-alvo (senão `null`). |
+| F15-FE-01 | `routes/admin/EscalaFinal.tsx`, `components/ModaisEscala.tsx` (`ModalEnvio`), `gradeEscala.ts` (+ testes) | Na escala em envio, faixa "Envio aberto"/"Envio fechado" com **Fechar envio**/**Reabrir envio** e modal de confirmação; atualiza sem recarregar; erro no modal. |
+| F15-FE-02 | `routes/publicador/JanelaFechada.tsx`, `InicioPublicador.tsx` (+ teste) | Textos sem "do dia 15 ao dia 27": o envio abre no dia 15 e fica aberto até o administrador encerrar. |
+
+### Verificação da Fase 15
+
+`dotnet test`, `npm test`, `npm run lint`, `npm run build`.
+
+---
+
+## Backlog (Fase 16 — opcional, fora do escopo inicial)
 
 Não paralelizar ainda — só entra depois que Fases 0–4 estiverem completas
 e validadas:

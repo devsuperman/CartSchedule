@@ -54,7 +54,7 @@ public class AtualizarNomeTests(ApiFixture fixture) : ApiTestBase(fixture)
         await DefinirTurnosAsync(admin, carrinhoId, (Segunda, Turno0810));
         var publicador = Publicador();
         await SolicitarAsync(publicador, carrinhoId, Segunda, Turno0810, "Joao");
-        Fixture.Relogio.Agora = new DateTimeOffset(2026, 9, 28, 15, 0, 0, TimeSpan.Zero);
+        await AlterarEnvioAsync(admin, aberto: false);
 
         var resposta = await AtualizarNomeAsync(publicador, "João");
 

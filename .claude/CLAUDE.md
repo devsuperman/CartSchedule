@@ -79,11 +79,14 @@ todas são intencionais, confirmadas no `PLANNING.md`:
    acesso (rota `/nome`, guarda `ExigeNome`) e fora do wizard; editável
    pelo publicador ("Olá, Fulano" → `PUT /api/publicador`) e pelo admin
    (`PUT /api/admin/publicadores/{id}`). Nomes repetidos são permitidos.
-6. **Janela de envio automática**, sem job/cron: calculada em tempo real a
-   cada request a partir da data do servidor — dia do mês entre 15 e 27 →
-   aberta, escala-alvo = mês seguinte; fora disso → fechada. Fora da
-   janela, o **histórico do publicador continua sempre acessível** (não é
-   afetado pela janela).
+6. **Janela de envio: abre sozinha no dia 15, só o admin fecha**, sem
+   job/cron: calculada a cada request (`JanelaDeEnvio`). Escala-alvo = a
+   aberta no último dia 15 (dia ≥ 15 → mês seguinte; dia 1–14 → mês
+   corrente); aberta enquanto `Escala.EnvioFechado` for false. O admin
+   fecha/reabre na tela da Escala (`PUT /api/admin/escalas/{mes}/envio`,
+   só para a escala-alvo). **Nunca reintroduzir fechamento automático por
+   data.** Fora da janela, o **histórico do publicador continua sempre
+   acessível** (não é afetado pela janela).
 7. **Administrador não é limitado pela janela** — pode ver/excluir/
    adicionar em qualquer escala (passada, atual, futura) a qualquer momento.
 7a. **Sem aprovação nem status**: toda `Solicitacao` existente já conta na

@@ -171,6 +171,7 @@ describe("InicioPublicador — rodapé", () => {
 
     expect(await screen.findByRole("button", { name: TERMINEI })).toBeInTheDocument();
     expect(screen.getByText("Envio de pedidos fechado")).toBeInTheDocument();
+    expect(screen.getByText(/Novos pedidos abrem no dia 15/)).toBeInTheDocument();
     expect(screen.queryByRole("link", { name: "Solicitar Nova Escala" })).not.toBeInTheDocument();
   });
 

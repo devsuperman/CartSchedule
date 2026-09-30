@@ -42,12 +42,12 @@ public static class Endpoint
                     statusCode: StatusCodes.Status403Forbidden);
             }
 
-            var janela = JanelaDeEnvio.CalcularParaHoje(relogio);
+            var janela = await JanelaDeEnvio.CalcularParaHojeAsync(db, relogio);
             if (!janela.Aberta)
             {
                 return Results.Problem(
                     title: "Janela de envio fechada",
-                    detail: "Solicitações só podem ser excluídas entre os dias 15 e 27 do mês. Fora desse período, fale com o administrador.",
+                    detail: "Solicitações só podem ser excluídas enquanto o envio estiver aberto. Fale com o administrador.",
                     statusCode: StatusCodes.Status400BadRequest,
                     extensions: new Dictionary<string, object?> { ["codigo"] = JanelaDeEnvio.CodigoJanelaFechada });
             }
@@ -56,7 +56,7 @@ public static class Endpoint
             {
                 return Results.Problem(
                     title: "Solicitação fora da escala em aberto",
-                    detail: "Só é possível excluir solicitações da escala do próximo mês. Para as demais, fale com o administrador.",
+                    detail: "Só é possível excluir solicitações da escala em envio. Para as demais, fale com o administrador.",
                     statusCode: StatusCodes.Status400BadRequest);
             }
 

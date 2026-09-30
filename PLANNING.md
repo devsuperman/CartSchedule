@@ -12,19 +12,20 @@ semana, por turno** — ou 3, quando uma delas é criança ou idoso (regra 1).
 
 - **Publicador**: informa seu nome, escolhe o carrinho, o(s) dia(s) da
   semana e o turno em que quer trabalhar, e envia a solicitação — apenas
-  durante a janela de envio automaticamente aberta pelo sistema (ver
-  seção 4).
+  enquanto o envio estiver aberto (abre sozinho no dia 15 e fecha quando o
+  administrador decidir — ver seção 4).
 - **Administrador**: visualiza todas as solicitações recebidas para uma
   escala (todas já contam na escala), exclui as que decidir tirar
   (buscando o limite de 2 por combinação), pode adicionar solicitações manualmente a qualquer escala
-  a qualquer momento, e gera a escala mensal final.
+  a qualquer momento, decide quando fechar (e, se quiser, reabrir) o envio
+  dos publicadores, e gera a escala mensal final.
 
 ## 3. Conceitos-chave
 
 | Conceito | Descrição |
 |---|---|
 | **Escala (mês de referência)** | O mês/ano para o qual a escala está sendo montada (ex: Outubro/2026). |
-| **Janela de envio** | Período em que o sistema aceita novas solicitações de Publicadores para a escala do mês seguinte (ver seção 4). |
+| **Janela de envio** | Período em que o sistema aceita novas solicitações de Publicadores para a escala do mês seguinte: abre sozinho no dia 15 e fecha quando o administrador decidir (ver seção 4). |
 | **Carrinho** | Um carrinho de trabalho disponível (ex: Carrinho 1, Carrinho 2...). Tem um nome e uma **descrição** opcional (ex: local onde fica), exibida ao publicador abaixo do nome na hora de escolher o carrinho. |
 | **Dia da semana** | **Sempre Segunda a Sexta-feira** — são os únicos dias que existem no sistema; não há Sábado nem Domingo. A escolha é **recorrente**: se o publicador escolhe "Segunda-feira", isso vale para todas as segundas-feiras daquele mês — não é uma data específica do calendário. |
 | **Turno** | Faixa de horário **fixa do sistema**, não cadastrável pelo administrador. São sempre estes 6 turnos: **06:00–08:00, 08:00–10:00, 10:00–12:00, 14:00–16:00, 16:00–18:00, 18:00–20:00**. Os mesmos horários valem para todos os carrinhos que usarem aquele turno. |
@@ -33,33 +34,42 @@ semana, por turno** — ou 3, quando uma delas é criança ou idoso (regra 1).
 | **Escala mensal (resultado final)** | Para cada `(carrinho, dia da semana, turno)`, todos os publicadores com solicitação (a meta é 2, ou 3 com uma criança/idoso — regra 1). |
 | **Criança ou idoso** | Marca que o administrador põe na pessoa (vale para todos os pedidos dela). Quem tem a marca pode ser a 3ª pessoa de uma vaga sem que ela fique com excesso (regra 1). |
 
-## 4. Janela de Envio (automática)
+## 4. Janela de Envio (abre sozinha, o administrador fecha)
 
-- **Abertura**: todo dia **15** do mês, o sistema abre automaticamente o
-  envio de solicitações para a escala do **mês seguinte**.
+- **Abertura (automática)**: todo dia **15** do mês, o sistema abre
+  automaticamente o envio de solicitações para a escala do **mês seguinte**.
   - Ex: dia 15 de setembro → abre a escala de Outubro.
-- **Fechamento**: a janela fecha ao final do dia **27** do mesmo mês
-  (ex: se abriu em 15/09, o último dia para enviar é 27/09).
-- **A partir do dia 27**, começa o período em que o **administrador
-  realiza os ajustes** (excluindo e adicionando solicitações
-  manualmente) e finaliza a escala mensal antes do mês
-  seguinte começar.
-- **Fora da janela** (do dia 28 ao dia 14 do mês seguinte): o
-  Publicador que acessar o site vê uma **mensagem informando que o
-  envio de novas solicitações está fechado** (ex: "Envio fechado.
-  Abre novamente no dia 15."). O **histórico de suas próprias
-  solicitações continua disponível para consulta a qualquer momento**,
-  independentemente da janela estar aberta ou fechada (ver regra 11).
+- **Fechamento (manual)**: não há data fixa — o envio fica aberto até o
+  **administrador fechá-lo**, na tela da Escala daquele mês. Ele pode
+  **reabrir** depois, quantas vezes quiser. Se ninguém fechar, o envio
+  continua aberto (mesmo depois que o mês da escala começa) até o dia 15
+  seguinte, quando a escala do outro mês abre.
+  - Ex: abriu em 15/09 para Outubro; o admin fecha em 25/09, reabre em
+    26/09 para um ajuste e fecha de novo em 27/09. Se não tivesse
+    fechado, em 05/10 os publicadores ainda enviariam pedidos para
+    Outubro; em 15/10 abre Novembro e Outubro deixa de receber pedidos.
+- **Escala em envio**: é a escala aberta no último dia 15 — do dia 15 em
+  diante, a do mês seguinte; do dia 1 ao 14, a do mês corrente. Só ela
+  pode ser fechada ou reaberta pelo administrador.
+- Depois de fechar, começa o período em que o **administrador
+  realiza os ajustes** (movendo, excluindo e adicionando solicitações
+  manualmente) e finaliza a escala mensal.
+- **Com o envio fechado**: o Publicador que acessar o site vê uma
+  **mensagem informando que o envio de novas solicitações está fechado**
+  (ex: "Envio fechado. Abre novamente no dia 15."). O **histórico de suas
+  próprias solicitações continua disponível para consulta a qualquer
+  momento**, independentemente da janela estar aberta ou fechada (ver
+  regra 11).
 - **Apenas uma escala fica aberta por vez** para novos envios de
-  Publicadores — sempre a do mês seguinte ao mês corrente, do dia 15
-  ao dia 27.
+  Publicadores — a escala em envio, até o administrador fechá-la ou até o
+  próximo dia 15.
 - O Administrador **não é limitado pela janela**: pode ver, excluir
   e adicionar solicitações em qualquer escala (passada, atual
   em aberto, ou futura) a qualquer momento.
 
 ## 5. Fluxo do Publicador
 
-1. Acessa o site durante a janela de envio (dias 15 a 25 do mês).
+1. Acessa o site durante a janela de envio (do dia 15 até o administrador fechar).
 2. No **primeiro acesso** (janela aberta ou fechada), antes de qualquer
    outra coisa, informa seu **nome**. Não há cadastro/login com senha — o
    nome fica salvo no aparelho e não é pedido de novo. A partir daí o site
@@ -70,7 +80,7 @@ semana, por turno** — ou 3, quando uma delas é criança ou idoso (regra 1).
 3. Seleciona o **carrinho** que deseja usar (vê o nome e, abaixo dele, a descrição do carrinho, quando houver) — só aparecem os carrinhos que têm algum turno configurado.
 4. Seleciona o **dia da semana** em que quer trabalhar — dias em que o carrinho escolhido não tem turno nem aparecem.
 5. Seleciona o **turno** desejado — apenas entre os turnos que o administrador configurou como disponíveis **para aquele carrinho naquele dia da semana** (carrinhos diferentes, e dias diferentes do mesmo carrinho, podem ter turnos diferentes).
-6. Pode repetir os passos 3–5 para pedir mais de uma combinação na mesma escala (ex: Carrinho A / Segunda / Manhã **e** Carrinho B / Quinta / Tarde). O mês/escala já está implícito (é sempre o mês seguinte, definido automaticamente pela janela aberta).
+6. Pode repetir os passos 3–5 para pedir mais de uma combinação na mesma escala (ex: Carrinho A / Segunda / Manhã **e** Carrinho B / Quinta / Tarde). O mês/escala já está implícito (é sempre a escala em envio, definida automaticamente pela janela aberta).
 7. Revisa e **envia** as solicitações.
 8. A qualquer momento (mesmo fora da janela de envio), pode acessar a tela de **histórico** e ver as solicitações que enviou (as que foram excluídas não existem mais), sem data/hora do envio — a escala oficial é divulgada pelo administrador no grupo de WhatsApp, fora do sistema. Cada pedido mostra em destaque o dia da semana e, ao lado, o turno; por último o carrinho (nome e descrição), e a lista segue essa mesma ordem.
 9. Nessa mesma tela de histórico, pode **excluir** uma solicitação sua **somente enquanto a janela de envio estiver aberta e apenas para a escala do mês-alvo**. A exclusão apaga o registro. Fora disso, só o administrador pode excluí-la.
@@ -152,13 +162,13 @@ mesma combinação `(escala, carrinho, dia da semana, turno)`.
 3. **Combinação com excesso**: se a trinca passar do limite da regra 1, o sistema **sinaliza** o excesso na tela do administrador, mas **não bloqueia** nada — o administrador decide sozinho, sem nenhum critério sugerido pelo sistema, quando e como reduzir (movendo para outra vaga — regra 12b — ou, em último caso, excluindo).
 4. **Combinação incompleta** (1 solicitação): também é **sinalizada** como precisando de atenção (regra 1) — o administrador procura completá-la (movendo ou adicionando alguém), mas nada é bloqueado. Com 2 solicitações (ou 3 com uma criança/idoso) a trinca está completa.
 5. **Escala mensal**: é composta por **todas as solicitações existentes** da escala (não há aprovação); toda trinca sem solicitação simplesmente não aparece na escala.
-6. **Janela de envio automática**: publicadores só enviam solicitações do dia 15 ao dia 27 do mês corrente, sempre para a escala do mês seguinte. Fora disso, o envio fica fechado para eles.
-7. **Administrador sem restrição de janela**: pode gerenciar (ver, excluir, adicionar) qualquer escala a qualquer momento, independentemente da janela de envio. A partir do dia 27, esse é o período esperado para os ajustes finais antes do mês seguinte começar.
+6. **Janela de envio — abre sozinha, o administrador fecha**: todo dia 15 abre o envio para a escala do mês seguinte; ele só fecha quando o administrador fecha (e pode reabrir) — não há fechamento automático. Com o envio fechado, os publicadores não enviam nem excluem pedidos (seção 4).
+7. **Administrador sem restrição de janela**: pode gerenciar (ver, excluir, adicionar) qualquer escala a qualquer momento, independentemente da janela de envio. Depois de fechar o envio, esse é o período esperado para os ajustes finais antes do mês da escala começar.
 8. **Sem limite** de quantas trincas um mesmo publicador pode ter em uma escala — pode trabalhar em vários carrinhos/dias/turnos livremente.
 9. **Identificação do publicador**: não há cadastro com login e senha — o nome é informado livremente, pelo publicador no primeiro acesso ou na adição manual pelo administrador. O nome pode ser corrigido a qualquer momento pelo próprio publicador ("Olá, Fulano") ou pelo administrador (na tela da Escala); a correção vale para todos os pedidos daquela pessoa. Se depois o publicador enviar um pedido ou editar o nome, prevalece o nome salvo no aparelho dele. **Nomes repetidos são permitidos** (não é bloqueio — a regra 10 continua sendo o único).
 10. **Bloqueio de duplicidade (único bloqueio automático do sistema)**: um publicador não pode ter duas solicitações para a mesma combinação `(escala, carrinho, dia da semana, turno)`. Ao tentar enviar uma solicitação idêntica a uma já existente sua, o sistema recusa o novo envio. Vale para o envio normal do publicador, para uma adição manual feita pelo administrador em nome dele e para a mudança de vaga pelo administrador (regra 12b). Este é o único bloqueio automático de todo o sistema — o limite por trinca (regras 1 e 3) **não** é bloqueado, apenas sinalizado.
-11. **Histórico de solicitações**: o publicador deve conseguir consultar as solicitações que ele mesmo enviou, sem precisar de cadastro formal. Essa consulta fica **sempre disponível**, mesmo fora da janela de envio (dia 28 ao dia 14). A forma de identificá-lo para isso será definida na fase de implementação.
-12. **Exclusão pelo publicador**: através da tela de histórico, o publicador pode excluir uma solicitação sua **somente enquanto a janela de envio estiver aberta (dia 15 ao 27) e apenas se ela for da escala do mês-alvo** — solicitações do mês corrente ou de meses passados não podem mais ser excluídas por ele. A exclusão **apaga o registro** — o sistema não guarda solicitações canceladas/excluídas, e o publicador pode voltar a pedir a mesma trinca depois. Fora da janela, a tela inicial não oferece o envio nem a exclusão e orienta o publicador a falar com o administrador. O bloqueio vale também no backend. Uma solicitação excluída libera a vaga que ocupava na trinca `(carrinho, dia da semana, turno)`.
+11. **Histórico de solicitações**: o publicador deve conseguir consultar as solicitações que ele mesmo enviou, sem precisar de cadastro formal. Essa consulta fica **sempre disponível**, mesmo com o envio fechado. A forma de identificá-lo para isso será definida na fase de implementação.
+12. **Exclusão pelo publicador**: através da tela de histórico, o publicador pode excluir uma solicitação sua **somente enquanto a janela de envio estiver aberta e apenas se ela for da escala do mês-alvo (a escala em envio)** — solicitações de escalas que já saíram do envio não podem mais ser excluídas por ele. A exclusão **apaga o registro** — o sistema não guarda solicitações canceladas/excluídas, e o publicador pode voltar a pedir a mesma trinca depois. Fora da janela, a tela inicial não oferece o envio nem a exclusão e orienta o publicador a falar com o administrador. O bloqueio vale também no backend. Uma solicitação excluída libera a vaga que ocupava na trinca `(carrinho, dia da semana, turno)`.
 12a. **Sem aprovação — o administrador exclui**: toda solicitação existente já conta na escala; não há Pendente, Aprovada nem Rejeitada. O administrador tira alguém da escala **excluindo** a solicitação, a qualquer momento e em qualquer escala (regra 7). A exclusão é **definitiva** (apaga o registro, com confirmação na tela) e libera o publicador a pedir a mesma trinca de novo. Quando esta regra entrou (Fase 11), as solicitações que estavam Rejeitadas foram apagadas e as Pendentes passaram a contar na escala.
 12b. **Mover solicitação (administrador)**: o administrador pode mudar uma solicitação de vaga — outro carrinho, dia da semana e/ou turno **da mesma escala** —, a qualquer momento e em qualquer escala (regra 7). A solicitação continua a mesma (origem e data do pedido não mudam); o destino precisa ser um turno configurado para aquele carrinho naquele dia (regra 17); mover para uma vaga que ficaria com excesso **não é bloqueado**, só avisado (regras 1/3); se a vaga de origem ficar com 1 pessoa, a tela também avisa; o único bloqueio é a duplicidade (regra 10). O publicador vê a nova vaga no seu histórico; não há notificação (regra 14). O sistema nunca sugere quem mover nem para onde.
 13. **Critério de desempate exclusivo do administrador**: quando uma trinca passa do limite (regra 1), a escolha de quem fica (e de quem mover ou excluir) é inteiramente do administrador — o sistema não sugere nem aplica nenhum critério. Como apoio (não como critério imposto), o sistema mostra quantas solicitações cada publicador envolvido já tem na mesma escala (regra 16).
@@ -213,7 +223,7 @@ EXISTE ──(admin exclui, a qualquer momento)──► (registro apagado)
 **Escala**
 - `id`
 - `mes_referencia` (ano + mês, ex: Outubro/2026 — formato de armazenamento exato é decisão técnica, ver `TECHNICAL_SPEC.md`)
-- Status de janela (aberta/fechada) **calculado automaticamente** a partir da data atual — não é um campo editável manualmente.
+- `envio_fechado` (booleano, padrão falso): marcado quando o administrador fecha o envio dos publicadores para essa escala; desmarcado se ele reabre. A abertura é calculada a partir da data (dia 15); a escala-alvo também.
 
 **Solicitacao**
 - `id`
@@ -231,7 +241,7 @@ EXISTE ──(admin exclui, a qualquer momento)──► (registro apagado)
 
 ## 10. Roadmap Sugerido
 
-- **Fase 1 — Solicitação do publicador**: formulário (nome, carrinho, dia da semana — sempre Segunda a Sexta —, turno — um dos 6 turnos fixos, restrito aos configurados para o carrinho e o dia escolhidos) disponível apenas durante a janela automática (dia 15 ao dia 27 do mês), sempre direcionado à escala do mês seguinte, com bloqueio de solicitações duplicadas e tela de histórico próprio (sempre disponível, com opção de exclusão só durante a janela e para a escala do mês-alvo), sem cadastro formal.
+- **Fase 1 — Solicitação do publicador**: formulário (nome, carrinho, dia da semana — sempre Segunda a Sexta —, turno — um dos 6 turnos fixos, restrito aos configurados para o carrinho e o dia escolhidos) disponível apenas durante a janela de envio (abre no dia 15; fecha quando o administrador decidir), sempre direcionado à escala em envio, com bloqueio de solicitações duplicadas e tela de histórico próprio (sempre disponível, com opção de exclusão só durante a janela e para a escala do mês-alvo), sem cadastro formal.
 - **Fase 2 — Painel do administrador**: cadastro de carrinhos e configuração de quais dos 6 turnos fixos cada carrinho tem disponível em cada dia da semana; listagem/contagem de solicitações por escala, agrupamento por `(carrinho, dia, turno)` com sinalização visual de excesso (mais de 2, sem bloqueio automático desse limite) e contagem de apoio ao desempate por publicador; exclusão livre das solicitações excedentes (critério de desempate exclusivo do administrador); e adição manual de solicitações (com criação de publicador por nome livre) a qualquer escala.
 - **Fase 3 — Escala mensal**: geração e visualização da grade final (Carrinho × Dia da semana × Turno) a partir de todas as solicitações da escala.
 - **Fase 4 — Melhorias futuras (opcionais)**: exportação da escala (PDF/Excel/impressão) e relatórios/histórico consolidado de escalas passadas.
