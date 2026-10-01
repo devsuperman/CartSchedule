@@ -1,5 +1,8 @@
 # Produção num único servidor (ex.: AWS Lightsail). Ver deploy/README.md.
-#   docker compose -f docker-compose.prod.yml up -d --build
+# api/web vêm prontas do ghcr.io (build no GitHub Actions, tag = SHA do commit,
+# gravada em IMAGE_TAG no .env por deploy/atualizar.sh):
+#   bash deploy/atualizar.sh latest
+# Para buildar no próprio servidor: docker compose -f docker-compose.prod.yml up -d --build
 # Só o Caddy (80/443) fica exposto; banco, API e nginx ficam na rede interna.
 services:
   db:
@@ -18,6 +21,7 @@ services:
       retries: 5
 
   api:
+    image: ${IMAGE_PREFIX:-ghcr.io/devsuperman/cartschedule}-api:${IMAGE_TAG:-latest}
     build: ./backend
     restart: unless-stopped
     depends_on:
@@ -31,6 +35,7 @@ services:
       Cors__FrontendOrigin: https://${DOMINIO:?defina DOMINIO no .env}
 
   web:
+    image: ${IMAGE_PREFIX:-ghcr.io/devsuperman/cartschedule}-web:${IMAGE_TAG:-latest}
     build:
       context: ./frontend
       args:
