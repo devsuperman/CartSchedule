@@ -214,6 +214,12 @@ O sistema não tem login para o publicador; a API limita requisições por IP
 
 ### Problemas comuns
 
+- **Deploy falha com `Load key ... error in libcrypto` / `Permission denied
+  (publickey)`**: o secret `LIGHTSAIL_SSH_KEY` não contém a chave privada
+  inteira. Cole o arquivo **sem** `.pub`, de `-----BEGIN OPENSSH PRIVATE KEY-----`
+  até `-----END OPENSSH PRIVATE KEY-----`. Confira também se a `.pub` correspondente
+  está em `~/.ssh/authorized_keys` no servidor. Para testar do seu computador:
+  `ssh -i deploy_key ubuntu@IP echo ok`.
 - **HTTPS não sobe**: o DNS ainda não aponta para o IP, ou a porta 443 não foi
   liberada no firewall do Lightsail. Veja `dc logs caddy`.
 - **Build morre por falta de memória**: confirme a swap (`swapon --show`) ou

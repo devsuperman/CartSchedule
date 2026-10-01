@@ -87,9 +87,19 @@ jobs:
           KNOWN_HOSTS: ${{ secrets.LIGHTSAIL_KNOWN_HOSTS }}
         run: |
           install -m 700 -d ~/.ssh
-          printf '%s\n' "$SSH_KEY" > ~/.ssh/id_deploy
+          # Tolera CRLF (cópia no Windows) e espaços nas pontas das linhas.
+          printf '%s\n' "$SSH_KEY" | tr -d '\r' | sed 's/^[[:space:]]*//; s/[[:space:]]*$//' > ~/.ssh/id_deploy
           chmod 600 ~/.ssh/id_deploy
-          printf '%s\n' "$KNOWN_HOSTS" > ~/.ssh/known_hosts
+          printf '%s\n' "$KNOWN_HOSTS" | tr -d '\r' > ~/.ssh/known_hosts
+          if ! ssh-keygen -y -P '' -f ~/.ssh/id_deploy > /dev/null; then
+            echo "::error::LIGHTSAIL_SSH_KEY não é uma chave privada válida (sem senha)." \
+              "Cole o conteúdo inteiro de ~/deploy_key, de -----BEGIN até -----END (não o .pub)."
+            exit 1
+          fi
+          if [ ! -s ~/.ssh/known_hosts ]; then
+            echo "::error::LIGHTSAIL_KNOWN_HOSTS vazio. Use a saída de: ssh-keyscan -t ed25519 IP_DO_SERVIDOR"
+            exit 1
+          fi
 
       - name: Rodar deploy/atualizar.sh
         env:
