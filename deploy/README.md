@@ -66,18 +66,100 @@ chmod 600 .env
 Opcional: `WHATSAPP_GRUPO_URL` com o link de convite do grupo do WhatsApp
 (WhatsApp → dados do grupo → *Convidar via link*). Ele liga o botão
 "Terminei!", que devolve o publicador para o grupo. Quem abre o site vê esse
-link; se mudar, rode `dc up -d --build`.
+link. Com o [deploy automático](#deploy-automático) esse valor vem da variável
+`WHATSAPP_GRUPO_URL` do GitHub, e não do `.env`.
 
 ## 5. Subir
 
+As imagens da API e do front são geradas pelo GitHub Actions a cada merge na
+`main` e publicadas no `ghcr.io` (ver [Deploy automático](#deploy-automático)).
+Para subir a última versão:
+
 ```bash
-docker compose -f docker-compose.prod.yml up -d --build
+bash deploy/atualizar.sh latest
 docker compose -f docker-compose.prod.yml ps
 ```
 
-O primeiro build leva alguns minutos. As migrations e o seed dos turnos rodam
-sozinhos quando a API sobe. Depois acesse `https://SEU_DOMINIO` (publicador) e
+> Ainda sem nenhuma imagem publicada (antes do primeiro merge com o deploy
+> automático)? Builde no próprio servidor:
+> `docker compose -f docker-compose.prod.yml up -d --build` (leva alguns minutos).
+
+As migrations e o seed dos turnos rodam sozinhos quando a API sobe. Depois acesse `https://SEU_DOMINIO` (publicador) e
 `https://SEU_DOMINIO/admin` (administrador).
+
+## Deploy automático
+
+Cada merge na `main` dispara o workflow **Deploy**
+(`.github/workflows/deploy.yml`), sem aprovação manual:
+
+1. **Testes** do backend e do frontend (o mesmo `ci.yml` que roda nos PRs).
+   Falhou → nada é publicado.
+2. **Build** das imagens `cartschedule-api` e `cartschedule-web`, publicadas no
+   `ghcr.io/devsuperman/` com a tag = SHA do commit (e `latest`).
+3. **SSH no servidor**: `git pull` até o commit (compose, Caddyfile e scripts) e
+   `deploy/atualizar.sh <sha>`, que faz backup do banco, baixa as imagens,
+   recria os containers e espera a API responder em `/health`. Se ela não
+   responder, volta sozinho para a versão anterior e o workflow fica vermelho.
+
+O servidor não builda nada (só baixa as imagens), então o plano de 1 GB basta.
+Os segredos da aplicação (`.env`) **continuam só no servidor**. O GitHub guarda
+apenas o acesso SSH.
+
+### Configuração (uma vez)
+
+**No servidor** (`ssh ubuntu@IP`, com o repositório já em `~/CartSchedule`):
+
+```bash
+# Chave exclusiva do deploy, sem senha (o GitHub Actions usa a privada)
+ssh-keygen -t ed25519 -N "" -C "github-actions-deploy" -f ~/deploy_key
+cat ~/deploy_key.pub >> ~/.ssh/authorized_keys
+cat ~/deploy_key          # copie para o secret LIGHTSAIL_SSH_KEY e depois:
+rm ~/deploy_key ~/deploy_key.pub
+```
+
+O repositório no servidor precisa estar na branch `main` e sem alterações
+locais: o deploy só avança por *fast-forward* e falha, sem mexer em nada, se
+alguém editou arquivos versionados direto no servidor. O `.env` não é
+versionado e por isso não atrapalha.
+
+**No seu computador**, gere o conteúdo do `known_hosts`. Com ele o Actions só
+conecta no seu servidor:
+
+```bash
+ssh-keyscan -t ed25519 IP_ESTATICO
+```
+
+**No GitHub** (repositório → *Settings*):
+
+- *Environments* → **New environment** `production` → *Environment secrets*:
+  - `LIGHTSAIL_HOST`: o IP estático.
+  - `LIGHTSAIL_SSH_KEY`: a chave privada inteira (de `-----BEGIN` até `END-----`).
+  - `LIGHTSAIL_KNOWN_HOSTS`: a saída do `ssh-keyscan` acima.
+- *Secrets and variables* → *Actions* → aba **Variables** (do repositório):
+  - `WHATSAPP_GRUPO_URL` (opcional): link do botão "Terminei!". Agora ele é
+    embutido no build do GitHub, não no `.env` do servidor; mudou → rode o
+    workflow de novo (*Actions → Deploy → Run workflow*).
+  - `LIGHTSAIL_USER` (opcional): usuário SSH, se não for `ubuntu`.
+- *Branches* → **Add branch ruleset** para a `main`: exija PR e os checks
+  **Backend (dotnet test)** e **Frontend (lint, test, build)**. Assim nada
+  quebrado chega a ser mergeado.
+
+**Depois do primeiro deploy**, em *github.com/devsuperman → Packages*, abra
+`cartschedule-api` e `cartschedule-web` → *Package settings* → **Change
+visibility → Public**. Pacotes novos do ghcr.io nascem privados, e o servidor
+baixa as imagens sem login (o repositório já é público, então as imagens não
+expõem nada novo). Até fazer isso, o primeiro deploy falha no `pull`. Depois
+de mudar, rode *Actions → Deploy → Run workflow*.
+
+### Rollback
+
+*Actions → Deploy → Run workflow* com o campo **tag** = SHA de um commit da
+`main` já publicado. Testes e build são pulados e o servidor volta para
+aquelas imagens. Pelo terminal do servidor: `bash deploy/atualizar.sh <sha>`.
+
+> Uma versão antiga da API não desfaz migrations novas do banco. Se a versão
+> com problema trouxe migration, restaure também o backup feito antes do
+> deploy (`~/backups`, ver abaixo).
 
 ## Operação do dia a dia
 
@@ -85,8 +167,8 @@ sozinhos quando a API sobe. Depois acesse `https://SEU_DOMINIO` (publicador) e
 cd ~/CartSchedule
 alias dc='docker compose -f docker-compose.prod.yml'
 
-# Atualizar para a última versão do código
-git pull && dc up -d --build && docker image prune -f
+# Atualizar: é automático a cada merge na main (ver abaixo). À mão:
+git pull && bash deploy/atualizar.sh latest
 
 # Logs
 dc logs -f api

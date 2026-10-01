@@ -1,0 +1,44 @@
+# Testes de backend e frontend. Roda em todo PR e é reaproveitado pelo
+# deploy.yml antes de publicar (workflow_call), para nada quebrado ir ao ar.
+name: CI
+
+on:
+  pull_request:
+  workflow_call:
+
+permissions:
+  contents: read
+
+jobs:
+  backend:
+    name: Backend (dotnet test)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        # global.json (runner Microsoft.Testing.Platform) fica em backend/.
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+      # Testcontainers sobe o PostgreSQL no Docker do próprio runner.
+      - run: dotnet test --solution CartSchedule.Api.slnx
+
+  frontend:
+    name: Frontend (lint, test, build)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci
+      - run: npm run lint
+      - run: npm test
+      - run: npm run build

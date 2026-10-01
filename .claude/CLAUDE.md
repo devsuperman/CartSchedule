@@ -149,7 +149,9 @@ todas são intencionais, confirmadas no `PLANNING.md`:
 cp .env.example .env && docker compose up --build
 
 # Produção (servidor único, HTTPS via Caddy; guia em deploy/README.md)
-docker compose -f docker-compose.prod.yml up -d --build
+# Deploy automático a cada merge na main (.github/workflows/deploy.yml):
+# testes → imagens no ghcr.io (tag = SHA) → SSH → deploy/atualizar.sh <sha>
+bash deploy/atualizar.sh latest   # no servidor, à mão (ou <sha> para rollback)
 
 # Backend (precisa de PostgreSQL acessível; config via appsettings/user-secrets/env)
 cd backend/src/CartSchedule.Api && dotnet run     # migrations + seed dos turnos no startup; GET /health
