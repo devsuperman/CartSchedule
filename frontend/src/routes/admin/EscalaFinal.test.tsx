@@ -471,3 +471,18 @@ describe("RedirecionaParaEscala", () => {
     });
   });
 });
+
+describe("EscalaFinal — compartilhar", () => {
+  it("tem atalho para a versão de compartilhar do mês", async () => {
+    render(
+      <MemoryRouter initialEntries={["/admin/escalas/2026-10"]}>
+        <Routes>
+          <Route path="/admin/escalas/:mes" element={<EscalaFinal />} />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    const link = await screen.findByRole("link", { name: /compartilhar/i });
+    expect(link).toHaveAttribute("href", "/admin/escalas/2026-10/compartilhar");
+  });
+});

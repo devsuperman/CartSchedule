@@ -616,12 +616,30 @@ de receber pedidos, e pode reabrir. A abertura continua automática no dia 15
 
 ---
 
-## Backlog (Fase 16 — opcional, fora do escopo inicial)
+## Fase 16 — Escala para compartilhar (imagem por carrinho)
+
+Versão só leitura da escala do mês para mandar no grupo do WhatsApp (ou tirar print): uma
+imagem por carrinho, só com dias e turnos que têm gente, sem cor de estado de vaga (regra 3),
+sem ícone de criança/idoso e sem nenhuma ação. Cabeçalho com a foto, o mês, o carrinho em
+destaque e a descrição dele.
+
+| ID | Arquivos | Entrega |
+|----|----------|---------|
+| F16-BE-01 | `ObterEscalaFinal/{Endpoint,Response}.cs`, `ObterEscalaFinalTests.cs` | A célula da grade traz `carrinhoDescricao` (nulo se o carrinho não tem). |
+| F16-FE-01 | `routes/admin/EscalaCompartilhar.tsx`, `components/escalaParaCompartilhar.ts`, `utils/imagemEscala.ts`, `assets/cabecalho-escala.jpg`, `App.tsx` (1 rota), `EscalaFinal.tsx` (botão "Compartilhar") | `/admin/escalas/:mes/compartilhar`: um cartão por carrinho (foto, "Escala TPL" + mês, nome e descrição em destaque, dias da semana com turnos e nomes, um nome por linha). "Compartilhar imagem" gera o PNG no navegador (`html-to-image`) e abre a folha de compartilhar do celular (`navigator.share` com arquivo); sem suporte, baixa o PNG. |
+
+### Verificação da Fase 16
+
+`dotnet test`, `npm test`, `npm run lint`, `npm run build`.
+
+---
+
+## Backlog (Fase 17 — opcional, fora do escopo inicial)
 
 Não paralelizar ainda — só entra depois que Fases 0–4 estiverem completas
 e validadas:
 
-- Exportação da escala final (PDF/Excel/impressão).
+- Exportação da escala final em PDF/Excel (a imagem para WhatsApp saiu na Fase 16).
 - Relatórios/histórico consolidado de escalas passadas.
 
 ---

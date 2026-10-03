@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import { HandHeartIcon, XIcon } from "lucide-react";
+import { HandHeartIcon, ShareIcon, XIcon } from "lucide-react";
 import { apiFetch } from "../../api/client";
 import { DIAS_SEMANA } from "../../constants/diasSemana";
 import { TURNOS } from "../../constants/turnos";
@@ -355,7 +355,15 @@ export default function EscalaFinal() {
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-col gap-1.5">
-        <h1>Escala</h1>
+        <div className="flex items-center justify-between gap-3">
+          <h1>Escala</h1>
+          <Button asChild variant="outline">
+            <Link to={`/admin/escalas/${mes}/compartilhar`}>
+              <ShareIcon aria-hidden />
+              Compartilhar
+            </Link>
+          </Button>
+        </div>
         <p className="text-muted-foreground">
           {formatarMes(mes)}. Toque num nome para mover a pessoa de vaga. Meta: 2 pessoas por vaga, ou 3 com
           uma criança ou idoso

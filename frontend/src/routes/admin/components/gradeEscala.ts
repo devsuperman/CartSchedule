@@ -15,6 +15,8 @@ export interface PedidoGrade {
 export interface CelulaGrade {
   carrinhoId: number;
   carrinhoNome: string;
+  /** Texto opcional do carrinho (regra 9a); aparece na imagem de compartilhamento. */
+  carrinhoDescricao?: string | null;
   diaSemana: number;
   turnoId: number;
   /** Vaga configurada para o carrinho (ativo) nesse dia. Se false, a célula só existe por
