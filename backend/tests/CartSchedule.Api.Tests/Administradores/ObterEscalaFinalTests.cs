@@ -77,4 +77,21 @@ public class ObterEscalaFinalTests(ApiFixture fixture) : ApiTestBase(fixture)
         Assert.Equal(1, bia.GetProperty("totalNaEscala").GetInt32());
         Assert.All(pedidos, p => Assert.False(p.GetProperty("criancaOuIdoso").GetBoolean()));
     }
+
+    [Fact]
+    public async Task CadaCelula_TrazADescricaoDoCarrinho()
+    {
+        var admin = await AdminAsync();
+        var resposta = await admin.PostAsJsonAsync("/api/admin/carrinhos", new { nome = "Praça", descricao = "Em frente ao mercado" });
+        resposta.EnsureSuccessStatusCode();
+        var carrinhoId = (await resposta.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetInt32();
+        var semDescricao = await CriarCarrinhoAsync(admin, "Rodoviária");
+        await DefinirTurnosAsync(admin, carrinhoId, (Segunda, Turno0810));
+        await DefinirTurnosAsync(admin, semDescricao, (Segunda, Turno0810));
+
+        var celulas = (await GradeAsync(admin)).GetProperty("celulas").EnumerateArray().ToArray();
+
+        Assert.Equal("Em frente ao mercado", celulas.Single(c => c.GetProperty("carrinhoId").GetInt32() == carrinhoId).GetProperty("carrinhoDescricao").GetString());
+        Assert.Equal(JsonValueKind.Null, celulas.Single(c => c.GetProperty("carrinhoId").GetInt32() == semDescricao).GetProperty("carrinhoDescricao").ValueKind);
+    }
 }

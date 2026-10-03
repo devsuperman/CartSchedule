@@ -35,7 +35,7 @@ public static class Endpoint
         var vagas = await db.CarrinhoTurnos
             .AsNoTracking()
             .Where(ct2 => ct2.Carrinho.Ativo)
-            .Select(ct2 => new { ct2.CarrinhoId, CarrinhoNome = ct2.Carrinho.Nome, ct2.DiaSemana, ct2.TurnoId })
+            .Select(ct2 => new { ct2.CarrinhoId, CarrinhoNome = ct2.Carrinho.Nome, CarrinhoDescricao = ct2.Carrinho.Descricao, ct2.DiaSemana, ct2.TurnoId })
             .ToListAsync(ct);
 
         // Só leitura: nunca cria a Escala; sem escala, as vagas vêm vazias.
@@ -61,11 +61,11 @@ public static class Endpoint
         var pedidosPorCelula = solicitacoes.ToLookup(s => (s.CarrinhoId, s.DiaSemana, s.TurnoId));
         var disponiveis = vagas.Select(v => (v.CarrinhoId, v.DiaSemana, v.TurnoId)).ToHashSet();
 
-        var nomesDosCarrinhos = vagas
-            .Select(v => (v.CarrinhoId, v.CarrinhoNome))
-            .Concat(solicitacoes.Select(s => (s.CarrinhoId, CarrinhoNome: s.Carrinho.Nome)))
+        var dadosDosCarrinhos = vagas
+            .Select(v => (v.CarrinhoId, v.CarrinhoNome, v.CarrinhoDescricao))
+            .Concat(solicitacoes.Select(s => (s.CarrinhoId, CarrinhoNome: s.Carrinho.Nome, CarrinhoDescricao: s.Carrinho.Descricao)))
             .DistinctBy(c => c.CarrinhoId)
-            .ToDictionary(c => c.CarrinhoId, c => c.CarrinhoNome);
+            .ToDictionary(c => c.CarrinhoId);
 
         var celulas = disponiveis
             .Union(pedidosPorCelula.Select(g => g.Key))
@@ -74,7 +74,8 @@ public static class Endpoint
             .ThenBy(c => c.TurnoId)
             .Select(c => new EscalaFinalCelulaResponse(
                 c.CarrinhoId,
-                nomesDosCarrinhos[c.CarrinhoId],
+                dadosDosCarrinhos[c.CarrinhoId].CarrinhoNome,
+                dadosDosCarrinhos[c.CarrinhoId].CarrinhoDescricao,
                 c.DiaSemana,
                 c.TurnoId,
                 disponiveis.Contains(c),

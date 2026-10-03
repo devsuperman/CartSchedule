@@ -9,6 +9,7 @@ import Login from "./routes/admin/Login";
 import GestaoCarrinhos from "./routes/admin/GestaoCarrinhos";
 import RedirecionaParaEscala from "./routes/admin/RedirecionaParaEscala";
 import EscalaFinal from "./routes/admin/EscalaFinal";
+import EscalaCompartilhar from "./routes/admin/EscalaCompartilhar";
 import InicioPublicador from "./routes/publicador/InicioPublicador";
 import SolicitarEscala from "./routes/publicador/SolicitarEscala";
 import Nome from "./routes/publicador/Nome";
@@ -107,6 +108,14 @@ export default function App() {
             element={
               <RequireAdminAuth>
                 <EscalaFinal />
+              </RequireAdminAuth>
+            }
+          />
+          <Route
+            path="/admin/escalas/:mes/compartilhar"
+            element={
+              <RequireAdminAuth>
+                <EscalaCompartilhar />
               </RequireAdminAuth>
             }
           />

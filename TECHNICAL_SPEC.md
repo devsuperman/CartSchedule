@@ -79,7 +79,7 @@ backend/
           RevisarEscala/
             ExcluirSolicitacao/          # DELETE /api/admin/solicitacoes/{id}  (sem aprovação: o admin exclui; 204/404, sem janela)
             AdicionarSolicitacaoManual/  # POST /api/admin/escalas/{mes}/solicitacoes  ({nome, carrinhoId, diaSemana, turnoId, criancaOuIdoso?}; true marca a pessoa, nunca desmarca)
-          ObterEscalaFinal/         # GET  /api/admin/escalas/{mes}/grade  (todas as vagas configuradas + células com pedidos; disponivel; por pedido: solicitacaoId, origem, totalNaEscala, criancaOuIdoso; envio: {aberto} só na escala em envio, senão null)
+          ObterEscalaFinal/         # GET  /api/admin/escalas/{mes}/grade  (todas as vagas configuradas + células com pedidos; disponivel; por célula: carrinhoDescricao; por pedido: solicitacaoId, origem, totalNaEscala, criancaOuIdoso; envio: {aberto} só na escala em envio, senão null)
           AlterarEnvioEscala/       # PUT  /api/admin/escalas/{mes}/envio  ({aberto}; 204; 400 se o mês não é a escala em envio; idempotente; cria a escala se preciso)
           MoverSolicitacao/         # PATCH /api/admin/solicitacoes/{id}  ({carrinhoId, diaSemana, turnoId}; 204; 400 destino não configurado; 409 duplicidade; 404; sem janela; vaga com excesso não bloqueia)
           RenomearPublicador/       # PUT  /api/admin/publicadores/{id}  ({nome, criancaOuIdoso?}; ausente = não muda; 204/404; nomes repetidos permitidos)
@@ -245,6 +245,7 @@ frontend/
         Login.tsx
         GestaoCarrinhos.tsx       # cadastro/edição de carrinhos (nome, descrição) e associação com os 6 turnos fixos
         EscalaFinal.tsx           # gestão da escala por toque: vagas com ocupação; mover, adicionar (+), editar nome e excluir
+        EscalaCompartilhar.tsx    # /admin/escalas/:mes/compartilhar: visão só leitura, uma imagem PNG por carrinho (html-to-image + Web Share API) para o WhatsApp
         RedirecionaParaEscala.tsx # /admin/revisao/:mes e /admin/adicionar/:mes (telas antigas) → /admin/escalas/:mes
         components/               # CelulaEscala, ModaisEscala, gradeEscala (tipos + atualização local), ModalEditarNome
     hooks/

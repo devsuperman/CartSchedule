@@ -44,7 +44,7 @@ backend/src/CartSchedule.Api/
 frontend/src/
   api/                     # client.ts + wrappers por área
   routes/publicador/       # NovaSolicitacao, Historico, JanelaFechada
-  routes/admin/            # Login, GestaoCarrinhos, EscalaFinal (gestão da escala: mover/adicionar/excluir)
+  routes/admin/            # Login, GestaoCarrinhos, EscalaFinal (gestão da escala: mover/adicionar/excluir), EscalaCompartilhar (imagem só leitura por carrinho)
   hooks/                   # usePublicadorToken, useJanela, useAdminAuth
   constants/                # turnos.ts, diasSemana.ts (espelham enums do backend)
 ```
