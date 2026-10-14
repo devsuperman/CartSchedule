@@ -1,0 +1,34 @@
+name: Claude
+
+# Fluxo de issues: o Claude pergunta primeiro e só implementa após autorização.
+#  - "@claude ..." num comentário (só do dono) → análise / perguntas / implementação
+#  - label "aprovado" na issue → implementação
+on:
+  issue_comment:
+    types: [created]
+  issues:
+    types: [labeled]
+
+jobs:
+  claude:
+    if: |
+      (github.event_name == 'issue_comment' &&
+        contains(github.event.comment.body, '@claude') &&
+        github.event.comment.user.login == 'devsuperman') ||
+      (github.event_name == 'issues' &&
+        github.event.label.name == 'aprovado' &&
+        github.event.sender.login == 'devsuperman')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: anthropics/claude-code-action@v1
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          claude_args: |
+            --max-turns 60
+            --append-system-prompt "Siga a seção 'Fluxo de issues' do .claude/CLAUDE.md."
