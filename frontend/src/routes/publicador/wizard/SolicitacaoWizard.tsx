@@ -15,20 +15,32 @@ import { EtapaCarrinho } from "./EtapaCarrinho";
 import { EtapaTurno } from "./EtapaTurno";
 
 /** Contrato de GET /api/carrinhos (TECHNICAL_SPEC.md, tarefas F1-BE-02/F5-BE-01/F6-BE-03):
- * `disponibilidades` são os pares (dia da semana, turno) habilitados no carrinho. */
+ * `disponibilidades` são os pares (dia da semana, turno) habilitados no carrinho, com a
+ * `ocupacao` atual da vaga na escala-alvo e `cheia` (publicador não pode mais pedi-la). */
 export interface Carrinho {
   id: number;
   nome: string;
   descricao: string | null;
-  disponibilidades: { diaSemana: DiaSemana; turnoId: number }[];
+  disponibilidades: { diaSemana: DiaSemana; turnoId: number; ocupacao: number; cheia: boolean }[];
 }
 
 function temTurnoNoDia(carrinho: Carrinho, dia: DiaSemana): boolean {
   return carrinho.disponibilidades.some((d) => d.diaSemana === dia);
 }
 
-function temTurno(carrinho: Carrinho, dia: DiaSemana, turnoId: number): boolean {
-  return carrinho.disponibilidades.some((d) => d.diaSemana === dia && d.turnoId === turnoId);
+/** Turno configurado no carrinho nesse dia e ainda não cheio (o publicador pode pedi-lo). */
+function vagaLivre(carrinho: Carrinho, dia: DiaSemana, turnoId: number): boolean {
+  return carrinho.disponibilidades.some((d) => d.diaSemana === dia && d.turnoId === turnoId && !d.cheia);
+}
+
+/** Código do ProblemDetails (409) quando a vaga encheu antes do envio. */
+const CODIGO_VAGA_CHEIA = "VAGA_CHEIA";
+
+function ehErroDeVagaCheia(err: unknown): boolean {
+  return (
+    err instanceof ApiError &&
+    (err.details as { codigo?: string } | null | undefined)?.codigo === CODIGO_VAGA_CHEIA
+  );
 }
 
 /** Contrato de POST /api/solicitacoes (TECHNICAL_SPEC.md, tarefa F1-BE-03). */
@@ -125,28 +137,66 @@ export function SolicitacaoWizard({ mesAlvo }: SolicitacaoWizardProps) {
     );
   }, [carrinhoSelecionado]);
 
-  const turnosDisponiveis = useMemo(() => {
+  const vagasDoDia = useMemo(() => {
     if (!carrinhoSelecionado || diaSemana == null) return [];
-    return TURNOS.filter((t) => temTurno(carrinhoSelecionado, diaSemana, t.id));
+    return TURNOS.flatMap((turno) => {
+      const d = carrinhoSelecionado.disponibilidades.find(
+        (x) => x.diaSemana === diaSemana && x.turnoId === turno.id,
+      );
+      return d ? [{ turno, ocupacao: d.ocupacao, cheia: d.cheia }] : [];
+    });
   }, [carrinhoSelecionado, diaSemana]);
+
+  /** Recarga da ocupação (ao chegar no turno e quando a vaga encheu no envio). Ao chegar no
+   * turno a falha é silenciosa — vale a lista já carregada e o backend continua barrando;
+   * depois de um VAGA_CHEIA, `aoFalhar` avisa que as vagas na tela podem estar desatualizadas. */
+  function recarregarOcupacao(aoFalhar?: () => void) {
+    apiFetch<Carrinho[]>("/api/carrinhos")
+      .then((resposta) => {
+        setCarrinhos(resposta);
+        // Vaga escolhida que encheu nesse meio-tempo deixa de valer.
+        const atual = resposta.find((c) => c.id === carrinhoId);
+        const vaga = atual?.disponibilidades.find((d) => d.diaSemana === diaSemana && d.turnoId === turnoId);
+        if (vaga?.cheia) setTurnoId(null);
+      })
+      .catch(() => aoFalhar?.());
+  }
+
+  /** Marca na lista local a vaga que o backend disse estar cheia, para desabilitá-la mesmo
+   * que a recarga falhe. */
+  function marcarVagaCheia(carrinho: number, dia: DiaSemana, turno: number) {
+    setCarrinhos((atuais) =>
+      atuais.map((c) =>
+        c.id !== carrinho
+          ? c
+          : {
+              ...c,
+              disponibilidades: c.disponibilidades.map((d) =>
+                d.diaSemana === dia && d.turnoId === turno ? { ...d, cheia: true } : d,
+              ),
+            },
+      ),
+    );
+  }
 
   function selecionarCarrinho(id: number) {
     setCarrinhoId(id);
-    // Dia/turno escolhidos antes (usuário voltou etapas) podem não valer no novo carrinho.
+    // Dia/turno escolhidos antes (usuário voltou etapas) podem não valer no novo carrinho —
+    // nem o turno que lá está cheio.
     const novo = carrinhos.find((c) => c.id === id);
     if (!novo) return;
     if (diaSemana != null && !temTurnoNoDia(novo, diaSemana)) {
       setDiaSemana(null);
       setTurnoId(null);
-    } else if (diaSemana != null && turnoId != null && !temTurno(novo, diaSemana, turnoId)) {
+    } else if (diaSemana != null && turnoId != null && !vagaLivre(novo, diaSemana, turnoId)) {
       setTurnoId(null);
     }
   }
 
   function selecionarDia(dia: DiaSemana) {
     setDiaSemana(dia);
-    // O turno escolhido antes pode não valer para o carrinho nesse novo dia.
-    if (carrinhoSelecionado && turnoId != null && !temTurno(carrinhoSelecionado, dia, turnoId)) {
+    // O turno escolhido antes pode não valer (ou estar cheio) para o carrinho nesse novo dia.
+    if (carrinhoSelecionado && turnoId != null && !vagaLivre(carrinhoSelecionado, dia, turnoId)) {
       setTurnoId(null);
     }
   }
@@ -173,7 +223,17 @@ export function SolicitacaoWizard({ mesAlvo }: SolicitacaoWizardProps) {
       });
       navigate("/", { replace: true });
     } catch (err) {
-      if (err instanceof ApiError && err.status === 409) {
+      if (ehErroDeVagaCheia(err)) {
+        setTurnoId(null);
+        marcarVagaCheia(carrinhoId, diaSemana, turnoId);
+        setErroSalvar("Essa vaga acabou de ficar cheia. Escolha outro turno, dia ou carrinho.");
+        recarregarOcupacao(() =>
+          setErroSalvar(
+            "Essa vaga acabou de ficar cheia, e não foi possível atualizar as outras vagas. " +
+              "Outras também podem estar cheias — se acontecer de novo, volte mais tarde.",
+          ),
+        );
+      } else if (err instanceof ApiError && err.status === 409) {
         setErroSalvar("Você já pediu esse dia e horário nesse carrinho antes. Volte e escolha outra opção.");
       } else if (ehErroDeJanelaFechada(err)) {
         setJanelaFechouAgora(true);
@@ -188,6 +248,8 @@ export function SolicitacaoWizard({ mesAlvo }: SolicitacaoWizardProps) {
   function avancar() {
     if (!podeAvancar) return;
     if (etapa < TOTAL_ETAPAS) {
+      // A lista foi carregada ao abrir o wizard; ao chegar no turno, atualiza a ocupação.
+      if (etapa + 1 === TOTAL_ETAPAS) recarregarOcupacao();
       setEtapa((e) => (e + 1) as Etapa);
       return;
     }
@@ -221,7 +283,7 @@ export function SolicitacaoWizard({ mesAlvo }: SolicitacaoWizardProps) {
       case 3:
         return (
           <EtapaTurno
-            turnos={turnosDisponiveis}
+            vagas={vagasDoDia}
             carrinhoNome={carrinhoSelecionado?.nome}
             valor={turnoId}
             onSelecionar={setTurnoId}

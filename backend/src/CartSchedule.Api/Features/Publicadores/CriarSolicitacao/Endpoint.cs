@@ -72,6 +72,11 @@ public static class Endpoint
 
         var escala = await EscalaHelpers.ObterOuCriarAsync(db, janela.MesAlvo, ct);
 
+        // Contagem + inserção na mesma transação, serializada por escala: sem o lock, dois
+        // envios simultâneos para a última vaga leriam a mesma contagem e passariam juntos.
+        await using var transacao = await db.Database.BeginTransactionAsync(ct);
+        await db.Database.ExecuteSqlInterpolatedAsync($"SELECT pg_advisory_xact_lock({escala.Id})", ct);
+
         var duplicada = await db.Solicitacoes.AnyAsync(
             s => s.PublicadorId == publicadorId
                 && s.EscalaId == escala.Id
@@ -88,6 +93,22 @@ public static class Endpoint
                 statusCode: StatusCodes.Status409Conflict);
         }
 
+        var ocupacao = await db.Solicitacoes.CountAsync(
+            s => s.EscalaId == escala.Id
+                && s.CarrinhoId == request.CarrinhoId
+                && s.DiaSemana == request.DiaSemana
+                && s.TurnoId == request.TurnoId,
+            ct);
+
+        if (ocupacao >= LotacaoDaVaga.LimiteParaPublicador)
+        {
+            return Results.Problem(
+                title: "Vaga cheia",
+                detail: "Esse carrinho, dia e turno já está cheio. Escolha outra vaga.",
+                statusCode: StatusCodes.Status409Conflict,
+                extensions: new Dictionary<string, object?> { ["codigo"] = LotacaoDaVaga.CodigoVagaCheia });
+        }
+
         var solicitacao = new Solicitacao
         {
             PublicadorId = publicadorId,
@@ -101,6 +122,7 @@ public static class Endpoint
 
         db.Solicitacoes.Add(solicitacao);
         await db.SaveChangesAsync(ct);
+        await transacao.CommitAsync(ct);
 
         var response = new Response(
             solicitacao.Id,

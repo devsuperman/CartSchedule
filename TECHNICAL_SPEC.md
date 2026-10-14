@@ -67,8 +67,8 @@ backend/
       Features/
         Publicadores/
           ConsultarJanela/           # GET  /api/janela
-          ListarCarrinhosDisponiveis/# GET  /api/carrinhos  (id, nome, descricao, disponibilidades dia×turno por carrinho)
-          CriarSolicitacao/          # POST /api/solicitacoes
+          ListarCarrinhosDisponiveis/# GET  /api/carrinhos  (id, nome, descricao, disponibilidades dia×turno por carrinho, cada uma com ocupacao e cheia na escala-alvo)
+          CriarSolicitacao/          # POST /api/solicitacoes  (409 VAGA_CHEIA com 2 pessoas na vaga: contagem + insert numa transação com pg_advisory_xact_lock(escalaId); o admin não é bloqueado)
           ListarHistorico/           # GET  /api/solicitacoes  (header X-Publicador-Token; carrinhoNome + carrinhoDescricao; sem data/hora do envio na resposta)
           ExcluirSolicitacao/        # DELETE /api/solicitacoes/{id}  (apaga o registro; não há status)
           AtualizarNome/             # PUT    /api/publicador  (header X-Publicador-Token; 204; não cria o publicador se ainda não existe; sem janela)

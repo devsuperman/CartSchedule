@@ -23,4 +23,39 @@ public class ListarCarrinhosDisponiveisTests(ApiFixture fixture) : ApiTestBase(f
         (int, int)[] esperado = [(Segunda, Turno0810), (Terca, Turno1012)];
         Assert.Equal(esperado, Disponibilidades(unico));
     }
+
+    [Fact]
+    public async Task TrazOcupacaoECheiaPorVagaDaEscalaAlvo()
+    {
+        var admin = await AdminAsync();
+        var carrinho = await CriarCarrinhoAsync(admin);
+        await DefinirTurnosAsync(admin, carrinho, (Segunda, Turno0810), (Segunda, Turno1012), (Terca, Turno1012));
+        await SolicitarAsync(Publicador(), carrinho, Segunda, Turno0810, "Ana");
+        await SolicitarAsync(Publicador(), carrinho, Segunda, Turno0810, "Bia");
+        await SolicitarAsync(Publicador(), carrinho, Segunda, Turno1012, "Ana");
+        // Excesso adicionado pelo admin em outra vaga conta na ocupação.
+        await AdicionarManualAsync(admin, carrinho, Terca, Turno1012, "Caio");
+
+        var carrinhos = await Fixture.Factory.CreateClient().GetFromJsonAsync<JsonElement>("/api/carrinhos");
+
+        var vagas = carrinhos[0].GetProperty("disponibilidades").EnumerateArray()
+            .Select(d => (d.GetProperty("ocupacao").GetInt32(), d.GetProperty("cheia").GetBoolean()))
+            .ToArray();
+        Assert.Equal([(2, true), (1, false), (1, false)], vagas);
+    }
+
+    [Fact]
+    public async Task OcupacaoIgnoraOutrasEscalas()
+    {
+        var admin = await AdminAsync();
+        var carrinho = await CriarCarrinhoAsync(admin);
+        await DefinirTurnosAsync(admin, carrinho, (Segunda, Turno0810));
+        await AdicionarManualAsync(admin, carrinho, Segunda, Turno0810, "Ana", mes: "2026-07");
+
+        var carrinhos = await Fixture.Factory.CreateClient().GetFromJsonAsync<JsonElement>("/api/carrinhos");
+
+        var vaga = carrinhos[0].GetProperty("disponibilidades")[0];
+        Assert.Equal(0, vaga.GetProperty("ocupacao").GetInt32());
+        Assert.False(vaga.GetProperty("cheia").GetBoolean());
+    }
 }

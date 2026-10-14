@@ -4,8 +4,9 @@ Sistema web para organizar o uso de carrinhos de trabalho ao longo do mês.
 Na interface o sistema se chama **"Escala TPL"** — "CartSchedule" é só o
 nome interno (repo, namespaces, pastas); não renomear o código.
 Publicadores solicitam `(carrinho, dia da semana, turno)` em que querem
-trabalhar; todo pedido já entra na escala e um administrador exclui os
-excedentes (meta de 2 pessoas por combinação, ou 3 com uma criança/idoso).
+trabalhar; todo pedido aceito já entra na escala (vaga cheia é recusada ao
+publicador) e um administrador ajusta/exclui os excedentes (meta de 2
+pessoas por combinação, ou 3 com uma criança/idoso).
 
 **Leia sempre, nesta ordem, antes de implementar algo:**
 1. [`PLANNING.md`](../PLANNING.md) — regras de negócio (fonte da verdade).
@@ -35,7 +36,7 @@ verdade.
 backend/src/CartSchedule.Api/
   Domain/                 # entidades + Enums/
   Infrastructure/          # AppDbContext, Migrations, Auth
-  Shared/                  # JanelaDeEnvio.cs, EscalaHelpers.cs
+  Shared/                  # JanelaDeEnvio.cs, EscalaHelpers.cs, LotacaoDaVaga.cs
   Features/
     Publicadores/<Slice>/  # Endpoint.cs, Request.cs, Response.cs, Validator.cs
     Administradores/<Slice>/
@@ -62,17 +63,27 @@ todas são intencionais, confirmadas no `PLANNING.md`:
    18:00–20:00`. O admin só escolhe, por carrinho **e por dia da semana**,
    **quais** desses 6 ficam disponíveis (`CarrinhoTurno` com chave
    `(carrinho, dia_semana, turno)` — ex: 08–10 só na Segunda). Não criar endpoint de CRUD de `Turno`.
-3. **Limite por trinca `(carrinho, dia, turno)` NÃO é bloqueado pelo
-   sistema** — é só uma meta que o admin persegue manualmente: 2 pessoas,
-   ou 3 se ao menos uma for criança/idoso (`Publicador.CriancaOuIdoso`,
-   marcado só pelo admin). O sistema apenas **sinaliza pela cor, sem texto**
-   (`estadoVaga` em `gradeEscala.ts`, só no frontend): vazia sem cor,
-   1 pessoa (incompleta) e excesso em vermelho, completa em verde. Nunca
-   implementar uma validação que impeça enviar/adicionar/mover para uma trinca.
-4. **O único bloqueio automático do sistema inteiro** é a duplicidade: um
-   mesmo publicador não pode ter duas solicitações para a mesma
-   `(escala, carrinho, dia_semana, turno)` — vale tanto para envio normal
-   quanto para adição manual do admin. Tudo mais é sinalização, não bloqueio.
+3. **Limite por trinca `(carrinho, dia, turno)` bloqueia só o
+   PUBLICADOR**: meta de 2 pessoas, ou 3 se ao menos uma for criança/idoso
+   (`Publicador.CriancaOuIdoso`, marcado só pelo admin).
+   - **Publicador**: vaga com 2 pessoas = cheia (`LotacaoDaVaga`) →
+     `POST /api/solicitacoes` recusa com 409 e `codigo: "VAGA_CHEIA"`
+     (contagem + insert na mesma transação, com lock por escala). O
+     `GET /api/carrinhos` traz `ocupacao`/`cheia` por vaga; o wizard mostra
+     "Vago" / "1 pessoa nesta vaga" / "Cheio" e desabilita a cheia. Contagem
+     calculada a cada request: excluir/mover alguém libera a vaga. Quem já
+     tinha pedido numa vaga que encheu depois mantém o pedido.
+   - **Admin nunca é bloqueado por lotação** (adicionar, mover, completar o
+     3º criança/idoso, exceder): na tela da Escala o sistema só **sinaliza
+     pela cor, sem texto** (`estadoVaga` em `gradeEscala.ts`): vazia sem cor,
+     1 pessoa (incompleta) e excesso em vermelho, completa em verde. Nunca
+     estender o bloqueio de vaga cheia às ações do admin.
+4. **Bloqueios automáticos são só dois**: a **duplicidade** — um mesmo
+   publicador não pode ter duas solicitações para a mesma
+   `(escala, carrinho, dia_semana, turno)`, vale para envio normal, adição
+   manual e mover do admin (único bloqueio que vale também para o admin) —
+   e a **vaga cheia no envio do publicador** (regra 3). Tudo mais é
+   sinalização, não bloqueio.
 5. **Sem cadastro/login para o publicador.** Identificação via token
    anônimo (GUID) gerado no frontend e salvo em `localStorage`, enviado no
    header `X-Publicador-Token`. Nome é um campo livre, pedido no primeiro

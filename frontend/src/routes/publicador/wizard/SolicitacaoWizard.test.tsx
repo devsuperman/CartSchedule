@@ -21,11 +21,16 @@ const CARRINHOS: Carrinho[] = [
     nome: "Carrinho 01",
     descricao: "Em frente à estação",
     disponibilidades: [
-      { diaSemana: 1, turnoId: 2 },
-      { diaSemana: 2, turnoId: 3 },
+      { diaSemana: 1, turnoId: 2, ocupacao: 0, cheia: false },
+      { diaSemana: 2, turnoId: 3, ocupacao: 1, cheia: false },
     ],
   },
-  { id: 2, nome: "Carrinho 02", descricao: null, disponibilidades: [{ diaSemana: 1, turnoId: 4 }] },
+  {
+    id: 2,
+    nome: "Carrinho 02",
+    descricao: null,
+    disponibilidades: [{ diaSemana: 1, turnoId: 4, ocupacao: 2, cheia: true }],
+  },
   { id: 3, nome: "Carrinho 03", descricao: null, disponibilidades: [] },
 ];
 
@@ -101,7 +106,7 @@ describe("SolicitacaoWizard — carrinho antes do dia da semana", () => {
 
     await user.click(screen.getByRole("radio", { name: /Terça-feira/ }));
     await continuar(user);
-    expect(radiosVisiveis()).toEqual(["10:00–12:00"]);
+    expect(radiosVisiveis()).toEqual(["10:00–12:001 pessoa nesta vaga"]);
   });
 
   it("na segunda o Carrinho 01 oferece só 08–10", async () => {
@@ -111,7 +116,7 @@ describe("SolicitacaoWizard — carrinho antes do dia da semana", () => {
 
     await user.click(screen.getByRole("radio", { name: /Segunda-feira/ }));
     await continuar(user);
-    expect(radiosVisiveis()).toEqual(["08:00–10:00"]);
+    expect(radiosVisiveis()).toEqual(["08:00–10:00Vago"]);
   });
 
   it("ao voltar e trocar para um carrinho que não funciona no dia escolhido, limpa dia e turno", async () => {
@@ -120,7 +125,7 @@ describe("SolicitacaoWizard — carrinho antes do dia da semana", () => {
     await escolherCarrinho(user, /Carrinho 01/);
     await user.click(screen.getByRole("radio", { name: /Terça-feira/ }));
     await continuar(user);
-    await user.click(screen.getByRole("radio", { name: "10:00–12:00" }));
+    await user.click(screen.getByRole("radio", { name: /10:00–12:00/ }));
 
     await user.click(screen.getByRole("button", { name: "Voltar" }));
     await user.click(screen.getByRole("button", { name: "Voltar" }));
@@ -138,7 +143,7 @@ describe("SolicitacaoWizard — carrinho antes do dia da semana", () => {
     await escolherCarrinho(user, /Carrinho 01/);
     await user.click(screen.getByRole("radio", { name: /Terça-feira/ }));
     await continuar(user);
-    await user.click(screen.getByRole("radio", { name: "10:00–12:00" }));
+    await user.click(screen.getByRole("radio", { name: /10:00–12:00/ }));
     await user.click(screen.getByRole("button", { name: "Salvar" }));
 
     await waitFor(() =>
@@ -160,10 +165,126 @@ describe("SolicitacaoWizard — carrinho antes do dia da semana", () => {
     await escolherCarrinho(user, /Carrinho 01/);
     await user.click(screen.getByRole("radio", { name: /Terça-feira/ }));
     await continuar(user);
-    await user.click(screen.getByRole("radio", { name: "10:00–12:00" }));
+    await user.click(screen.getByRole("radio", { name: /10:00–12:00/ }));
     await user.click(screen.getByRole("button", { name: "Salvar" }));
 
     expect(await screen.findByText("Muitas tentativas. Aguarde um pouco e tente novamente.")).toBeInTheDocument();
+  });
+});
+
+describe("SolicitacaoWizard — ocupação das vagas", () => {
+  it("mostra a ocupação de cada vaga e desabilita a cheia", async () => {
+    const user = renderWizard();
+    await irParaEtapaDoCarrinho();
+    await escolherCarrinho(user, /Carrinho 02/);
+    await user.click(screen.getByRole("radio", { name: /Segunda-feira/ }));
+    await continuar(user);
+
+    const cheia = await screen.findByRole("radio", { name: /14:00–16:00/ });
+    expect(cheia).toHaveTextContent("Cheio");
+    expect(cheia).toBeDisabled();
+  });
+
+  it("mostra 'Vago' e '1 pessoa nesta vaga'", async () => {
+    const user = renderWizard();
+    await irParaEtapaDoCarrinho();
+    await escolherCarrinho(user, /Carrinho 01/);
+    await user.click(screen.getByRole("radio", { name: /Segunda-feira/ }));
+    await continuar(user);
+    expect(await screen.findByRole("radio", { name: /08:00–10:00/ })).toHaveTextContent("Vago");
+
+    await user.click(screen.getByRole("button", { name: "Voltar" }));
+    await user.click(screen.getByRole("radio", { name: /Terça-feira/ }));
+    await continuar(user);
+    expect(await screen.findByRole("radio", { name: /10:00–12:00/ })).toHaveTextContent("1 pessoa nesta vaga");
+  });
+
+  it("se a vaga encheu durante o envio (VAGA_CHEIA), volta ao turno, avisa e recarrega", async () => {
+    let carrinhosChamadas = 0;
+    mockApiFetch.mockImplementation(async (path) => {
+      if (path === "/api/carrinhos") {
+        carrinhosChamadas += 1;
+        return carrinhosChamadas < 3
+          ? CARRINHOS
+          : [
+              {
+                ...CARRINHOS[0],
+                disponibilidades: [
+                  { diaSemana: 1, turnoId: 2, ocupacao: 0, cheia: false },
+                  { diaSemana: 2, turnoId: 3, ocupacao: 2, cheia: true },
+                ],
+              },
+            ];
+      }
+      throw new ApiError(409, "Vaga cheia", { codigo: "VAGA_CHEIA" });
+    });
+    const user = renderWizard();
+    await irParaEtapaDoCarrinho();
+    await escolherCarrinho(user, /Carrinho 01/);
+    await user.click(screen.getByRole("radio", { name: /Terça-feira/ }));
+    await continuar(user);
+    await user.click(await screen.findByRole("radio", { name: /10:00–12:00/ }));
+    await user.click(screen.getByRole("button", { name: "Salvar" }));
+
+    expect(await screen.findByText(/acabou de ficar cheia/)).toBeInTheDocument();
+    expect(screen.getByText("Em qual turno?")).toBeInTheDocument();
+    await waitFor(() => expect(screen.getByRole("radio", { name: /10:00–12:00/ })).toBeDisabled());
+  });
+
+  it("se a recarga falha depois de VAGA_CHEIA, desabilita a vaga mesmo assim e avisa", async () => {
+    let carrinhosChamadas = 0;
+    mockApiFetch.mockImplementation(async (path) => {
+      if (path === "/api/carrinhos") {
+        carrinhosChamadas += 1;
+        if (carrinhosChamadas < 3) return CARRINHOS;
+        throw new ApiError(500, "Erro no servidor");
+      }
+      throw new ApiError(409, "Vaga cheia", { codigo: "VAGA_CHEIA" });
+    });
+    const user = renderWizard();
+    await irParaEtapaDoCarrinho();
+    await escolherCarrinho(user, /Carrinho 01/);
+    await user.click(screen.getByRole("radio", { name: /Terça-feira/ }));
+    await continuar(user);
+    await user.click(await screen.findByRole("radio", { name: /10:00–12:00/ }));
+    await user.click(screen.getByRole("button", { name: "Salvar" }));
+
+    expect(await screen.findByText(/não foi possível atualizar as outras vagas/)).toBeInTheDocument();
+    expect(screen.getByRole("radio", { name: /10:00–12:00/ })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Salvar" })).toBeDisabled();
+  });
+
+  it("ao voltar e trocar para um carrinho em que o turno escolhido está cheio, limpa o turno", async () => {
+    mockApiFetch.mockImplementation(async (path) => {
+      if (path === "/api/carrinhos") {
+        return [
+          CARRINHOS[0],
+          {
+            id: 2,
+            nome: "Carrinho 02",
+            descricao: null,
+            disponibilidades: [{ diaSemana: 1, turnoId: 2, ocupacao: 2, cheia: true }],
+          },
+        ];
+      }
+      throw new Error(`chamada inesperada: ${path}`);
+    });
+    const user = renderWizard();
+    await irParaEtapaDoCarrinho();
+    await escolherCarrinho(user, /Carrinho 01/);
+    await user.click(screen.getByRole("radio", { name: /Segunda-feira/ }));
+    await continuar(user);
+    await user.click(await screen.findByRole("radio", { name: /08:00–10:00/ }));
+
+    await user.click(screen.getByRole("button", { name: "Voltar" }));
+    await user.click(screen.getByRole("button", { name: "Voltar" }));
+    await escolherCarrinho(user, /Carrinho 02/);
+    await continuar(user);
+
+    const cheia = await screen.findByRole("radio", { name: /08:00–10:00/ });
+    expect(cheia).toBeDisabled();
+    expect(cheia).toHaveAttribute("aria-checked", "false");
+    expect(screen.getByRole("button", { name: "Salvar" })).toBeDisabled();
   });
 });
 

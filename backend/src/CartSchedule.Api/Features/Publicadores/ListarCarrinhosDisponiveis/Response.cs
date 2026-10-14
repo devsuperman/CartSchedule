@@ -10,4 +10,8 @@ namespace CartSchedule.Api.Features.Publicadores.ListarCarrinhosDisponiveis;
 public record CarrinhoDisponivelResponse(
     int Id, string Nome, string? Descricao, List<DisponibilidadeResponse> Disponibilidades);
 
-public record DisponibilidadeResponse(DiaSemana DiaSemana, int TurnoId);
+/// <summary>
+/// `Ocupacao` = pessoas já na vaga na escala-alvo; `Cheia` = o publicador não pode mais pedi-la
+/// (o admin continua podendo adicionar/mover para lá).
+/// </summary>
+public record DisponibilidadeResponse(DiaSemana DiaSemana, int TurnoId, int Ocupacao, bool Cheia);

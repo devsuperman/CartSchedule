@@ -51,16 +51,72 @@ public class CriarSolicitacaoTests(ApiFixture fixture) : ApiTestBase(fixture)
     }
 
     [Fact]
-    public async Task TerceiroPublicadorNaMesmaTrinca_NaoEhBloqueado()
+    public async Task TerceiroPublicadorNaMesmaTrinca_EhBloqueadoComVagaCheia()
     {
-        // Regra 3: o limite de 2 por trinca é só sinalizado, nunca bloqueado.
+        // Regra 3: vaga com 2 pessoas é cheia para o publicador.
+        var carrinhoId = await CarrinhoComSegunda0810ETerca1012Async();
+        await SolicitarAsync(Publicador(), carrinhoId, Segunda, Turno0810, "Ana");
+        await SolicitarAsync(Publicador(), carrinhoId, Segunda, Turno0810, "Bia");
+
+        var resposta = await SolicitarAsync(Publicador(), carrinhoId, Segunda, Turno0810, "Caio");
+
+        Assert.Equal(HttpStatusCode.Conflict, resposta.StatusCode);
+        Assert.Equal("VAGA_CHEIA", (await JsonAsync(resposta)).GetProperty("codigo").GetString());
+        Assert.Equal(2, PedidosDaGrade(await GradeAsync(await AdminAsync())).Length);
+    }
+
+    [Fact]
+    public async Task AdminAdicionaNaVagaCheia_NaoEhBloqueado()
+    {
+        var carrinhoId = await CarrinhoComSegunda0810ETerca1012Async();
+        var admin = await AdminAsync();
+        await SolicitarAsync(Publicador(), carrinhoId, Segunda, Turno0810, "Ana");
+        await SolicitarAsync(Publicador(), carrinhoId, Segunda, Turno0810, "Bia");
+
+        var resposta = await AdicionarManualAsync(admin, carrinhoId, Segunda, Turno0810, "Caio");
+
+        Assert.Equal(HttpStatusCode.Created, resposta.StatusCode);
+    }
+
+    [Fact]
+    public async Task VagaCheiaQueLibera_VoltaAAceitarPedidos()
+    {
+        var carrinhoId = await CarrinhoComSegunda0810ETerca1012Async();
+        var admin = await AdminAsync();
+        var primeiro = (await JsonAsync(await SolicitarAsync(Publicador(), carrinhoId, Segunda, Turno0810, "Ana")))
+            .GetProperty("id").GetInt32();
+        await SolicitarAsync(Publicador(), carrinhoId, Segunda, Turno0810, "Bia");
+        await admin.DeleteAsync($"/api/admin/solicitacoes/{primeiro}");
+
+        var resposta = await SolicitarAsync(Publicador(), carrinhoId, Segunda, Turno0810, "Caio");
+
+        Assert.Equal(HttpStatusCode.Created, resposta.StatusCode);
+    }
+
+    [Fact]
+    public async Task EnviosSimultaneosParaAUltimaVaga_SoUmPassa()
+    {
+        var carrinhoId = await CarrinhoComSegunda0810ETerca1012Async();
+        await SolicitarAsync(Publicador(), carrinhoId, Segunda, Turno0810, "Ana");
+
+        var respostas = await Task.WhenAll(Enumerable.Range(0, 5)
+            .Select(i => SolicitarAsync(Publicador(), carrinhoId, Segunda, Turno0810, $"Pessoa {i}")));
+
+        Assert.Equal(1, respostas.Count(r => r.StatusCode == HttpStatusCode.Created));
+        Assert.Equal(2, PedidosDaGrade(await GradeAsync(await AdminAsync())).Length);
+    }
+
+    [Fact]
+    public async Task PrimeirosEnviosSimultaneosDoMes_CriamUmaEscalaSemErro()
+    {
+        // Ninguém abriu a escala do mês ainda: todos os envios tentam criá-la ao mesmo tempo.
         var carrinhoId = await CarrinhoComSegunda0810ETerca1012Async();
 
-        foreach (var nome in new[] { "Ana", "Bia", "Caio" })
-        {
-            var resposta = await SolicitarAsync(Publicador(), carrinhoId, Segunda, Turno0810, nome);
-            Assert.Equal(HttpStatusCode.Created, resposta.StatusCode);
-        }
+        var respostas = await Task.WhenAll(Enumerable.Range(0, 6)
+            .Select(i => SolicitarAsync(Publicador(), carrinhoId, Segunda, Turno0810, $"Pessoa {i}")));
+
+        Assert.Equal(2, respostas.Count(r => r.StatusCode == HttpStatusCode.Created));
+        Assert.Equal(4, respostas.Count(r => r.StatusCode == HttpStatusCode.Conflict));
     }
 
     [Fact]
