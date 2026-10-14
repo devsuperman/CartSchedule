@@ -10,4 +10,5 @@ namespace CartSchedule.Api.Features.Publicadores.ListarCarrinhosDisponiveis;
 public record CarrinhoDisponivelResponse(
     int Id, string Nome, string? Descricao, List<DisponibilidadeResponse> Disponibilidades);
 
-public record DisponibilidadeResponse(DiaSemana DiaSemana, int TurnoId);
+/// <summary>`Ocupacao` = solicitações da escala-alvo nessa vaga; `Cheia` = já não aceita envios do publicador.</summary>
+public record DisponibilidadeResponse(DiaSemana DiaSemana, int TurnoId, int Ocupacao, bool Cheia);

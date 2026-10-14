@@ -21,11 +21,17 @@ const CARRINHOS: Carrinho[] = [
     nome: "Carrinho 01",
     descricao: "Em frente à estação",
     disponibilidades: [
-      { diaSemana: 1, turnoId: 2 },
-      { diaSemana: 2, turnoId: 3 },
+      { diaSemana: 1, turnoId: 2, ocupacao: 1, cheia: false },
+      { diaSemana: 2, turnoId: 3, ocupacao: 0, cheia: false },
+      { diaSemana: 2, turnoId: 4, ocupacao: 2, cheia: true },
     ],
   },
-  { id: 2, nome: "Carrinho 02", descricao: null, disponibilidades: [{ diaSemana: 1, turnoId: 4 }] },
+  {
+    id: 2,
+    nome: "Carrinho 02",
+    descricao: null,
+    disponibilidades: [{ diaSemana: 1, turnoId: 4, ocupacao: 0, cheia: false }],
+  },
   { id: 3, nome: "Carrinho 03", descricao: null, disponibilidades: [] },
 ];
 
@@ -94,14 +100,44 @@ describe("SolicitacaoWizard — carrinho antes do dia da semana", () => {
     expect(screen.queryByText("Vale para todas as semanas do mês.")).not.toBeInTheDocument();
   });
 
-  it("na terça o Carrinho 01 oferece só 10–12", async () => {
+  it("na terça o Carrinho 01 oferece 10–12 (vago) e 14–16 (cheio, desabilitado)", async () => {
     const user = renderWizard();
     await irParaEtapaDoCarrinho();
     await escolherCarrinho(user, /Carrinho 01/);
 
     await user.click(screen.getByRole("radio", { name: /Terça-feira/ }));
     await continuar(user);
-    expect(radiosVisiveis()).toEqual(["10:00–12:00"]);
+    expect(radiosVisiveis()).toEqual(["10:00–12:00Vago", "14:00–16:00Cheio"]);
+    expect(screen.getByRole("radio", { name: /10:00–12:00/ })).toBeEnabled();
+    expect(screen.getByRole("radio", { name: /14:00–16:00/ })).toBeDisabled();
+  });
+
+  it("mostra quantas pessoas já pediram a vaga", async () => {
+    const user = renderWizard();
+    await irParaEtapaDoCarrinho();
+    await escolherCarrinho(user, /Carrinho 01/);
+
+    await user.click(screen.getByRole("radio", { name: /Segunda-feira/ }));
+    await continuar(user);
+    expect(radiosVisiveis()).toEqual(["08:00–10:001 pessoa nesta vaga"]);
+  });
+
+  it("se a vaga encher durante o envio (VAGA_CHEIA), volta ao turno, avisa e recarrega a ocupação", async () => {
+    mockApiFetch.mockImplementation(async (path) => {
+      if (path === "/api/carrinhos") return CARRINHOS;
+      throw new ApiError(409, "Vaga cheia", { codigo: "VAGA_CHEIA" });
+    });
+    const user = renderWizard();
+    await irParaEtapaDoCarrinho();
+    await escolherCarrinho(user, /Carrinho 01/);
+    await user.click(screen.getByRole("radio", { name: /Terça-feira/ }));
+    await continuar(user);
+    await user.click(screen.getByRole("radio", { name: /10:00–12:00/ }));
+    await user.click(screen.getByRole("button", { name: "Salvar" }));
+
+    expect(await screen.findByText("Essa vaga acabou de ficar cheia. Escolha outro horário.")).toBeInTheDocument();
+    expect(screen.getByText("Em qual turno?")).toBeInTheDocument();
+    expect(mockApiFetch.mock.calls.filter(([path]) => path === "/api/carrinhos")).toHaveLength(2);
   });
 
   it("na segunda o Carrinho 01 oferece só 08–10", async () => {
@@ -111,7 +147,7 @@ describe("SolicitacaoWizard — carrinho antes do dia da semana", () => {
 
     await user.click(screen.getByRole("radio", { name: /Segunda-feira/ }));
     await continuar(user);
-    expect(radiosVisiveis()).toEqual(["08:00–10:00"]);
+    expect(radiosVisiveis()).toEqual(["08:00–10:001 pessoa nesta vaga"]);
   });
 
   it("ao voltar e trocar para um carrinho que não funciona no dia escolhido, limpa dia e turno", async () => {
@@ -120,7 +156,7 @@ describe("SolicitacaoWizard — carrinho antes do dia da semana", () => {
     await escolherCarrinho(user, /Carrinho 01/);
     await user.click(screen.getByRole("radio", { name: /Terça-feira/ }));
     await continuar(user);
-    await user.click(screen.getByRole("radio", { name: "10:00–12:00" }));
+    await user.click(screen.getByRole("radio", { name: /10:00–12:00/ }));
 
     await user.click(screen.getByRole("button", { name: "Voltar" }));
     await user.click(screen.getByRole("button", { name: "Voltar" }));
@@ -138,7 +174,7 @@ describe("SolicitacaoWizard — carrinho antes do dia da semana", () => {
     await escolherCarrinho(user, /Carrinho 01/);
     await user.click(screen.getByRole("radio", { name: /Terça-feira/ }));
     await continuar(user);
-    await user.click(screen.getByRole("radio", { name: "10:00–12:00" }));
+    await user.click(screen.getByRole("radio", { name: /10:00–12:00/ }));
     await user.click(screen.getByRole("button", { name: "Salvar" }));
 
     await waitFor(() =>
@@ -160,7 +196,7 @@ describe("SolicitacaoWizard — carrinho antes do dia da semana", () => {
     await escolherCarrinho(user, /Carrinho 01/);
     await user.click(screen.getByRole("radio", { name: /Terça-feira/ }));
     await continuar(user);
-    await user.click(screen.getByRole("radio", { name: "10:00–12:00" }));
+    await user.click(screen.getByRole("radio", { name: /10:00–12:00/ }));
     await user.click(screen.getByRole("button", { name: "Salvar" }));
 
     expect(await screen.findByText("Muitas tentativas. Aguarde um pouco e tente novamente.")).toBeInTheDocument();

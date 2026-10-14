@@ -32,10 +32,11 @@ public class ExcluirSolicitacaoAdminTests(ApiFixture fixture) : ApiTestBase(fixt
         var admin = await AdminAsync();
         var carrinhoId = await CriarCarrinhoAsync(admin);
         await DefinirTurnosAsync(admin, carrinhoId, (Segunda, Turno0810));
-        foreach (var nome in new[] { "Ana", "Bia", "Caio" })
+        foreach (var nome in new[] { "Ana", "Bia" })
         {
             await SolicitarAsync(Publicador(), carrinhoId, Segunda, Turno0810, nome);
         }
+        await AdicionarManualAsync(admin, carrinhoId, Segunda, Turno0810, "Caio");
 
         var celula = Assert.Single((await GradeAsync(admin)).GetProperty("celulas").EnumerateArray());
         Assert.Equal(3, IdsDaCelula(celula).Length);

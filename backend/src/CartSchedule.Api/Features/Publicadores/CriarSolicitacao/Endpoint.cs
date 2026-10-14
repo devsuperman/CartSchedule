@@ -59,6 +59,13 @@ public static class Endpoint
                 statusCode: StatusCodes.Status400BadRequest);
         }
 
+        var escala = await EscalaHelpers.ObterOuCriarAsync(db, janela.MesAlvo, ct);
+
+        // Conta e insere na mesma transação, serializada por escala (advisory lock), para que
+        // dois envios simultâneos não passem juntos pelo limite da vaga.
+        await using var transacao = await db.Database.BeginTransactionAsync(ct);
+        await db.Database.ExecuteSqlAsync($"SELECT pg_advisory_xact_lock({escala.Id})", ct);
+
         var publicador = await db.Publicadores.FirstOrDefaultAsync(p => p.Id == publicadorId, ct);
         if (publicador is null)
         {
@@ -69,8 +76,6 @@ public static class Endpoint
         {
             publicador.Nome = request.Nome;
         }
-
-        var escala = await EscalaHelpers.ObterOuCriarAsync(db, janela.MesAlvo, ct);
 
         var duplicada = await db.Solicitacoes.AnyAsync(
             s => s.PublicadorId == publicadorId
@@ -88,6 +93,22 @@ public static class Endpoint
                 statusCode: StatusCodes.Status409Conflict);
         }
 
+        var ocupacao = await db.Solicitacoes.CountAsync(
+            s => s.EscalaId == escala.Id
+                && s.CarrinhoId == request.CarrinhoId
+                && s.DiaSemana == request.DiaSemana
+                && s.TurnoId == request.TurnoId,
+            ct);
+
+        if (ocupacao >= LotacaoDaVaga.Limite)
+        {
+            return Results.Problem(
+                title: "Vaga cheia",
+                detail: "Esse carrinho, dia e turno já estão cheios. Escolha outra vaga.",
+                statusCode: StatusCodes.Status409Conflict,
+                extensions: new Dictionary<string, object?> { ["codigo"] = LotacaoDaVaga.CodigoVagaCheia });
+        }
+
         var solicitacao = new Solicitacao
         {
             PublicadorId = publicadorId,
@@ -101,6 +122,7 @@ public static class Endpoint
 
         db.Solicitacoes.Add(solicitacao);
         await db.SaveChangesAsync(ct);
+        await transacao.CommitAsync(ct);
 
         var response = new Response(
             solicitacao.Id,

@@ -20,7 +20,25 @@ export interface Carrinho {
   id: number;
   nome: string;
   descricao: string | null;
-  disponibilidades: { diaSemana: DiaSemana; turnoId: number }[];
+  disponibilidades: Disponibilidade[];
+}
+
+/** `ocupacao` = pessoas que já pediram a vaga na escala-alvo; `cheia` = o backend recusa novos envios. */
+export interface Disponibilidade {
+  diaSemana: DiaSemana;
+  turnoId: number;
+  ocupacao: number;
+  cheia: boolean;
+}
+
+/** Limite de pessoas por vaga para o publicador (espelha `LotacaoDaVaga.Limite` do backend). */
+export const LIMITE_VAGA = 2;
+
+function ehErroDeVagaCheia(err: unknown): boolean {
+  return (
+    err instanceof ApiError &&
+    (err.details as { codigo?: string } | null | undefined)?.codigo === "VAGA_CHEIA"
+  );
 }
 
 function temTurnoNoDia(carrinho: Carrinho, dia: DiaSemana): boolean {
@@ -82,27 +100,30 @@ export function SolicitacaoWizard({ mesAlvo }: SolicitacaoWizardProps) {
   // inventar uma segunda mensagem de erro, reaproveitamos a tela já existente.
   const [janelaFechouAgora, setJanelaFechouAgora] = useState(false);
 
-  useEffect(() => {
-    let cancelado = false;
-
-    apiFetch<Carrinho[]>("/api/carrinhos")
+  function carregarCarrinhos(estaCancelado: () => boolean = () => false) {
+    return apiFetch<Carrinho[]>("/api/carrinhos")
       .then((resposta) => {
-        if (!cancelado) setCarrinhos(resposta);
+        if (!estaCancelado()) setCarrinhos(resposta);
       })
       .catch((err: unknown) => {
-        if (!cancelado) {
+        if (!estaCancelado()) {
           setErroCarrinhos(
             err instanceof ApiError ? err.message : "Não foi possível carregar os carrinhos disponíveis.",
           );
         }
       })
       .finally(() => {
-        if (!cancelado) setCarregandoCarrinhos(false);
+        if (!estaCancelado()) setCarregandoCarrinhos(false);
       });
+  }
 
+  useEffect(() => {
+    let cancelado = false;
+    void carregarCarrinhos(() => cancelado);
     return () => {
       cancelado = true;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- só na montagem
   }, []);
 
   const carrinhoSelecionado = useMemo(
@@ -127,7 +148,12 @@ export function SolicitacaoWizard({ mesAlvo }: SolicitacaoWizardProps) {
 
   const turnosDisponiveis = useMemo(() => {
     if (!carrinhoSelecionado || diaSemana == null) return [];
-    return TURNOS.filter((t) => temTurno(carrinhoSelecionado, diaSemana, t.id));
+    return TURNOS.filter((t) => temTurno(carrinhoSelecionado, diaSemana, t.id)).map((t) => {
+      const vaga = carrinhoSelecionado.disponibilidades.find(
+        (d) => d.diaSemana === diaSemana && d.turnoId === t.id,
+      );
+      return { turno: t, ocupacao: vaga?.ocupacao ?? 0, cheia: vaga?.cheia ?? false };
+    });
   }, [carrinhoSelecionado, diaSemana]);
 
   function selecionarCarrinho(id: number) {
@@ -173,7 +199,14 @@ export function SolicitacaoWizard({ mesAlvo }: SolicitacaoWizardProps) {
       });
       navigate("/", { replace: true });
     } catch (err) {
-      if (err instanceof ApiError && err.status === 409) {
+      if (ehErroDeVagaCheia(err)) {
+        // Alguém pegou a vaga enquanto o publicador escolhia: recarrega a ocupação e volta
+        // para a escolha do turno.
+        setTurnoId(null);
+        setEtapa(3);
+        setErroSalvar("Essa vaga acabou de ficar cheia. Escolha outro horário.");
+        await carregarCarrinhos();
+      } else if (err instanceof ApiError && err.status === 409) {
         setErroSalvar("Você já pediu esse dia e horário nesse carrinho antes. Volte e escolha outra opção.");
       } else if (ehErroDeJanelaFechada(err)) {
         setJanelaFechouAgora(true);
