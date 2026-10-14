@@ -230,6 +230,62 @@ describe("SolicitacaoWizard — ocupação das vagas", () => {
     expect(screen.getByText("Em qual turno?")).toBeInTheDocument();
     await waitFor(() => expect(screen.getByRole("radio", { name: /10:00–12:00/ })).toBeDisabled());
   });
+
+  it("se a recarga falha depois de VAGA_CHEIA, desabilita a vaga mesmo assim e avisa", async () => {
+    let carrinhosChamadas = 0;
+    mockApiFetch.mockImplementation(async (path) => {
+      if (path === "/api/carrinhos") {
+        carrinhosChamadas += 1;
+        if (carrinhosChamadas < 3) return CARRINHOS;
+        throw new ApiError(500, "Erro no servidor");
+      }
+      throw new ApiError(409, "Vaga cheia", { codigo: "VAGA_CHEIA" });
+    });
+    const user = renderWizard();
+    await irParaEtapaDoCarrinho();
+    await escolherCarrinho(user, /Carrinho 01/);
+    await user.click(screen.getByRole("radio", { name: /Terça-feira/ }));
+    await continuar(user);
+    await user.click(await screen.findByRole("radio", { name: /10:00–12:00/ }));
+    await user.click(screen.getByRole("button", { name: "Salvar" }));
+
+    expect(await screen.findByText(/não foi possível atualizar as outras vagas/)).toBeInTheDocument();
+    expect(screen.getByRole("radio", { name: /10:00–12:00/ })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Salvar" })).toBeDisabled();
+  });
+
+  it("ao voltar e trocar para um carrinho em que o turno escolhido está cheio, limpa o turno", async () => {
+    mockApiFetch.mockImplementation(async (path) => {
+      if (path === "/api/carrinhos") {
+        return [
+          CARRINHOS[0],
+          {
+            id: 2,
+            nome: "Carrinho 02",
+            descricao: null,
+            disponibilidades: [{ diaSemana: 1, turnoId: 2, ocupacao: 2, cheia: true }],
+          },
+        ];
+      }
+      throw new Error(`chamada inesperada: ${path}`);
+    });
+    const user = renderWizard();
+    await irParaEtapaDoCarrinho();
+    await escolherCarrinho(user, /Carrinho 01/);
+    await user.click(screen.getByRole("radio", { name: /Segunda-feira/ }));
+    await continuar(user);
+    await user.click(await screen.findByRole("radio", { name: /08:00–10:00/ }));
+
+    await user.click(screen.getByRole("button", { name: "Voltar" }));
+    await user.click(screen.getByRole("button", { name: "Voltar" }));
+    await escolherCarrinho(user, /Carrinho 02/);
+    await continuar(user);
+
+    const cheia = await screen.findByRole("radio", { name: /08:00–10:00/ });
+    expect(cheia).toBeDisabled();
+    expect(cheia).toHaveAttribute("aria-checked", "false");
+    expect(screen.getByRole("button", { name: "Salvar" })).toBeDisabled();
+  });
 });
 
 describe("SolicitacaoWizard — mês-alvo", () => {

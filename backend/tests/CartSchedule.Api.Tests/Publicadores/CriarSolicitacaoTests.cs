@@ -107,6 +107,19 @@ public class CriarSolicitacaoTests(ApiFixture fixture) : ApiTestBase(fixture)
     }
 
     [Fact]
+    public async Task PrimeirosEnviosSimultaneosDoMes_CriamUmaEscalaSemErro()
+    {
+        // Ninguém abriu a escala do mês ainda: todos os envios tentam criá-la ao mesmo tempo.
+        var carrinhoId = await CarrinhoComSegunda0810ETerca1012Async();
+
+        var respostas = await Task.WhenAll(Enumerable.Range(0, 6)
+            .Select(i => SolicitarAsync(Publicador(), carrinhoId, Segunda, Turno0810, $"Pessoa {i}")));
+
+        Assert.Equal(2, respostas.Count(r => r.StatusCode == HttpStatusCode.Created));
+        Assert.Equal(4, respostas.Count(r => r.StatusCode == HttpStatusCode.Conflict));
+    }
+
+    [Fact]
     public async Task EnvioFechadoPeloAdmin_Retorna400ComCodigoJanelaFechada()
     {
         var carrinhoId = await CarrinhoComSegunda0810ETerca1012Async();

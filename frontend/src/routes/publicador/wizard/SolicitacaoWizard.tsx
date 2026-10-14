@@ -28,8 +28,9 @@ function temTurnoNoDia(carrinho: Carrinho, dia: DiaSemana): boolean {
   return carrinho.disponibilidades.some((d) => d.diaSemana === dia);
 }
 
-function temTurno(carrinho: Carrinho, dia: DiaSemana, turnoId: number): boolean {
-  return carrinho.disponibilidades.some((d) => d.diaSemana === dia && d.turnoId === turnoId);
+/** Turno configurado no carrinho nesse dia e ainda não cheio (o publicador pode pedi-lo). */
+function vagaLivre(carrinho: Carrinho, dia: DiaSemana, turnoId: number): boolean {
+  return carrinho.disponibilidades.some((d) => d.diaSemana === dia && d.turnoId === turnoId && !d.cheia);
 }
 
 /** Código do ProblemDetails (409) quando a vaga encheu antes do envio. */
@@ -146,9 +147,10 @@ export function SolicitacaoWizard({ mesAlvo }: SolicitacaoWizardProps) {
     });
   }, [carrinhoSelecionado, diaSemana]);
 
-  /** Recarga silenciosa da ocupação (ao chegar no turno e quando a vaga encheu no envio);
-   * falhar aqui não atrapalha — vale a lista já carregada e o backend continua barrando. */
-  function recarregarOcupacao() {
+  /** Recarga da ocupação (ao chegar no turno e quando a vaga encheu no envio). Ao chegar no
+   * turno a falha é silenciosa — vale a lista já carregada e o backend continua barrando;
+   * depois de um VAGA_CHEIA, `aoFalhar` avisa que as vagas na tela podem estar desatualizadas. */
+  function recarregarOcupacao(aoFalhar?: () => void) {
     apiFetch<Carrinho[]>("/api/carrinhos")
       .then((resposta) => {
         setCarrinhos(resposta);
@@ -157,26 +159,44 @@ export function SolicitacaoWizard({ mesAlvo }: SolicitacaoWizardProps) {
         const vaga = atual?.disponibilidades.find((d) => d.diaSemana === diaSemana && d.turnoId === turnoId);
         if (vaga?.cheia) setTurnoId(null);
       })
-      .catch(() => {});
+      .catch(() => aoFalhar?.());
+  }
+
+  /** Marca na lista local a vaga que o backend disse estar cheia, para desabilitá-la mesmo
+   * que a recarga falhe. */
+  function marcarVagaCheia(carrinho: number, dia: DiaSemana, turno: number) {
+    setCarrinhos((atuais) =>
+      atuais.map((c) =>
+        c.id !== carrinho
+          ? c
+          : {
+              ...c,
+              disponibilidades: c.disponibilidades.map((d) =>
+                d.diaSemana === dia && d.turnoId === turno ? { ...d, cheia: true } : d,
+              ),
+            },
+      ),
+    );
   }
 
   function selecionarCarrinho(id: number) {
     setCarrinhoId(id);
-    // Dia/turno escolhidos antes (usuário voltou etapas) podem não valer no novo carrinho.
+    // Dia/turno escolhidos antes (usuário voltou etapas) podem não valer no novo carrinho —
+    // nem o turno que lá está cheio.
     const novo = carrinhos.find((c) => c.id === id);
     if (!novo) return;
     if (diaSemana != null && !temTurnoNoDia(novo, diaSemana)) {
       setDiaSemana(null);
       setTurnoId(null);
-    } else if (diaSemana != null && turnoId != null && !temTurno(novo, diaSemana, turnoId)) {
+    } else if (diaSemana != null && turnoId != null && !vagaLivre(novo, diaSemana, turnoId)) {
       setTurnoId(null);
     }
   }
 
   function selecionarDia(dia: DiaSemana) {
     setDiaSemana(dia);
-    // O turno escolhido antes pode não valer para o carrinho nesse novo dia.
-    if (carrinhoSelecionado && turnoId != null && !temTurno(carrinhoSelecionado, dia, turnoId)) {
+    // O turno escolhido antes pode não valer (ou estar cheio) para o carrinho nesse novo dia.
+    if (carrinhoSelecionado && turnoId != null && !vagaLivre(carrinhoSelecionado, dia, turnoId)) {
       setTurnoId(null);
     }
   }
@@ -205,8 +225,14 @@ export function SolicitacaoWizard({ mesAlvo }: SolicitacaoWizardProps) {
     } catch (err) {
       if (ehErroDeVagaCheia(err)) {
         setTurnoId(null);
+        marcarVagaCheia(carrinhoId, diaSemana, turnoId);
         setErroSalvar("Essa vaga acabou de ficar cheia. Escolha outro turno, dia ou carrinho.");
-        recarregarOcupacao();
+        recarregarOcupacao(() =>
+          setErroSalvar(
+            "Essa vaga acabou de ficar cheia, e não foi possível atualizar as outras vagas. " +
+              "Outras também podem estar cheias — se acontecer de novo, volte mais tarde.",
+          ),
+        );
       } else if (err instanceof ApiError && err.status === 409) {
         setErroSalvar("Você já pediu esse dia e horário nesse carrinho antes. Volte e escolha outra opção.");
       } else if (ehErroDeJanelaFechada(err)) {

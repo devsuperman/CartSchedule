@@ -23,10 +23,12 @@ public static class EscalaHelpers
             return escala;
         }
 
-        escala = new Escala { MesReferencia = primeiroDiaDoMes };
-        db.Escalas.Add(escala);
-        await db.SaveChangesAsync(ct);
+        // ON CONFLICT: no dia 15 vários primeiros envios chegam juntos e todos tentam criar a
+        // escala do mês; com Add + SaveChanges os perdedores estourariam o índice único (500).
+        await db.Database.ExecuteSqlInterpolatedAsync(
+            $"""INSERT INTO escalas ("MesReferencia", "EnvioFechado") VALUES ({primeiroDiaDoMes}, FALSE) ON CONFLICT ("MesReferencia") DO NOTHING""",
+            ct);
 
-        return escala;
+        return await db.Escalas.FirstAsync(e => e.MesReferencia == primeiroDiaDoMes, ct);
     }
 }
