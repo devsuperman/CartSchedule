@@ -211,3 +211,17 @@ depender de teste manual no navegador/curl a cada alteração.
 `POSTGRES_PASSWORD`, `ADMIN_USUARIO`, `ADMIN_SENHA_HASH`,
 `JWT_CHAVE_SECRETA` — sempre via `.env` (nunca commitado; ver
 `.env.example`), nunca hardcoded em código ou `docker-compose.yml`.
+
+## Fluxo de issues (GitHub Action `claude.yml`)
+
+O Claude é acionado por `@claude` em comentários de issue (só do dono do
+repo) ou pelo label `aprovado`.
+
+1. **Análise (padrão)**: leia a issue, `PLANNING.md`, `TECHNICAL_SPEC.md` e o
+   código relevante. Comente na issue as dúvidas objetivas (numeradas) e a
+   proposta resumida. **Não altere código nem abra PR** nesta etapa.
+2. **Implementação**: só quando o comentário disser "implementar" (ou a issue
+   tiver o label `aprovado`). Crie uma branch, implemente com testes
+   (seção Testes), respeite as regras de negócio acima e abra um PR que
+   referencie a issue (`Closes #N`).
+3. Se o pedido conflitar com o `PLANNING.md`, pergunte em vez de implementar.
