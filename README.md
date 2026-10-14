@@ -52,11 +52,13 @@ commit, não com IA como ajuda pontual.
   mês seguinte e fica aberta até o admin fechar (ele pode reabrir) na tela
   da Escala. Com o envio fechado, o histórico continua acessível. O admin
   não é limitado pela janela.
-- **O limite de 2 por trinca não é bloqueado**, apenas sinalizado
-  visualmente. O critério de desempate é do admin; o sistema mostra só uma
+- **O limite de 2 por trinca bloqueia só o publicador** (vaga cheia, `VAGA_CHEIA`;
+  ele vê a ocupação de cada vaga ao escolher). Para o admin é apenas sinalizado
+  visualmente, nunca bloqueado. O critério de desempate é do admin; o sistema mostra só uma
   contagem de apoio (quantas solicitações cada publicador já tem na escala).
-- **O único bloqueio automático é a duplicidade**: o mesmo publicador não
-  pode ter duas solicitações para a mesma `(escala, carrinho, dia, turno)`.
+- **Bloqueios automáticos**: a duplicidade (o mesmo publicador não pode ter
+  duas solicitações para a mesma `(escala, carrinho, dia, turno)`, vale também
+  para o admin) e a vaga cheia no envio do publicador.
 - Sem notificações (e-mail/push) e sem múltiplos administradores.
 
 A fonte da verdade das regras é o [`PLANNING.md`](./PLANNING.md).
