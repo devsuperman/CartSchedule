@@ -36,7 +36,7 @@ verdade.
 backend/src/CartSchedule.Api/
   Domain/                 # entidades + Enums/
   Infrastructure/          # AppDbContext, Migrations, Auth
-  Shared/                  # JanelaDeEnvio.cs, EscalaHelpers.cs, LotacaoDaVaga.cs
+  Shared/                  # JanelaDeEnvio.cs, EscalaHelpers.cs, LotacaoDaVaga.cs, HorarioOcupado.cs
   Features/
     Publicadores/<Slice>/  # Endpoint.cs, Request.cs, Response.cs, Validator.cs
     Administradores/<Slice>/
@@ -69,8 +69,10 @@ todas são intencionais, confirmadas no `PLANNING.md`:
    - **Publicador**: vaga com 2 pessoas = cheia (`LotacaoDaVaga`) →
      `POST /api/solicitacoes` recusa com 409 e `codigo: "VAGA_CHEIA"`
      (contagem + insert na mesma transação, com lock por escala). O
-     `GET /api/carrinhos` traz `ocupacao`/`cheia` por vaga; o wizard mostra
-     "Vago" / "1 pessoa nesta vaga" / "Cheio" e desabilita a cheia. Contagem
+     `GET /api/carrinhos` traz `ocupacao`/`cheia` por vaga; o wizard (dia → turno →
+     carrinho) mostra "1 pessoa nesta vaga" e desabilita o cheio com "Cheio" (vaga
+     vazia sem texto — nada de "Vago"); dia/turno sem vaga livre ficam desabilitados; turno em que ele já tem pedido fica
+     desabilitado com "Você já tem pedido neste horário" (regra 4). Contagem
      calculada a cada request: excluir/mover alguém libera a vaga. Quem já
      tinha pedido numa vaga que encheu depois mantém o pedido.
    - **Admin nunca é bloqueado por lotação** (adicionar, mover, completar o
@@ -78,12 +80,15 @@ todas são intencionais, confirmadas no `PLANNING.md`:
      pela cor, sem texto** (`estadoVaga` em `gradeEscala.ts`): vazia sem cor,
      1 pessoa (incompleta) e excesso em vermelho, completa em verde. Nunca
      estender o bloqueio de vaga cheia às ações do admin.
-4. **Bloqueios automáticos são só dois**: a **duplicidade** — um mesmo
+4. **Bloqueios automáticos são só três**: a **duplicidade** — um mesmo
    publicador não pode ter duas solicitações para a mesma
    `(escala, carrinho, dia_semana, turno)`, vale para envio normal, adição
-   manual e mover do admin (único bloqueio que vale também para o admin) —
-   e a **vaga cheia no envio do publicador** (regra 3). Tudo mais é
-   sinalização, não bloqueio.
+   manual e mover do admin (único bloqueio que vale também para o admin) —;
+   o **horário ocupado no envio do publicador** — ele não pede um
+   `(dia, turno)` em que já tem pedido, em qualquer carrinho (409
+   `codigo: "HORARIO_OCUPADO"`; sem índice no banco; o admin só é **avisado**
+   nos modais de mover/adicionar) — e a **vaga cheia no envio do publicador**
+   (regra 3). Tudo mais é sinalização, não bloqueio.
 5. **Sem cadastro/login para o publicador.** Identificação via token
    anônimo (GUID) gerado no frontend e salvo em `localStorage`, enviado no
    header `X-Publicador-Token`. Nome é um campo livre, pedido no primeiro
@@ -122,7 +127,7 @@ todas são intencionais, confirmadas no `PLANNING.md`:
 9b. **Mover (admin)** é a ação principal da gestão: `PATCH /api/admin/solicitacoes/{id}`
     muda a vaga `(carrinho, dia, turno)` dentro da mesma escala, mantendo o registro.
     Destino precisa estar configurado; destino com excesso ou origem com 1 pessoa só
-    avisam; duplicidade → 409.
+    avisam (também se a pessoa já está em outro carrinho no mesmo horário); duplicidade → 409.
     Toda a gestão (mover, adicionar pelo "+", editar pessoa — nome e criança/idoso —, excluir — discreto,
     último recurso) fica na tela da Escala (`/admin/escalas/:mes`), feita para
     toque em celular/tablet; não há mais telas Revisão/Adicionar.

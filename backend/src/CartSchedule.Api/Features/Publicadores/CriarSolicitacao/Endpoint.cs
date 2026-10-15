@@ -77,20 +77,22 @@ public static class Endpoint
         await using var transacao = await db.Database.BeginTransactionAsync(ct);
         await db.Database.ExecuteSqlInterpolatedAsync($"SELECT pg_advisory_xact_lock({escala.Id})", ct);
 
-        var duplicada = await db.Solicitacoes.AnyAsync(
+        // Regra 10: quem já tem pedido nesse dia e turno (em qualquer carrinho — a mesma trinca é
+        // o caso particular) não pode pedir de novo; não dá para estar em dois lugares ao mesmo tempo.
+        var horarioOcupado = await db.Solicitacoes.AnyAsync(
             s => s.PublicadorId == publicadorId
                 && s.EscalaId == escala.Id
-                && s.CarrinhoId == request.CarrinhoId
                 && s.DiaSemana == request.DiaSemana
                 && s.TurnoId == request.TurnoId,
             ct);
 
-        if (duplicada)
+        if (horarioOcupado)
         {
             return Results.Problem(
-                title: "Solicitação duplicada",
-                detail: "Você já enviou uma solicitação para esse carrinho, dia e turno nesta escala.",
-                statusCode: StatusCodes.Status409Conflict);
+                title: "Horário ocupado",
+                detail: "Você já tem pedido nesse dia e horário nesta escala.",
+                statusCode: StatusCodes.Status409Conflict,
+                extensions: new Dictionary<string, object?> { ["codigo"] = HorarioOcupado.Codigo });
         }
 
         var ocupacao = await db.Solicitacoes.CountAsync(

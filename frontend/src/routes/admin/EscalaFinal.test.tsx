@@ -486,3 +486,67 @@ describe("EscalaFinal — compartilhar", () => {
     expect(link).toHaveAttribute("href", "/admin/escalas/2026-10/compartilhar");
   });
 });
+
+describe("EscalaFinal — mesma pessoa em dois carrinhos no mesmo horário", () => {
+  // Ana em C1 Seg 08–10 e C1 Seg 10–12; C2 Seg 08–10 vazia e configurada.
+  const GRADE_HORARIO = {
+    mes: "2026-10",
+    celulas: [
+      celula(1, 1, 2, [pedido(1, "ana", "Ana", 2)]),
+      celula(1, 1, 3, [pedido(2, "ana", "Ana", 2)]),
+      celula(2, 1, 2, []),
+    ],
+  };
+
+  beforeEach(() => {
+    mockApiFetch.mockImplementation(async (path, init) => {
+      if (path === "/api/admin/escalas/2026-10/grade") return structuredClone(GRADE_HORARIO);
+      if (init?.method === "PATCH") return undefined;
+      if (init?.method === "POST") {
+        return { id: 99, publicadorId: "ana", publicadorNome: "Ana", carrinhoId: 2, diaSemana: 1, turnoId: 2, origem: 2, criancaOuIdoso: false };
+      }
+      throw new Error(`chamada inesperada: ${path}`);
+    });
+  });
+
+  const AVISO = "Ana já está em Carrinho 01, Segunda-feira, 08:00–10:00, no mesmo horário.";
+
+  it("mover para o horário em que a pessoa já está em outro carrinho só avisa, e deixa mover", async () => {
+    const user = await renderTela();
+
+    await user.click(within(linhaTurno("Carrinho 01", "10:00–12:00")).getByRole("button", { name: "Ana" }));
+    await user.click(within(barraDeAcoes()).getByRole("button", { name: "Mover" }));
+    await user.click(screen.getByRole("button", { name: /^Mover para Carrinho 02, Segunda-feira, 08:00–10:00/ }));
+
+    const modal = screen.getByRole("dialog", { name: "Mover Ana?" });
+    expect(modal).toHaveTextContent(AVISO);
+    await user.click(within(modal).getByRole("button", { name: "Mover" }));
+    expect(chamadas("PATCH")).toHaveLength(1);
+  });
+
+  it("mover o próprio pedido para outro carrinho no mesmo horário não avisa", async () => {
+    const user = await renderTela();
+
+    await user.click(within(linhaTurno("Carrinho 01", "08:00–10:00")).getByRole("button", { name: "Ana" }));
+    await user.click(within(barraDeAcoes()).getByRole("button", { name: "Mover" }));
+    await user.click(screen.getByRole("button", { name: /^Mover para Carrinho 02, Segunda-feira, 08:00–10:00/ }));
+
+    expect(screen.getByRole("dialog", { name: "Mover Ana?" })).not.toHaveTextContent("no mesmo horário");
+  });
+
+  it("adicionar pelo nome de quem já está em outro carrinho no horário só avisa, e deixa adicionar", async () => {
+    const user = await renderTela();
+
+    await user.click(screen.getByRole("button", { name: "Adicionar pessoa em Carrinho 02, Segunda-feira, 08:00–10:00" }));
+    const modal = screen.getByRole("dialog", { name: "Adicionar pessoa" });
+    const campo = within(modal).getByRole("combobox", { name: "Nome do publicador" });
+    await user.type(campo, "Bia");
+    expect(modal).not.toHaveTextContent("no mesmo horário");
+
+    await user.clear(campo);
+    await user.type(campo, "Ana");
+    expect(modal).toHaveTextContent(AVISO);
+    await user.click(within(modal).getByRole("button", { name: "Adicionar" }));
+    expect(chamadas("POST")).toHaveLength(1);
+  });
+});

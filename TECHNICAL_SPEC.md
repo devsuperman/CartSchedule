@@ -68,7 +68,7 @@ backend/
         Publicadores/
           ConsultarJanela/           # GET  /api/janela
           ListarCarrinhosDisponiveis/# GET  /api/carrinhos  (id, nome, descricao, disponibilidades dia×turno por carrinho, cada uma com ocupacao e cheia na escala-alvo)
-          CriarSolicitacao/          # POST /api/solicitacoes  (409 VAGA_CHEIA com 2 pessoas na vaga: contagem + insert numa transação com pg_advisory_xact_lock(escalaId); o admin não é bloqueado)
+          CriarSolicitacao/          # POST /api/solicitacoes  (409 HORARIO_OCUPADO se o publicador já tem pedido no mesmo dia e turno, em qualquer carrinho; 409 VAGA_CHEIA com 2 pessoas na vaga: contagem + insert numa transação com pg_advisory_xact_lock(escalaId); o admin não é bloqueado)
           ListarHistorico/           # GET  /api/solicitacoes  (header X-Publicador-Token; carrinhoNome + carrinhoDescricao; sem data/hora do envio na resposta)
           ExcluirSolicitacao/        # DELETE /api/solicitacoes/{id}  (apaga o registro; não há status)
           AtualizarNome/             # PUT    /api/publicador  (header X-Publicador-Token; 204; não cria o publicador se ainda não existe; sem janela)
@@ -237,7 +237,7 @@ frontend/
         SolicitarEscala.tsx       # decide entre JanelaFechada e o wizard, conforme useJanela()
         JanelaFechada.tsx         # tela exibida fora da janela de envio
         Nome.tsx                  # rota /nome: nome no primeiro acesso e edição ("Olá, Fulano")
-        wizard/                   # formulário em 3 etapas: carrinho (nome + descrição) → dia da semana → turno
+        wizard/                   # formulário em 3 etapas: dia da semana → turno → carrinho (nome + descrição + ocupação)
         components/
           SolicitacaoCard.tsx     # card de uma solicitação (excluir, só com janela aberta e no mês-alvo; sem status nem data/hora)
           ErroJanela.tsx          # erro ao consultar /api/janela, com "tentar novamente"
@@ -261,7 +261,7 @@ frontend/
 
 ### 3.3 Duas áreas da aplicação
 
-- **Área do Publicador** (`/`): fluxo mobile-first (a maioria acessa pelo celular) — nome (só no primeiro acesso), carrinho, dia da semana, turno, envio, histórico com exclusão. Sem login.
+- **Área do Publicador** (`/`): fluxo mobile-first (a maioria acessa pelo celular) — nome (só no primeiro acesso), dia da semana, turno, carrinho, envio, histórico com exclusão. Sem login.
 - **Área do Administrador** (`/admin/*`): protegida por login (JWT armazenado no cliente); gestão de carrinhos (com associação aos turnos fixos) e a tela da Escala, onde toda a gestão do mês acontece (mover, adicionar, excluir, editar pessoa). Pensada para celular/tablet: seletor de dia no celular, grade Turno × Dia a partir de 768px; ações por toque numa barra fixa no rodapé.
 
 ## 4. Banco de Dados — PostgreSQL
@@ -278,7 +278,7 @@ Tabelas espelhando o modelo de dados do `PLANNING.md` (seção 9):
 | `solicitacoes` | `id`, `publicador_id`, `escala_id`, `carrinho_id`, `dia_semana`, `turno_id`, `origem`, `criado_em` — sem `status`: toda solicitação existente conta na escala (Fase 11 removeu `status`/`decidido_em`) |
 
 Índices/constraints relevantes:
-- Único: `(publicador_id, escala_id, carrinho_id, dia_semana, turno_id)` em `solicitacoes` (regra 10 — bloqueio de duplicidade).
+- Único: `(publicador_id, escala_id, carrinho_id, dia_semana, turno_id)` em `solicitacoes` (regra 10 — bloqueio de duplicidade). O "um lugar por horário" `(publicador, escala, dia, turno)` não tem índice: só o envio do publicador barra (no código, sob o mesmo lock da vaga cheia); o admin pode, com aviso.
 - Único: `(carrinho_id, dia_semana, turno_id)` em `carrinho_turnos` (a própria PK).
 - Índice em `(escala_id, carrinho_id, dia_semana, turno_id)` em `solicitacoes`, usado para montar a grade da escala.
 
