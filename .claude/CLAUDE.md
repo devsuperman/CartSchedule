@@ -70,8 +70,8 @@ todas são intencionais, confirmadas no `PLANNING.md`:
      `POST /api/solicitacoes` recusa com 409 e `codigo: "VAGA_CHEIA"`
      (contagem + insert na mesma transação, com lock por escala). O
      `GET /api/carrinhos` traz `ocupacao`/`cheia` por vaga; o wizard (dia → turno →
-     carrinho) desabilita o carrinho cheio com "Cheio" (texto só para justificar
-     o que está desabilitado — nada de "Vago"); dia/turno sem vaga livre ficam desabilitados; turno em que ele já tem pedido fica
+     carrinho) mostra "1 pessoa nesta vaga" e desabilita o cheio com "Cheio" (vaga
+     vazia sem texto — nada de "Vago"); dia/turno sem vaga livre ficam desabilitados; turno em que ele já tem pedido fica
      desabilitado com "Você já tem pedido neste horário" (regra 4). Contagem
      calculada a cada request: excluir/mover alguém libera a vaga. Quem já
      tinha pedido numa vaga que encheu depois mantém o pedido.

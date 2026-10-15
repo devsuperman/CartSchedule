@@ -181,7 +181,7 @@ export function SolicitacaoWizard({ mesAlvo }: SolicitacaoWizardProps) {
     if (diaSemana == null || turnoId == null) return [];
     return carrinhos.flatMap((carrinho) => {
       const d = carrinho.disponibilidades.find((x) => x.diaSemana === diaSemana && x.turnoId === turnoId);
-      return d ? [{ carrinho, cheia: d.cheia }] : [];
+      return d ? [{ carrinho, ocupacao: d.ocupacao, cheia: d.cheia }] : [];
     });
   }, [carrinhos, diaSemana, turnoId]);
 

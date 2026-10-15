@@ -143,7 +143,7 @@ describe("SolicitacaoWizard — dia, depois turno, depois carrinho", () => {
     expect(screen.getAllByRole("radio")).toHaveLength(2);
     const vago = screen.getByRole("radio", { name: /Carrinho 01/ });
     expect(vago).toHaveTextContent("Em frente à estação");
-    // Texto só para justificar o desabilitado: o carrinho com vaga não diz nada.
+    // Vaga vazia não diz nada (sem "Vago").
     expect(vago).toHaveTextContent(/^Carrinho 01Em frente à estação$/);
     const cheio = screen.getByRole("radio", { name: /Carrinho 02/ });
     expect(cheio).toHaveTextContent("Cheio");
@@ -183,6 +183,19 @@ describe("SolicitacaoWizard — dia, depois turno, depois carrinho", () => {
     await user.click(screen.getByRole("button", { name: "Salvar" }));
 
     expect(await screen.findByText("Muitas tentativas. Aguarde um pouco e tente novamente.")).toBeInTheDocument();
+  });
+});
+
+describe("SolicitacaoWizard — vaga com uma pessoa", () => {
+  it("mostra '1 pessoa nesta vaga'", async () => {
+    const user = renderWizard();
+    await esperarEtapaDoDia();
+    await escolherDia(user, /Terça-feira/);
+    await escolherTurno(user, /10:00–12:00/);
+
+    const carrinho = screen.getByRole("radio", { name: /Carrinho 01/ });
+    expect(carrinho).toHaveTextContent("1 pessoa nesta vaga");
+    expect(carrinho).toBeEnabled();
   });
 });
 

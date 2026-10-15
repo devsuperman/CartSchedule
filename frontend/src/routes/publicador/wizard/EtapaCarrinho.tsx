@@ -6,8 +6,17 @@ import type { Carrinho } from "./SolicitacaoWizard";
 /** Um carrinho com o (dia, turno) escolhido configurado. */
 export interface VagaCarrinho {
   carrinho: Carrinho;
+  ocupacao: number;
   /** Vaga cheia: o backend recusa novos pedidos de publicador (PLANNING.md regra 3). */
   cheia: boolean;
+}
+
+/** "Cheio" justifica o desabilitado; "1 pessoa nesta vaga" ajuda a completar a dupla (a vaga
+ * vazia não diz nada). */
+function rotuloOcupacao({ ocupacao, cheia }: VagaCarrinho): string | null {
+  if (cheia) return "Cheio";
+  if (ocupacao === 1) return "1 pessoa nesta vaga";
+  return null;
 }
 
 interface EtapaCarrinhoProps {
@@ -18,8 +27,9 @@ interface EtapaCarrinhoProps {
 
 /** Etapa 3 (última) do wizard: carrinho. Só aparecem os carrinhos ativos (filtro do backend
  * em GET /api/carrinhos) com o turno escolhido configurado no dia escolhido (PLANNING.md
- * regra 17). Texto só para justificar o que está desabilitado: a vaga cheia mostra "Cheio"
- * (horário em que ele já tem pedido nem chega aqui: o turno fica desabilitado). */
+ * regra 17). A vaga cheia fica desabilitada com "Cheio"; a com uma pessoa mostra "1 pessoa
+ * nesta vaga"; a vazia, nada (horário em que ele já tem pedido nem chega aqui: o turno fica
+ * desabilitado). */
 export function EtapaCarrinho({ vagas, valor, onSelecionar }: EtapaCarrinhoProps) {
   if (vagas.length === 0) {
     return (
@@ -66,7 +76,9 @@ export function EtapaCarrinho({ vagas, valor, onSelecionar }: EtapaCarrinhoProps
                 </span>
               )}
             </span>
-            {v.cheia && <span className="shrink-0 text-sm font-normal opacity-80">Cheio</span>}
+            {rotuloOcupacao(v) && (
+              <span className="shrink-0 text-sm font-normal opacity-80">{rotuloOcupacao(v)}</span>
+            )}
           </Button>
         );
       })}
