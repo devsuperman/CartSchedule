@@ -237,7 +237,7 @@ frontend/
         SolicitarEscala.tsx       # decide entre JanelaFechada e o wizard, conforme useJanela()
         JanelaFechada.tsx         # tela exibida fora da janela de envio
         Nome.tsx                  # rota /nome: nome no primeiro acesso e edição ("Olá, Fulano")
-        wizard/                   # formulário em 3 etapas: carrinho (nome + descrição) → dia da semana → turno
+        wizard/                   # formulário em 3 etapas: dia da semana → turno → carrinho (nome + descrição + ocupação)
         components/
           SolicitacaoCard.tsx     # card de uma solicitação (excluir, só com janela aberta e no mês-alvo; sem status nem data/hora)
           ErroJanela.tsx          # erro ao consultar /api/janela, com "tentar novamente"
@@ -261,7 +261,7 @@ frontend/
 
 ### 3.3 Duas áreas da aplicação
 
-- **Área do Publicador** (`/`): fluxo mobile-first (a maioria acessa pelo celular) — nome (só no primeiro acesso), carrinho, dia da semana, turno, envio, histórico com exclusão. Sem login.
+- **Área do Publicador** (`/`): fluxo mobile-first (a maioria acessa pelo celular) — nome (só no primeiro acesso), dia da semana, turno, carrinho, envio, histórico com exclusão. Sem login.
 - **Área do Administrador** (`/admin/*`): protegida por login (JWT armazenado no cliente); gestão de carrinhos (com associação aos turnos fixos) e a tela da Escala, onde toda a gestão do mês acontece (mover, adicionar, excluir, editar pessoa). Pensada para celular/tablet: seletor de dia no celular, grade Turno × Dia a partir de 768px; ações por toque numa barra fixa no rodapé.
 
 ## 4. Banco de Dados — PostgreSQL

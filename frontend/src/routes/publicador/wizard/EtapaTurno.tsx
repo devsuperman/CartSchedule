@@ -3,65 +3,50 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { cn } from "@/lib/utils";
 import type { Turno } from "../../../constants/turnos";
 
-/** Um turno oferecido, com a lotação atual da vaga (carrinho, dia, turno) na escala-alvo. */
-export interface VagaTurno {
+/** Um turno oferecido no dia escolhido; `livre` = algum carrinho tem vaga que o publicador
+ * ainda pode pedir. */
+export interface OpcaoTurno {
   turno: Turno;
-  ocupacao: number;
-  /** Vaga cheia: o backend recusa novos pedidos de publicador (PLANNING.md regra 3). */
-  cheia: boolean;
+  livre: boolean;
 }
 
 interface EtapaTurnoProps {
-  vagas: readonly VagaTurno[];
-  carrinhoNome?: string;
+  turnos: readonly OpcaoTurno[];
   valor: number | null;
   onSelecionar: (id: number) => void;
 }
 
-function rotuloOcupacao({ ocupacao, cheia }: VagaTurno): string {
-  if (cheia) return "Cheio";
-  if (ocupacao === 0) return "Vago";
-  return ocupacao === 1 ? "1 pessoa nesta vaga" : `${ocupacao} pessoas nesta vaga`;
-}
-
-/** Etapa 3 (última) do wizard: turno, já filtrado pelos turnos habilitados no carrinho
- * escolhido, no dia da semana escolhido na etapa anterior (PLANNING.md regra 17), com a
- * ocupação de cada vaga para o publicador preferir as vazias. Vaga cheia fica desabilitada.
+/** Etapa 2 do wizard: turno. Só aparecem os turnos que algum carrinho tem configurados no
+ * dia escolhido (PLANNING.md regra 17); sem vaga que o publicador possa pedir, o turno fica
+ * desabilitado, sem texto — a ocupação de cada vaga aparece só na etapa do carrinho.
  * Turnos são fixos no sistema, nunca cadastráveis pelo admin (PLANNING.md regra 2). */
-export function EtapaTurno({ vagas, carrinhoNome, valor, onSelecionar }: EtapaTurnoProps) {
-  if (vagas.length === 0) {
+export function EtapaTurno({ turnos, valor, onSelecionar }: EtapaTurnoProps) {
+  if (turnos.length === 0) {
     return (
       <Alert variant="warning">
-        <AlertDescription>
-          {carrinhoNome ? `${carrinhoNome} não tem` : "Este carrinho não tem"} turnos disponíveis nesse
-          dia. Toque em "Voltar" e escolha outro dia.
-        </AlertDescription>
+        <AlertDescription>Nenhum carrinho tem turnos nesse dia. Toque em "Voltar" e escolha outro dia.</AlertDescription>
       </Alert>
     );
   }
 
   return (
     <div className="flex flex-col gap-3" role="radiogroup" aria-label="Turno">
-      {vagas.map((v) => (
+      {turnos.map(({ turno, livre }) => (
         <Button
-          key={v.turno.id}
+          key={turno.id}
           type="button"
           variant="outline"
           size="lg"
           role="radio"
-          aria-checked={valor === v.turno.id}
-          disabled={v.cheia}
+          aria-checked={valor === turno.id}
+          disabled={!livre}
           className={cn(
-            "w-full justify-between text-left text-base tabular-nums",
-            valor === v.turno.id &&
-              "border-primary bg-primary text-primary-foreground hover:bg-primary/90",
+            "w-full justify-start text-left text-base tabular-nums",
+            valor === turno.id && "border-primary bg-primary text-primary-foreground hover:bg-primary/90",
           )}
-          onClick={() => onSelecionar(v.turno.id)}
+          onClick={() => onSelecionar(turno.id)}
         >
-          <span>
-            {v.turno.horaInicio}–{v.turno.horaFim}
-          </span>
-          <span className="text-sm font-normal opacity-80">{rotuloOcupacao(v)}</span>
+          {turno.horaInicio}–{turno.horaFim}
         </Button>
       ))}
     </div>

@@ -634,7 +634,23 @@ destaque e a descrição dele.
 
 ---
 
-## Backlog (Fase 17 — opcional, fora do escopo inicial)
+## Fase 17 — Wizard na ordem dia → turno → carrinho
+
+O publicador escolhe primeiro quando quer trabalhar e só depois onde. Só frontend: o
+`GET /api/carrinhos` já traz todas as vagas com ocupação, e o `POST /api/solicitacoes` não
+muda.
+
+| ID | Arquivos | Entrega |
+|----|----------|---------|
+| F17-FE-01 | `wizard/SolicitacaoWizard.tsx`, `EtapaDiaSemana.tsx`, `EtapaTurno.tsx`, `EtapaCarrinho.tsx`, `SolicitacaoWizard.test.tsx` | Etapas dia → turno → carrinho. Só aparecem dias/turnos que algum carrinho tem configurados; sem vaga que o publicador possa pedir, ficam desabilitados, sem texto. A ocupação ("Vago"/"1 pessoa"/"Cheio") passa para a etapa do carrinho; carrinho cheio ou já pedido por ele (`GET /api/solicitacoes` da escala-alvo, "Você já pediu") fica desabilitado. Trocar dia/turno limpa as escolhas seguintes incompatíveis; `VAGA_CHEIA` volta à escolha do carrinho. |
+
+### Verificação da Fase 17
+
+`npm test`, `npm run lint`, `npm run build`.
+
+---
+
+## Backlog (Fase 18 — opcional, fora do escopo inicial)
 
 Não paralelizar ainda — só entra depois que Fases 0–4 estiverem completas
 e validadas:
