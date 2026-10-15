@@ -642,11 +642,14 @@ muda.
 
 | ID | Arquivos | Entrega |
 |----|----------|---------|
-| F17-FE-01 | `wizard/SolicitacaoWizard.tsx`, `EtapaDiaSemana.tsx`, `EtapaTurno.tsx`, `EtapaCarrinho.tsx`, `SolicitacaoWizard.test.tsx` | Etapas dia → turno → carrinho. Só aparecem dias/turnos que algum carrinho tem configurados; sem vaga que o publicador possa pedir, ficam desabilitados, sem texto. O turno em que o publicador já tem pedido (em qualquer carrinho) mostra "Você já tem pedido neste horário", habilitado ou não. A ocupação ("Vago"/"1 pessoa"/"Cheio") passa para a etapa do carrinho; carrinho cheio ou já pedido por ele (`GET /api/solicitacoes` da escala-alvo, "Você já pediu") fica desabilitado. Trocar dia/turno limpa as escolhas seguintes incompatíveis; `VAGA_CHEIA` volta à escolha do carrinho. |
+| F17-FE-01 | `wizard/SolicitacaoWizard.tsx`, `EtapaDiaSemana.tsx`, `EtapaTurno.tsx`, `EtapaCarrinho.tsx`, `SolicitacaoWizard.test.tsx` | Etapas dia → turno → carrinho. Só aparecem dias/turnos que algum carrinho tem configurados; sem vaga que o publicador possa pedir, ficam desabilitados, sem texto. A ocupação ("Vago"/"1 pessoa"/"Cheio") passa para a etapa do carrinho; carrinho cheio fica desabilitado. Trocar dia/turno limpa as escolhas seguintes incompatíveis; `VAGA_CHEIA` volta à escolha do carrinho. |
+| F17-BE-01 | `CriarSolicitacao/Endpoint.cs`, `Shared/HorarioOcupado.cs`, `CriarSolicitacaoTests.cs` | Publicador com pedido no mesmo (dia, turno) da escala, em qualquer carrinho, é recusado com 409 `HORARIO_OCUPADO` (sob o lock da escala, antes da vaga cheia). Sem migration: pedidos antigos no mesmo horário ficam; o admin não é bloqueado. |
+| F17-FE-02 | `wizard/*` | Turno em que o publicador já tem pedido (`GET /api/solicitacoes` da escala-alvo) fica desabilitado com "Você já tem pedido neste horário"; `HORARIO_OCUPADO` no envio volta ao turno. |
+| F17-FE-03 | `admin/components/{ModaisEscala.tsx,gradeEscala.ts}`, `EscalaFinal.tsx` | Mover/adicionar alguém que já está em outro carrinho no mesmo dia e turno mostra o aviso "Fulano já está em …, no mesmo horário." — só aviso, nunca bloqueio. |
 
 ### Verificação da Fase 17
 
-`npm test`, `npm run lint`, `npm run build`.
+`dotnet test`, `npm test`, `npm run lint`, `npm run build`.
 
 ---
 

@@ -96,6 +96,28 @@ export function descreverCelula(c: CelulaGrade): string {
   return `${c.carrinhoNome}, ${formatarDia(c.diaSemana)}, ${formatarTurno(c.turnoId)}`;
 }
 
+/**
+ * Vaga de outro carrinho, no mesmo dia e turno do destino, em que a pessoa já está — não dá
+ * para estar em dois lugares ao mesmo tempo (PLANNING.md regra 10). O publicador é barrado no
+ * envio; o admin só é avisado. `ignorar` é o pedido que está sendo movido.
+ */
+export function vagaNoMesmoHorario(
+  celulas: readonly CelulaGrade[],
+  destino: CelulaGrade,
+  ehAPessoa: (p: PedidoGrade) => boolean,
+  ignorar?: number,
+): CelulaGrade | null {
+  return (
+    celulas.find(
+      (c) =>
+        c.diaSemana === destino.diaSemana &&
+        c.turnoId === destino.turnoId &&
+        c.carrinhoId !== destino.carrinhoId &&
+        c.publicadores.some((p) => p.solicitacaoId !== ignorar && ehAPessoa(p)),
+    ) ?? null
+  );
+}
+
 export function localizarPedido(
   celulas: CelulaGrade[],
   solicitacaoId: number,

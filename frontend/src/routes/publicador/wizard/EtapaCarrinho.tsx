@@ -10,8 +10,6 @@ export interface VagaCarrinho {
   ocupacao: number;
   /** Vaga cheia: o backend recusa novos pedidos de publicador (PLANNING.md regra 3). */
   cheia: boolean;
-  /** O publicador já pediu essa vaga — pedir de novo seria duplicidade (PLANNING.md regra 4). */
-  jaPedida: boolean;
 }
 
 interface EtapaCarrinhoProps {
@@ -20,8 +18,7 @@ interface EtapaCarrinhoProps {
   onSelecionar: (id: number) => void;
 }
 
-function rotuloOcupacao({ ocupacao, cheia, jaPedida }: VagaCarrinho): string {
-  if (jaPedida) return "Você já pediu";
+function rotuloOcupacao({ ocupacao, cheia }: VagaCarrinho): string {
   if (cheia) return "Cheio";
   if (ocupacao === 0) return "Vago";
   return ocupacao === 1 ? "1 pessoa nesta vaga" : `${ocupacao} pessoas nesta vaga`;
@@ -29,8 +26,8 @@ function rotuloOcupacao({ ocupacao, cheia, jaPedida }: VagaCarrinho): string {
 
 /** Etapa 3 (última) do wizard: carrinho. Só aparecem os carrinhos ativos (filtro do backend
  * em GET /api/carrinhos) com o turno escolhido configurado no dia escolhido (PLANNING.md
- * regra 17), com a ocupação de cada vaga para o publicador preferir as vazias. Vaga cheia ou
- * já pedida por ele fica desabilitada. */
+ * regra 17), com a ocupação de cada vaga para o publicador preferir as vazias. Vaga cheia fica
+ * desabilitada (horário em que ele já tem pedido nem chega aqui: o turno fica desabilitado). */
 export function EtapaCarrinho({ vagas, valor, onSelecionar }: EtapaCarrinhoProps) {
   if (vagas.length === 0) {
     return (
@@ -55,7 +52,7 @@ export function EtapaCarrinho({ vagas, valor, onSelecionar }: EtapaCarrinhoProps
             size="lg"
             role="radio"
             aria-checked={selecionado}
-            disabled={v.cheia || v.jaPedida}
+            disabled={v.cheia}
             className={cn(
               // Altura automática + whitespace-normal: a descrição pode quebrar linha em telas
               // estreitas (o botão padrão é de uma linha só, h-12 + whitespace-nowrap).

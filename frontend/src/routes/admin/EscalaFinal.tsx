@@ -469,6 +469,7 @@ export default function EscalaFinal() {
 
       <ModalMover
         movimento={movimento}
+        celulas={celulas ?? []}
         onFechar={() => setMovimento(null)}
         onMovido={(m) => {
           setCelulas((atual) => (atual ? moverPedido(atual, m.pedido.solicitacaoId, chaveCelula(m.destino)) : atual));
@@ -492,6 +493,7 @@ export default function EscalaFinal() {
       <ModalAdicionar
         mes={mes}
         celula={adicionando}
+        celulas={celulas ?? []}
         nomesSugeridos={nomesSugeridos}
         nomesCriancaOuIdoso={nomesCriancaOuIdoso}
         onFechar={() => setAdicionando(null)}

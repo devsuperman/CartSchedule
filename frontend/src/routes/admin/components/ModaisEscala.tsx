@@ -13,7 +13,14 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { CampoCriancaOuIdoso } from "./ModalEditarNome";
-import { descreverCelula, estadoCom, estadoSem, type CelulaGrade, type PedidoGrade } from "./gradeEscala";
+import {
+  descreverCelula,
+  estadoCom,
+  estadoSem,
+  vagaNoMesmoHorario,
+  type CelulaGrade,
+  type PedidoGrade,
+} from "./gradeEscala";
 
 function mensagemErro(erro: unknown, duplicado: string, fallback: string): string {
   if (erro instanceof ApiError && erro.status === 409) return duplicado;
@@ -50,6 +57,16 @@ function AvisoOrigem({ origem, pedido }: { origem: CelulaGrade; pedido: PedidoGr
   );
 }
 
+/** Aviso (nunca bloqueio — regra 10) quando a pessoa já está em outro carrinho nesse horário. */
+function AvisoHorario({ nome, outra }: { nome: string; outra: CelulaGrade | null }) {
+  if (!outra) return null;
+  return (
+    <Aviso>
+      {nome} já está em {descreverCelula(outra)}, no mesmo horário.
+    </Aviso>
+  );
+}
+
 export interface Movimento {
   pedido: PedidoGrade;
   origem: CelulaGrade;
@@ -59,10 +76,12 @@ export interface Movimento {
 /** Confirma a mudança de vaga: PATCH /api/admin/solicitacoes/{id}. */
 export function ModalMover({
   movimento,
+  celulas,
   onFechar,
   onMovido,
 }: {
   movimento: Movimento | null;
+  celulas: readonly CelulaGrade[];
   onFechar: () => void;
   onMovido: (movimento: Movimento) => void;
 }) {
@@ -112,6 +131,15 @@ export function ModalMover({
               criancaOuIdoso={movimento.pedido.criancaOuIdoso}
             />
             <AvisoOrigem origem={movimento.origem} pedido={movimento.pedido} />
+            <AvisoHorario
+              nome={movimento.pedido.publicadorNome}
+              outra={vagaNoMesmoHorario(
+                celulas,
+                movimento.destino,
+                (p) => p.publicadorId === movimento.pedido.publicadorId,
+                movimento.pedido.solicitacaoId,
+              )}
+            />
             {erro && (
               <Alert variant="destructive">
                 <AlertDescription>{erro}</AlertDescription>
@@ -224,11 +252,13 @@ interface SolicitacaoCriada {
  * se bater exatamente com um existente, a API reaproveita o publicador — as sugestões ajudam
  * a digitar o nome igual. "Criança ou idoso" marcado vale para a pessoa (nova ou não); a API
  * nunca desmarca por aqui. `nomesCriancaOuIdoso` são os já marcados na escala, para o aviso de
- * excesso considerar a marca mesmo sem a caixa.
+ * excesso considerar a marca mesmo sem a caixa. `celulas` serve ao aviso de quem já está em
+ * outro carrinho no mesmo horário (pelo nome exato, como a API reaproveita o publicador).
  */
 export function ModalAdicionar({
   mes,
   celula,
+  celulas,
   nomesSugeridos,
   nomesCriancaOuIdoso,
   onFechar,
@@ -236,6 +266,7 @@ export function ModalAdicionar({
 }: {
   mes: string;
   celula: CelulaGrade | null;
+  celulas: readonly CelulaGrade[];
   nomesSugeridos: string[];
   nomesCriancaOuIdoso: string[];
   onFechar: () => void;
@@ -249,6 +280,7 @@ export function ModalAdicionar({
             key={`${celula.carrinhoId}-${celula.diaSemana}-${celula.turnoId}`}
             mes={mes}
             celula={celula}
+            celulas={celulas}
             nomesSugeridos={nomesSugeridos}
             nomesCriancaOuIdoso={nomesCriancaOuIdoso}
             onAdicionado={onAdicionado}
@@ -262,12 +294,14 @@ export function ModalAdicionar({
 function FormularioAdicionar({
   mes,
   celula,
+  celulas,
   nomesSugeridos,
   nomesCriancaOuIdoso,
   onAdicionado,
 }: {
   mes: string;
   celula: CelulaGrade;
+  celulas: readonly CelulaGrade[];
   nomesSugeridos: string[];
   nomesCriancaOuIdoso: string[];
   onAdicionado: (celula: CelulaGrade, criada: SolicitacaoCriada) => void;
@@ -329,6 +363,10 @@ function FormularioAdicionar({
         destino={celula}
         nome={nome.trim() || "essa pessoa"}
         criancaOuIdoso={criancaOuIdoso || nomesCriancaOuIdoso.includes(nome.trim())}
+      />
+      <AvisoHorario
+        nome={nome.trim()}
+        outra={valido ? vagaNoMesmoHorario(celulas, celula, (p) => p.publicadorNome === nome.trim()) : null}
       />
       {erro && (
         <Alert variant="destructive">

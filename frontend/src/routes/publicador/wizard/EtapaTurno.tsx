@@ -8,7 +8,7 @@ import type { Turno } from "../../../constants/turnos";
 export interface OpcaoTurno {
   turno: Turno;
   livre: boolean;
-  /** O publicador já tem pedido nesse dia e horário, em qualquer carrinho. */
+  /** O publicador já tem pedido nesse dia e horário, em qualquer carrinho (o turno fica desabilitado). */
   jaTemPedido: boolean;
 }
 
@@ -21,7 +21,8 @@ interface EtapaTurnoProps {
 /** Etapa 2 do wizard: turno. Só aparecem os turnos que algum carrinho tem configurados no
  * dia escolhido (PLANNING.md regra 17); sem vaga que o publicador possa pedir, o turno fica
  * desabilitado — a ocupação de cada vaga aparece só na etapa do carrinho. Se ele já tem pedido
- * nesse horário (em qualquer carrinho), o turno avisa, habilitado ou não.
+ * nesse horário (em qualquer carrinho), o turno fica desabilitado e avisa: não dá para estar
+ * em dois lugares ao mesmo tempo (PLANNING.md regra 10).
  * Turnos são fixos no sistema, nunca cadastráveis pelo admin (PLANNING.md regra 2). */
 export function EtapaTurno({ turnos, valor, onSelecionar }: EtapaTurnoProps) {
   if (turnos.length === 0) {

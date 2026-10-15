@@ -68,7 +68,7 @@ backend/
         Publicadores/
           ConsultarJanela/           # GET  /api/janela
           ListarCarrinhosDisponiveis/# GET  /api/carrinhos  (id, nome, descricao, disponibilidades dia×turno por carrinho, cada uma com ocupacao e cheia na escala-alvo)
-          CriarSolicitacao/          # POST /api/solicitacoes  (409 VAGA_CHEIA com 2 pessoas na vaga: contagem + insert numa transação com pg_advisory_xact_lock(escalaId); o admin não é bloqueado)
+          CriarSolicitacao/          # POST /api/solicitacoes  (409 HORARIO_OCUPADO se o publicador já tem pedido no mesmo dia e turno, em qualquer carrinho; 409 VAGA_CHEIA com 2 pessoas na vaga: contagem + insert numa transação com pg_advisory_xact_lock(escalaId); o admin não é bloqueado)
           ListarHistorico/           # GET  /api/solicitacoes  (header X-Publicador-Token; carrinhoNome + carrinhoDescricao; sem data/hora do envio na resposta)
           ExcluirSolicitacao/        # DELETE /api/solicitacoes/{id}  (apaga o registro; não há status)
           AtualizarNome/             # PUT    /api/publicador  (header X-Publicador-Token; 204; não cria o publicador se ainda não existe; sem janela)
@@ -278,7 +278,7 @@ Tabelas espelhando o modelo de dados do `PLANNING.md` (seção 9):
 | `solicitacoes` | `id`, `publicador_id`, `escala_id`, `carrinho_id`, `dia_semana`, `turno_id`, `origem`, `criado_em` — sem `status`: toda solicitação existente conta na escala (Fase 11 removeu `status`/`decidido_em`) |
 
 Índices/constraints relevantes:
-- Único: `(publicador_id, escala_id, carrinho_id, dia_semana, turno_id)` em `solicitacoes` (regra 10 — bloqueio de duplicidade).
+- Único: `(publicador_id, escala_id, carrinho_id, dia_semana, turno_id)` em `solicitacoes` (regra 10 — bloqueio de duplicidade). O "um lugar por horário" `(publicador, escala, dia, turno)` não tem índice: só o envio do publicador barra (no código, sob o mesmo lock da vaga cheia); o admin pode, com aviso.
 - Único: `(carrinho_id, dia_semana, turno_id)` em `carrinho_turnos` (a própria PK).
 - Índice em `(escala_id, carrinho_id, dia_semana, turno_id)` em `solicitacoes`, usado para montar a grade da escala.
 

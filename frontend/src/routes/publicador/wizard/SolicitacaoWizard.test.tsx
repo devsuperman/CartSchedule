@@ -194,7 +194,7 @@ describe("SolicitacaoWizard — dia, depois turno, depois carrinho", () => {
   });
 });
 
-describe("SolicitacaoWizard — vagas que o publicador já pediu", () => {
+describe("SolicitacaoWizard — horário em que o publicador já tem pedido", () => {
   const PEDIDO = {
     id: 7,
     carrinhoId: 1,
@@ -203,77 +203,45 @@ describe("SolicitacaoWizard — vagas que o publicador já pediu", () => {
     diaSemana: 1,
     turnoId: 2,
     origem: 0,
+    escalaMesReferencia: "2026-10-01",
   };
 
-  it("desabilita o carrinho já pedido nesse dia e turno, e o turno/dia que ficam sem vaga", async () => {
-    mockarApi({ historico: () => [{ ...PEDIDO, escalaMesReferencia: "2026-10-01" }] });
-    renderWizard();
-    await esperarEtapaDoDia();
-
-    // Na Segunda, o Carrinho 01 (08–10) já é dele e o resto está cheio: nada para pedir.
-    await waitFor(() => expect(screen.getByRole("radio", { name: /Segunda-feira/ })).toBeDisabled());
-    expect(screen.getByRole("radio", { name: /Terça-feira/ })).toBeEnabled();
-  });
-
-  it("avisa no horário em que já tem pedido, mesmo desabilitado por não sobrar vaga", async () => {
-    mockarApi({
-      carrinhos: () => [
-        {
-          ...CARRINHOS[0],
-          disponibilidades: [
-            { diaSemana: 1, turnoId: 2, ocupacao: 1, cheia: false },
-            { diaSemana: 1, turnoId: 6, ocupacao: 0, cheia: false },
-          ],
-        },
+  // Na Segunda, 08–10 no Carrinho 01 (o pedido dele) e no Carrinho 05 (vago), e 18–20 no 05.
+  const CARRINHOS_SEGUNDA: Carrinho[] = [
+    CARRINHOS[0],
+    {
+      id: 5,
+      nome: "Carrinho 05",
+      descricao: null,
+      disponibilidades: [
+        { diaSemana: 1, turnoId: 2, ocupacao: 0, cheia: false },
+        { diaSemana: 1, turnoId: 6, ocupacao: 0, cheia: false },
       ],
-      historico: () => [{ ...PEDIDO, escalaMesReferencia: "2026-10-01" }],
-    });
+    },
+  ];
+
+  it("desabilita o horário e avisa, mesmo com vaga em outro carrinho", async () => {
+    mockarApi({ carrinhos: () => CARRINHOS_SEGUNDA, historico: () => [PEDIDO] });
     const user = renderWizard();
     await esperarEtapaDoDia();
     await escolherDia(user, /Segunda-feira/);
 
     const meu = screen.getByRole("radio", { name: /08:00–10:00/ });
-    await waitFor(() => expect(meu).toHaveTextContent("Você já tem pedido neste horário"));
-    expect(meu).toBeDisabled();
+    await waitFor(() => expect(meu).toBeDisabled());
+    expect(meu).toHaveTextContent("Você já tem pedido neste horário");
     const outro = screen.getByRole("radio", { name: /18:00–20:00/ });
     expect(outro).toBeEnabled();
     expect(outro).not.toHaveTextContent("Você já tem pedido");
   });
 
-  it("avisa no horário em que já tem pedido, habilitado se outro carrinho tem vaga", async () => {
-    mockarApi({
-      carrinhos: () => [
-        CARRINHOS[0],
-        { id: 5, nome: "Carrinho 05", descricao: null, disponibilidades: [{ diaSemana: 1, turnoId: 2, ocupacao: 0, cheia: false }] },
-      ],
-      historico: () => [{ ...PEDIDO, escalaMesReferencia: "2026-10-01" }],
-    });
-    const user = renderWizard();
+  it("desabilita o dia em que todos os horários já são dele ou estão cheios", async () => {
+    mockarApi({ historico: () => [PEDIDO] });
+    renderWizard();
     await esperarEtapaDoDia();
-    await escolherDia(user, /Segunda-feira/);
 
-    const turno = screen.getByRole("radio", { name: /08:00–10:00/ });
-    await waitFor(() => expect(turno).toHaveTextContent("Você já tem pedido neste horário"));
-    expect(turno).toBeEnabled();
-  });
-
-  it("mostra 'Você já pediu' no carrinho e o desabilita", async () => {
-    mockarApi({
-      carrinhos: () => [
-        CARRINHOS[0],
-        { id: 5, nome: "Carrinho 05", descricao: null, disponibilidades: [{ diaSemana: 1, turnoId: 2, ocupacao: 0, cheia: false }] },
-      ],
-      historico: () => [{ ...PEDIDO, escalaMesReferencia: "2026-10-01" }],
-    });
-    const user = renderWizard();
-    await esperarEtapaDoDia();
-    await escolherDia(user, /Segunda-feira/);
-    await escolherTurno(user, /08:00–10:00/);
-
-    const jaPedido = screen.getByRole("radio", { name: /Carrinho 01/ });
-    await waitFor(() => expect(jaPedido).toHaveTextContent("Você já pediu"));
-    expect(jaPedido).toBeDisabled();
-    expect(screen.getByRole("radio", { name: /Carrinho 05/ })).toBeEnabled();
+    // Na Segunda, 08–10 já é dele e 14–16 está cheio.
+    await waitFor(() => expect(screen.getByRole("radio", { name: /Segunda-feira/ })).toBeDisabled());
+    expect(screen.getByRole("radio", { name: /Terça-feira/ })).toBeEnabled();
   });
 
   it("ignora pedidos de outras escalas", async () => {
@@ -281,10 +249,10 @@ describe("SolicitacaoWizard — vagas que o publicador já pediu", () => {
     const user = renderWizard();
     await esperarEtapaDoDia();
     await escolherDia(user, /Segunda-feira/);
-    await escolherTurno(user, /08:00–10:00/);
 
-    expect(screen.getByRole("radio", { name: /Carrinho 01/ })).toHaveTextContent("Vago");
-    expect(screen.getByRole("radio", { name: /Carrinho 01/ })).toBeEnabled();
+    const turno = screen.getByRole("radio", { name: /08:00–10:00/ });
+    expect(turno).toBeEnabled();
+    expect(turno).not.toHaveTextContent("Você já tem pedido");
   });
 
   it("se o histórico não carrega, o wizard funciona mesmo assim", async () => {
@@ -299,6 +267,28 @@ describe("SolicitacaoWizard — vagas que o publicador já pediu", () => {
     await escolherTurno(user, /08:00–10:00/);
 
     expect(screen.getByRole("radio", { name: /Carrinho 01/ })).toBeEnabled();
+  });
+
+  it("se o servidor diz que o horário está ocupado, volta ao turno, avisa e o desabilita", async () => {
+    mockarApi({
+      carrinhos: () => CARRINHOS_SEGUNDA,
+      enviar: () => {
+        throw new ApiError(409, "Horário ocupado", { codigo: "HORARIO_OCUPADO" });
+      },
+    });
+    const user = renderWizard();
+    await esperarEtapaDoDia();
+    await escolherDia(user, /Segunda-feira/);
+    await escolherTurno(user, /08:00–10:00/);
+    await user.click(screen.getByRole("radio", { name: /Carrinho 05/ }));
+    await user.click(screen.getByRole("button", { name: "Salvar" }));
+
+    expect(await screen.findByText("Você já tem pedido nesse dia e horário. Escolha outro horário.")).toBeInTheDocument();
+    expect(screen.getByText("Em qual turno?")).toBeInTheDocument();
+    const turno = screen.getByRole("radio", { name: /08:00–10:00/ });
+    expect(turno).toBeDisabled();
+    expect(turno).toHaveTextContent("Você já tem pedido neste horário");
+    expect(screen.getByRole("button", { name: "Continuar" })).toBeDisabled();
   });
 });
 
