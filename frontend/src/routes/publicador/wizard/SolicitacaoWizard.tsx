@@ -113,8 +113,12 @@ export function SolicitacaoWizard({ mesAlvo }: SolicitacaoWizardProps) {
   const [carrinhos, setCarrinhos] = useState<Carrinho[]>([]);
   const [carregandoCarrinhos, setCarregandoCarrinhos] = useState(true);
   const [erroCarrinhos, setErroCarrinhos] = useState<string | null>(null);
-  /** Vagas que o publicador já pediu na escala-alvo — pedir de novo seria duplicidade (PLANNING.md §5). */
-  const [jaPedidas, setJaPedidas] = useState<ReadonlySet<string>>(new Set());
+  /** Pedidos do publicador na escala-alvo — pedir a mesma vaga de novo seria duplicidade (PLANNING.md §5). */
+  const [meusPedidos, setMeusPedidos] = useState<Solicitacao[]>([]);
+  const jaPedidas = useMemo<ReadonlySet<string>>(
+    () => new Set(meusPedidos.map((s) => chaveVaga(s.carrinhoId, s.diaSemana, s.turnoId))),
+    [meusPedidos],
+  );
 
   const [salvando, setSalvando] = useState(false);
   const [erroSalvar, setErroSalvar] = useState<string | null>(null);
@@ -146,14 +150,7 @@ export function SolicitacaoWizard({ mesAlvo }: SolicitacaoWizardProps) {
     // continua recusando a duplicidade no envio (409).
     apiFetch<Solicitacao[]>("/api/solicitacoes")
       .then((resposta) => {
-        if (cancelado) return;
-        setJaPedidas(
-          new Set(
-            resposta
-              .filter((s) => s.escalaMesReferencia === mesAlvo)
-              .map((s) => chaveVaga(s.carrinhoId, s.diaSemana, s.turnoId)),
-          ),
-        );
+        if (!cancelado) setMeusPedidos(resposta.filter((s) => s.escalaMesReferencia === mesAlvo));
       })
       .catch(() => {});
 
@@ -179,8 +176,10 @@ export function SolicitacaoWizard({ mesAlvo }: SolicitacaoWizardProps) {
     return TURNOS.filter((t) => configurado(carrinhos, diaSemana, t.id)).map((turno) => ({
       turno,
       livre: turnoLivre(carrinhos, jaPedidas, diaSemana, turno.id),
+      // Em qualquer carrinho — só informa; o horário continua habilitado se houver outra vaga.
+      jaTemPedido: meusPedidos.some((s) => s.diaSemana === diaSemana && s.turnoId === turno.id),
     }));
-  }, [carrinhos, jaPedidas, diaSemana]);
+  }, [carrinhos, jaPedidas, meusPedidos, diaSemana]);
 
   const vagasDoTurno = useMemo<VagaCarrinho[]>(() => {
     if (diaSemana == null || turnoId == null) return [];

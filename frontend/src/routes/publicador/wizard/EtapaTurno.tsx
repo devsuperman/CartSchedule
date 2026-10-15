@@ -8,6 +8,8 @@ import type { Turno } from "../../../constants/turnos";
 export interface OpcaoTurno {
   turno: Turno;
   livre: boolean;
+  /** O publicador já tem pedido nesse dia e horário, em qualquer carrinho. */
+  jaTemPedido: boolean;
 }
 
 interface EtapaTurnoProps {
@@ -18,7 +20,8 @@ interface EtapaTurnoProps {
 
 /** Etapa 2 do wizard: turno. Só aparecem os turnos que algum carrinho tem configurados no
  * dia escolhido (PLANNING.md regra 17); sem vaga que o publicador possa pedir, o turno fica
- * desabilitado, sem texto — a ocupação de cada vaga aparece só na etapa do carrinho.
+ * desabilitado — a ocupação de cada vaga aparece só na etapa do carrinho. Se ele já tem pedido
+ * nesse horário (em qualquer carrinho), o turno avisa, habilitado ou não.
  * Turnos são fixos no sistema, nunca cadastráveis pelo admin (PLANNING.md regra 2). */
 export function EtapaTurno({ turnos, valor, onSelecionar }: EtapaTurnoProps) {
   if (turnos.length === 0) {
@@ -31,7 +34,7 @@ export function EtapaTurno({ turnos, valor, onSelecionar }: EtapaTurnoProps) {
 
   return (
     <div className="flex flex-col gap-3" role="radiogroup" aria-label="Turno">
-      {turnos.map(({ turno, livre }) => (
+      {turnos.map(({ turno, livre, jaTemPedido }) => (
         <Button
           key={turno.id}
           type="button"
@@ -41,12 +44,20 @@ export function EtapaTurno({ turnos, valor, onSelecionar }: EtapaTurnoProps) {
           aria-checked={valor === turno.id}
           disabled={!livre}
           className={cn(
-            "w-full justify-start text-left text-base tabular-nums",
+            // Altura automática + whitespace-normal: o aviso de pedido já feito pode quebrar linha.
+            "h-auto min-h-12 w-full justify-between gap-3 whitespace-normal py-3 text-left text-base tabular-nums",
             valor === turno.id && "border-primary bg-primary text-primary-foreground hover:bg-primary/90",
           )}
           onClick={() => onSelecionar(turno.id)}
         >
-          {turno.horaInicio}–{turno.horaFim}
+          <span>
+            {turno.horaInicio}–{turno.horaFim}
+          </span>
+          {jaTemPedido && (
+            <span className="text-right text-sm font-normal opacity-80">
+              Você já tem pedido neste horário
+            </span>
+          )}
         </Button>
       ))}
     </div>

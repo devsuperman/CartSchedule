@@ -78,7 +78,7 @@ semana, por turno** — ou 3, quando uma delas é criança ou idoso (regra 1).
    também para o administrador. O formulário de solicitação não pede o
    nome.
 3. Seleciona o **dia da semana** em que quer trabalhar — só aparecem os dias em que algum carrinho tem turno configurado; um dia em que nenhuma vaga pode mais ser pedida por ele (todas cheias ou já pedidas por ele) aparece desabilitado, sem texto.
-4. Seleciona o **turno** desejado — só aparecem os turnos que algum carrinho tem configurados **naquele dia da semana**; um turno sem nenhuma vaga que ele possa pedir aparece desabilitado, sem texto.
+4. Seleciona o **turno** desejado — só aparecem os turnos que algum carrinho tem configurados **naquele dia da semana**; um turno sem nenhuma vaga que ele possa pedir aparece desabilitado, sem texto. Se ele já tem pedido naquele dia e horário (em qualquer carrinho), o turno mostra "Você já tem pedido neste horário" — só informa: o turno continua habilitado se outro carrinho tiver vaga.
 5. Seleciona o **carrinho** — só aparecem os carrinhos que o administrador configurou com aquele turno **naquele dia da semana** (carrinhos diferentes, e dias diferentes do mesmo carrinho, podem ter turnos diferentes). Vê o nome, abaixo dele a descrição (quando houver) e a ocupação da vaga ("Vago", "1 pessoa nesta vaga", "Cheio"); a vaga cheia e a que ele já pediu ("Você já pediu") ficam desabilitadas.
 6. Pode repetir os passos 3–5 para pedir mais de uma combinação na mesma escala (ex: Carrinho A / Segunda / Manhã **e** Carrinho B / Quinta / Tarde). O mês/escala já está implícito (é sempre a escala em envio, definida automaticamente pela janela aberta).
 7. Revisa e **envia** as solicitações.

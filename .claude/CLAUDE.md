@@ -71,7 +71,7 @@ todas são intencionais, confirmadas no `PLANNING.md`:
      (contagem + insert na mesma transação, com lock por escala). O
      `GET /api/carrinhos` traz `ocupacao`/`cheia` por vaga; o wizard (dia → turno →
      carrinho) mostra no carrinho "Vago" / "1 pessoa nesta vaga" / "Cheio" e desabilita a
-     cheia e a já pedida pelo publicador; dia/turno sem vaga livre ficam desabilitados. Contagem
+     cheia e a já pedida pelo publicador; dia/turno sem vaga livre ficam desabilitados; turno em que ele já tem pedido avisa "Você já tem pedido neste horário". Contagem
      calculada a cada request: excluir/mover alguém libera a vaga. Quem já
      tinha pedido numa vaga que encheu depois mantém o pedido.
    - **Admin nunca é bloqueado por lotação** (adicionar, mover, completar o

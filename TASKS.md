@@ -642,7 +642,7 @@ muda.
 
 | ID | Arquivos | Entrega |
 |----|----------|---------|
-| F17-FE-01 | `wizard/SolicitacaoWizard.tsx`, `EtapaDiaSemana.tsx`, `EtapaTurno.tsx`, `EtapaCarrinho.tsx`, `SolicitacaoWizard.test.tsx` | Etapas dia → turno → carrinho. Só aparecem dias/turnos que algum carrinho tem configurados; sem vaga que o publicador possa pedir, ficam desabilitados, sem texto. A ocupação ("Vago"/"1 pessoa"/"Cheio") passa para a etapa do carrinho; carrinho cheio ou já pedido por ele (`GET /api/solicitacoes` da escala-alvo, "Você já pediu") fica desabilitado. Trocar dia/turno limpa as escolhas seguintes incompatíveis; `VAGA_CHEIA` volta à escolha do carrinho. |
+| F17-FE-01 | `wizard/SolicitacaoWizard.tsx`, `EtapaDiaSemana.tsx`, `EtapaTurno.tsx`, `EtapaCarrinho.tsx`, `SolicitacaoWizard.test.tsx` | Etapas dia → turno → carrinho. Só aparecem dias/turnos que algum carrinho tem configurados; sem vaga que o publicador possa pedir, ficam desabilitados, sem texto. O turno em que o publicador já tem pedido (em qualquer carrinho) mostra "Você já tem pedido neste horário", habilitado ou não. A ocupação ("Vago"/"1 pessoa"/"Cheio") passa para a etapa do carrinho; carrinho cheio ou já pedido por ele (`GET /api/solicitacoes` da escala-alvo, "Você já pediu") fica desabilitado. Trocar dia/turno limpa as escolhas seguintes incompatíveis; `VAGA_CHEIA` volta à escolha do carrinho. |
 
 ### Verificação da Fase 17
 
