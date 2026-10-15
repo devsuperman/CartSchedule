@@ -134,7 +134,7 @@ describe("SolicitacaoWizard — dia, depois turno, depois carrinho", () => {
     expect(screen.getByRole("radio", { name: /14:00–16:00/ })).toBeDisabled();
   });
 
-  it("mostra só os carrinhos com aquele dia e turno, com a ocupação, e desabilita o cheio", async () => {
+  it("mostra só os carrinhos com aquele dia e turno e desabilita o cheio, com 'Cheio'", async () => {
     const user = renderWizard();
     await esperarEtapaDoDia();
     await escolherDia(user, /Segunda-feira/);
@@ -143,19 +143,11 @@ describe("SolicitacaoWizard — dia, depois turno, depois carrinho", () => {
     expect(screen.getAllByRole("radio")).toHaveLength(2);
     const vago = screen.getByRole("radio", { name: /Carrinho 01/ });
     expect(vago).toHaveTextContent("Em frente à estação");
-    expect(vago).toHaveTextContent("Vago");
+    // Texto só para justificar o desabilitado: o carrinho com vaga não diz nada.
+    expect(vago).toHaveTextContent(/^Carrinho 01Em frente à estação$/);
     const cheio = screen.getByRole("radio", { name: /Carrinho 02/ });
     expect(cheio).toHaveTextContent("Cheio");
     expect(cheio).toBeDisabled();
-  });
-
-  it("mostra '1 pessoa nesta vaga'", async () => {
-    const user = renderWizard();
-    await esperarEtapaDoDia();
-    await escolherDia(user, /Terça-feira/);
-    await escolherTurno(user, /10:00–12:00/);
-
-    expect(screen.getByRole("radio", { name: /Carrinho 01/ })).toHaveTextContent("1 pessoa nesta vaga");
   });
 
   it("envia nome, carrinho, dia e turno escolhidos", async () => {
