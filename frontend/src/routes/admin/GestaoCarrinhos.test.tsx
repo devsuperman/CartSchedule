@@ -14,11 +14,26 @@ const mockApiFetch = vi.mocked(apiFetch);
 beforeEach(() => {
   mockApiFetch.mockReset();
   mockApiFetch.mockImplementation(async (path, opcoes) => {
-    if (path === "/api/admin/carrinhos") {
+    if (path === "/api/admin/carrinhos" && !opcoes?.method) {
       return [
         { id: 1, nome: "Carrinho 01", descricao: null, ativo: true, disponibilidades: [{ diaSemana: 1, turnoId: 2 }] },
         { id: 2, nome: "Carrinho 02", descricao: null, ativo: true, disponibilidades: [] },
+        {
+          id: 3,
+          nome: "Carrinho do evento",
+          descricao: null,
+          ativo: true,
+          dataEspecial: "2026-10-14",
+          disponibilidades: [{ diaSemana: 3, turnoId: 2 }],
+        },
       ];
+    }
+    if (path === "/api/admin/carrinhos" && opcoes?.method === "POST") {
+      return { id: 9, ativo: true, disponibilidades: [], ...JSON.parse(opcoes.body as string) };
+    }
+    const carrinho = /^\/api\/admin\/carrinhos\/(\d+)$/.exec(path);
+    if (carrinho && opcoes?.method === "PUT") {
+      return { id: Number(carrinho[1]), disponibilidades: [], ...JSON.parse(opcoes.body as string) };
     }
     const turnos = /^\/api\/admin\/carrinhos\/(\d+)\/turnos$/.exec(path);
     if (turnos && opcoes?.method === "PUT") {
@@ -87,5 +102,51 @@ describe("GestaoCarrinhos — grade dia × turno", () => {
     await user.click(semTurno.getByRole("button", { name: "Sexta-feira 06:00–08:00" }));
 
     await waitFor(() => expect(semTurno.queryByText(/não aparece para os publicadores/)).not.toBeInTheDocument());
+  });
+});
+
+describe("GestaoCarrinhos — carrinho de data especial (PLANNING.md regra 10a)", () => {
+  it("mostra a data e só a coluna do dia da semana dela", async () => {
+    const card = await cardDoCarrinho("Carrinho do evento");
+
+    expect(card.getByText("Somente em 14/10")).toBeInTheDocument();
+    expect(card.getByRole("button", { name: "Quarta-feira 08:00–10:00" })).toHaveAttribute("aria-pressed", "true");
+    expect(card.queryByRole("button", { name: /Segunda-feira/ })).not.toBeInTheDocument();
+  });
+
+  it("cria o carrinho com a data especial", async () => {
+    const user = userEvent.setup();
+    await screen.findByRole("heading", { name: "Carrinho 01" });
+
+    await user.type(screen.getByLabelText("Novo carrinho"), "Evento");
+    await user.type(screen.getByLabelText("Data especial (opcional)"), "2026-10-14");
+    await user.click(screen.getByRole("button", { name: "Criar carrinho" }));
+
+    await screen.findByRole("heading", { name: "Evento" });
+    const chamada = mockApiFetch.mock.calls.find(([path, opcoes]) => path === "/api/admin/carrinhos" && opcoes?.method === "POST");
+    expect(JSON.parse(chamada![1]!.body as string)).toEqual({ nome: "Evento", descricao: null, dataEspecial: "2026-10-14" });
+  });
+
+  it("recusa data no fim de semana sem chamar a API", async () => {
+    const user = userEvent.setup();
+    await screen.findByRole("heading", { name: "Carrinho 01" });
+
+    await user.type(screen.getByLabelText("Novo carrinho"), "Evento");
+    await user.type(screen.getByLabelText("Data especial (opcional)"), "2026-10-17");
+    await user.click(screen.getByRole("button", { name: "Criar carrinho" }));
+
+    expect(await screen.findByText("A data especial precisa cair de Segunda a Sexta.")).toBeInTheDocument();
+    expect(mockApiFetch.mock.calls.some(([, opcoes]) => opcoes?.method === "POST")).toBe(false);
+  });
+
+  it("desativar mantém a data especial", async () => {
+    const user = userEvent.setup();
+    const card = await cardDoCarrinho("Carrinho do evento");
+
+    await user.click(card.getByRole("checkbox", { name: "Ativo" }));
+
+    await waitFor(() => expect(card.getByRole("checkbox", { name: "Ativo" })).not.toBeChecked());
+    const chamada = mockApiFetch.mock.calls.findLast(([path]) => path === "/api/admin/carrinhos/3");
+    expect(JSON.parse(chamada![1]!.body as string)).toMatchObject({ ativo: false, dataEspecial: "2026-10-14" });
   });
 });

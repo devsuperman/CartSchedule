@@ -6,9 +6,14 @@ namespace CartSchedule.Api.Features.Administradores.GerenciarCarrinhos;
 /// Representação de um carrinho para o painel do administrador. Disponibilidades é um campo
 /// de conveniência somente leitura (join com CarrinhoTurno: dia da semana × turno) — esta
 /// lista não é editável por este endpoint; a associação é feita pelo slice
-/// GerenciarTurnosDoCarrinho.
+/// GerenciarTurnosDoCarrinho. DataEspecial preenchida = carrinho de um dia só (regra 10a).
 /// </summary>
 public record CarrinhoResponse(
-    int Id, string Nome, string? Descricao, bool Ativo, List<DisponibilidadeResponse> Disponibilidades);
+    int Id,
+    string Nome,
+    string? Descricao,
+    bool Ativo,
+    DateOnly? DataEspecial,
+    List<DisponibilidadeResponse> Disponibilidades);
 
 public record DisponibilidadeResponse(DiaSemana DiaSemana, int TurnoId);

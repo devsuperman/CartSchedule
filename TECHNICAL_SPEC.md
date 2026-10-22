@@ -67,19 +67,19 @@ backend/
       Features/
         Publicadores/
           ConsultarJanela/           # GET  /api/janela
-          ListarCarrinhosDisponiveis/# GET  /api/carrinhos  (id, nome, descricao, disponibilidades dia×turno por carrinho, cada uma com ocupacao e cheia na escala-alvo)
-          CriarSolicitacao/          # POST /api/solicitacoes  (409 HORARIO_OCUPADO se o publicador já tem pedido no mesmo dia e turno, em qualquer carrinho; 409 VAGA_CHEIA com 2 pessoas na vaga: contagem + insert numa transação com pg_advisory_xact_lock(escalaId); o admin não é bloqueado)
-          ListarHistorico/           # GET  /api/solicitacoes  (header X-Publicador-Token; carrinhoNome + carrinhoDescricao; sem data/hora do envio na resposta)
+          ListarCarrinhosDisponiveis/# GET  /api/carrinhos  (id, nome, descricao, dataEspecial — carrinho de data especial só no mês da data —, disponibilidades dia×turno por carrinho, cada uma com ocupacao e cheia na escala-alvo)
+          CriarSolicitacao/          # POST /api/solicitacoes  (409 HORARIO_OCUPADO se o publicador já tem pedido no mesmo dia e turno, em qualquer carrinho do mesmo grupo — normais × cada data especial, HorarioOcupado.NoHorario; 400 se o carrinho especial é de outro mês; 409 VAGA_CHEIA com 2 pessoas na vaga: contagem + insert numa transação com pg_advisory_xact_lock(escalaId); o admin não é bloqueado)
+          ListarHistorico/           # GET  /api/solicitacoes  (header X-Publicador-Token; carrinhoNome + carrinhoDescricao + carrinhoDataEspecial; sem data/hora do envio na resposta)
           ExcluirSolicitacao/        # DELETE /api/solicitacoes/{id}  (apaga o registro; não há status)
           AtualizarNome/             # PUT    /api/publicador  (header X-Publicador-Token; 204; não cria o publicador se ainda não existe; sem janela)
         Administradores/
           Login/                    # POST /api/admin/login
-          GerenciarCarrinhos/       # GET/POST/PUT /api/admin/carrinhos  (nome, descricao opcional, ativo)
-          GerenciarTurnosDoCarrinho/# GET/PUT       /api/admin/carrinhos/{id}/turnos (disponibilidades dia×turno; turnos em si são fixos, ver 2.4)
+          GerenciarCarrinhos/       # GET/POST/PUT /api/admin/carrinhos  (nome, descricao opcional, ativo, dataEspecial opcional Seg–Sex; mudar a data de dia remove os turnos dos outros dias)
+          GerenciarTurnosDoCarrinho/# GET/PUT       /api/admin/carrinhos/{id}/turnos (disponibilidades dia×turno; carrinho especial só no dia da semana da data; turnos em si são fixos, ver 2.4)
           RevisarEscala/
             ExcluirSolicitacao/          # DELETE /api/admin/solicitacoes/{id}  (sem aprovação: o admin exclui; 204/404, sem janela)
             AdicionarSolicitacaoManual/  # POST /api/admin/escalas/{mes}/solicitacoes  ({nome, carrinhoId, diaSemana, turnoId, criancaOuIdoso?}; true marca a pessoa, nunca desmarca)
-          ObterEscalaFinal/         # GET  /api/admin/escalas/{mes}/grade  (todas as vagas configuradas + células com pedidos; disponivel; por célula: carrinhoDescricao; por pedido: solicitacaoId, origem, totalNaEscala, criancaOuIdoso; envio: {aberto} só na escala em envio, senão null)
+          ObterEscalaFinal/         # GET  /api/admin/escalas/{mes}/grade  (todas as vagas configuradas + células com pedidos; disponivel; por célula: carrinhoDescricao, carrinhoDataEspecial (carrinho especial só no mês da data); por pedido: solicitacaoId, origem, totalNaEscala, criancaOuIdoso; envio: {aberto} só na escala em envio, senão null)
           AlterarEnvioEscala/       # PUT  /api/admin/escalas/{mes}/envio  ({aberto}; 204; 400 se o mês não é a escala em envio; idempotente; cria a escala se preciso)
           MoverSolicitacao/         # PATCH /api/admin/solicitacoes/{id}  ({carrinhoId, diaSemana, turnoId}; 204; 400 destino não configurado; 409 duplicidade; 404; sem janela; vaga com excesso não bloqueia)
           RenomearPublicador/       # PUT  /api/admin/publicadores/{id}  ({nome, criancaOuIdoso?}; ausente = não muda; 204/404; nomes repetidos permitidos)
@@ -243,7 +243,7 @@ frontend/
           ErroJanela.tsx          # erro ao consultar /api/janela, com "tentar novamente"
       admin/
         Login.tsx
-        GestaoCarrinhos.tsx       # cadastro/edição de carrinhos (nome, descrição) e associação com os 6 turnos fixos
+        GestaoCarrinhos.tsx       # cadastro/edição de carrinhos (nome, descrição, data especial) e associação com os 6 turnos fixos
         EscalaFinal.tsx           # gestão da escala por toque: vagas com ocupação; mover, adicionar (+), editar nome e excluir
         EscalaCompartilhar.tsx    # /admin/escalas/:mes/compartilhar: visão só leitura, uma imagem PNG por carrinho (html-to-image + Web Share API) para o WhatsApp
         RedirecionaParaEscala.tsx # /admin/revisao/:mes e /admin/adicionar/:mes (telas antigas) → /admin/escalas/:mes

@@ -78,6 +78,16 @@ public static class Endpoint
             });
         }
 
+        // Carrinho de data especial só funciona no dia da semana da data (PLANNING.md regra 10a).
+        if (carrinho.DataEspecial is { } data
+            && solicitadas.Any(d => d.DiaSemana != DataEspecial.DiaSemanaDe(data)))
+        {
+            return Results.ValidationProblem(new Dictionary<string, string[]>
+            {
+                ["Disponibilidades"] = [$"Este carrinho só funciona em {data:dd/MM/yyyy}: marque apenas turnos desse dia da semana."],
+            });
+        }
+
         var atuais = carrinho.CarrinhoTurnos.Select(ct => (ct.DiaSemana, ct.TurnoId)).ToHashSet();
 
         var paraRemover = carrinho.CarrinhoTurnos

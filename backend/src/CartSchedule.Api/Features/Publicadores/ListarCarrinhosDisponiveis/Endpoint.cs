@@ -7,7 +7,8 @@ namespace CartSchedule.Api.Features.Publicadores.ListarCarrinhosDisponiveis;
 /// <summary>
 /// GET /api/carrinhos — lista os carrinhos ativos (nome, descrição) e as disponibilidades
 /// (dia da semana × turno) que cada um tem habilitadas, com a ocupação atual de cada vaga na
-/// escala-alvo. Rota pública, sem autenticação (TASKS.md F1-BE-02).
+/// escala-alvo. Carrinhos de data especial (PLANNING.md regra 10a) só aparecem quando a data
+/// cai no mês da escala-alvo. Rota pública, sem autenticação (TASKS.md F1-BE-02).
 /// </summary>
 public static class Endpoint
 {
@@ -16,6 +17,7 @@ public static class Endpoint
         app.MapGet("/api/carrinhos", async (AppDbContext db, TimeProvider relogio, CancellationToken ct) =>
         {
             var mesAlvo = JanelaDeEnvio.MesAlvo(JanelaDeEnvio.Hoje(relogio));
+            var mesSeguinte = mesAlvo.AddMonths(1);
 
             var ocupacoes = await db.Solicitacoes
                 .AsNoTracking()
@@ -28,12 +30,14 @@ public static class Endpoint
             var carrinhos = await db.Carrinhos
                 .AsNoTracking()
                 .Where(c => c.Ativo)
+                .Where(c => c.DataEspecial == null || (c.DataEspecial >= mesAlvo && c.DataEspecial < mesSeguinte))
                 .OrderBy(c => c.Id)
                 .Select(c => new
                 {
                     c.Id,
                     c.Nome,
                     c.Descricao,
+                    c.DataEspecial,
                     Turnos = c.CarrinhoTurnos
                         .OrderBy(ct => ct.DiaSemana)
                         .ThenBy(ct => ct.TurnoId)
@@ -46,6 +50,7 @@ public static class Endpoint
                 c.Id,
                 c.Nome,
                 c.Descricao,
+                c.DataEspecial,
                 c.Turnos.Select(t =>
                 {
                     var ocupacao = totais.GetValueOrDefault((c.Id, t.DiaSemana, t.TurnoId));

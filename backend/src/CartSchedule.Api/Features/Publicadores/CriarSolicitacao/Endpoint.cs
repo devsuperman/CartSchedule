@@ -44,18 +44,27 @@ public static class Endpoint
                 extensions: new Dictionary<string, object?> { ["codigo"] = JanelaDeEnvio.CodigoJanelaFechada });
         }
 
-        var turnoPertenceAoCarrinho = await db.CarrinhoTurnos
-            .AnyAsync(
-                ct2 => ct2.CarrinhoId == request.CarrinhoId
-                    && ct2.DiaSemana == request.DiaSemana
-                    && ct2.TurnoId == request.TurnoId,
-                ct);
+        var vaga = await db.CarrinhoTurnos
+            .Where(ct2 => ct2.CarrinhoId == request.CarrinhoId
+                && ct2.DiaSemana == request.DiaSemana
+                && ct2.TurnoId == request.TurnoId)
+            .Select(ct2 => new { ct2.Carrinho.DataEspecial })
+            .FirstOrDefaultAsync(ct);
 
-        if (!turnoPertenceAoCarrinho)
+        if (vaga is null)
         {
             return Results.Problem(
                 title: "Turno indisponível para o carrinho selecionado",
                 detail: "O turno escolhido não está disponível para esse carrinho nesse dia da semana.",
+                statusCode: StatusCodes.Status400BadRequest);
+        }
+
+        // Regra 10a: o carrinho de data especial só recebe pedidos na escala do mês da data.
+        if (vaga.DataEspecial is { } data && DataEspecial.MesDe(data) != janela.MesAlvo)
+        {
+            return Results.Problem(
+                title: "Carrinho fora desta escala",
+                detail: "Esse carrinho só funciona numa data especial de outro mês.",
                 statusCode: StatusCodes.Status400BadRequest);
         }
 
@@ -77,13 +86,11 @@ public static class Endpoint
         await using var transacao = await db.Database.BeginTransactionAsync(ct);
         await db.Database.ExecuteSqlInterpolatedAsync($"SELECT pg_advisory_xact_lock({escala.Id})", ct);
 
-        // Regra 10: quem já tem pedido nesse dia e turno (em qualquer carrinho — a mesma trinca é
-        // o caso particular) não pode pedir de novo; não dá para estar em dois lugares ao mesmo tempo.
+        // Regra 10: quem já tem pedido nesse dia e turno (em qualquer carrinho do mesmo grupo — a
+        // mesma trinca é o caso particular) não pode pedir de novo; não dá para estar em dois
+        // lugares ao mesmo tempo. Carrinho de data especial não conflita com a escala semanal (10a).
         var horarioOcupado = await db.Solicitacoes.AnyAsync(
-            s => s.PublicadorId == publicadorId
-                && s.EscalaId == escala.Id
-                && s.DiaSemana == request.DiaSemana
-                && s.TurnoId == request.TurnoId,
+            HorarioOcupado.NoHorario(publicadorId, escala.Id, request.DiaSemana, request.TurnoId, vaga.DataEspecial),
             ct);
 
         if (horarioOcupado)

@@ -57,7 +57,8 @@ todas são intencionais, confirmadas no `PLANNING.md`:
 
 1. **Dias fixos**: só Segunda a Sexta. Nunca adicionar Sábado/Domingo em
    enum, validação, UI ou seed. A escolha de dia é **recorrente** (vale
-   para todas as ocorrências daquele dia no mês), não uma data específica.
+   para todas as ocorrências daquele dia no mês), não uma data específica —
+   exceto o **carrinho de data especial** (`Carrinho.DataEspecial`, regra 4a).
 2. **Turnos fixos do sistema**: sempre estes 6, nunca cadastráveis pelo
    admin: `06:00–08:00, 08:00–10:00, 10:00–12:00, 14:00–16:00, 16:00–18:00,
    18:00–20:00`. O admin só escolhe, por carrinho **e por dia da semana**,
@@ -89,6 +90,11 @@ todas são intencionais, confirmadas no `PLANNING.md`:
    `codigo: "HORARIO_OCUPADO"`; sem índice no banco; o admin só é **avisado**
    nos modais de mover/adicionar) — e a **vaga cheia no envio do publicador**
    (regra 3). Tudo mais é sinalização, não bloqueio.
+4a. **Carrinho de data especial** (escala de um dia só, PLANNING.md regra 10a):
+   `Carrinho.DataEspecial` (Seg–Sex) — turnos só no dia da semana da data, aparece só
+   na escala do mês da data, "Somente em dd/mm" na UI. Para o horário ocupado, normais
+   e cada data especial são grupos separados (`HorarioOcupado.NoHorario`): pedir o
+   especial não ocupa o horário da escala semanal, nem o contrário.
 5. **Sem cadastro/login para o publicador.** Identificação via token
    anônimo (GUID) gerado no frontend e salvo em `localStorage`, enviado no
    header `X-Publicador-Token`. Nome é um campo livre, pedido no primeiro

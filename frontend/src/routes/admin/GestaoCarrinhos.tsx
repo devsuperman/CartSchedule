@@ -9,13 +9,15 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { cn } from "@/lib/utils";
+import { formatarDataCurta } from "../../utils/formatacao";
 
 /**
  * Contrato de GET/POST/PUT /api/admin/carrinhos e GET/PUT /api/admin/carrinhos/{id}/turnos
  * (TECHNICAL_SPEC.md §2.1/§2.4, tarefas F2-BE-02/F2-BE-03/F5-BE-01/F6-BE-02). `disponibilidades`
  * no carrinho (pares dia da semana × turno) é só uma conveniência de leitura — sempre
  * re-sincronizada após uma alteração. `descricao` é opcional (o backend grava texto em
- * branco como null).
+ * branco como null). `dataEspecial` (yyyy-MM-dd) = carrinho de um dia só (PLANNING.md regra
+ * 10a): só tem turnos no dia da semana da data e não conflita com os carrinhos normais.
  */
 interface Disponibilidade {
   diaSemana: DiaSemana;
@@ -27,7 +29,27 @@ interface Carrinho {
   nome: string;
   descricao: string | null;
   ativo: boolean;
+  dataEspecial?: string | null;
   disponibilidades: Disponibilidade[];
+}
+
+/** Dia da semana (1 = Segunda … 5 = Sexta) de uma data yyyy-MM-dd, ou null no fim de semana. */
+function diaSemanaDaData(data: string): DiaSemana | null {
+  const [ano, mes, dia] = data.split("-").map(Number);
+  if (!ano || !mes || !dia) return null;
+  const semana = new Date(ano, mes - 1, dia).getDay();
+  return semana >= 1 && semana <= 5 ? (semana as DiaSemana) : null;
+}
+
+/** Colunas da grade: o carrinho de data especial só tem o dia da semana da data. */
+function diasDoCarrinho(carrinho: Carrinho) {
+  const dia = carrinho.dataEspecial ? diaSemanaDaData(carrinho.dataEspecial) : null;
+  return dia == null ? DIAS_SEMANA : DIAS_SEMANA.filter((d) => d.valor === dia);
+}
+
+/** A data especial, se informada, precisa cair de Segunda a Sexta (PLANNING.md regra 1). */
+function erroDaData(data: string): string | null {
+  return data && diaSemanaDaData(data) == null ? "A data especial precisa cair de Segunda a Sexta." : null;
 }
 
 interface CarrinhoTurnosResponse {
@@ -53,6 +75,7 @@ export default function GestaoCarrinhos() {
 
   const [novoNome, setNovoNome] = useState("");
   const [novaDescricao, setNovaDescricao] = useState("");
+  const [novaData, setNovaData] = useState("");
   const [criando, setCriando] = useState(false);
   const [erroCriacao, setErroCriacao] = useState<string | null>(null);
 
@@ -62,6 +85,7 @@ export default function GestaoCarrinhos() {
   const [editandoId, setEditandoId] = useState<number | null>(null);
   const [nomeEdicao, setNomeEdicao] = useState("");
   const [descricaoEdicao, setDescricaoEdicao] = useState("");
+  const [dataEdicao, setDataEdicao] = useState("");
 
   useEffect(() => {
     carregarCarrinhos();
@@ -96,17 +120,23 @@ export default function GestaoCarrinhos() {
     event.preventDefault();
     const nome = novoNome.trim();
     if (!nome) return;
+    const erroData = erroDaData(novaData);
+    if (erroData) {
+      setErroCriacao(erroData);
+      return;
+    }
 
     setCriando(true);
     setErroCriacao(null);
     try {
       const criado = await apiFetch<Carrinho>("/api/admin/carrinhos", {
         method: "POST",
-        body: JSON.stringify({ nome, descricao: novaDescricao.trim() || null }),
+        body: JSON.stringify({ nome, descricao: novaDescricao.trim() || null, dataEspecial: novaData || null }),
       });
       setCarrinhos((atual) => [...(atual ?? []), criado]);
       setNovoNome("");
       setNovaDescricao("");
+      setNovaData("");
     } catch (erro) {
       setErroCriacao(mensagemErro(erro, "Não foi possível criar o carrinho."));
     } finally {
@@ -115,10 +145,10 @@ export default function GestaoCarrinhos() {
   }
 
   /** PUT /api/admin/carrinhos/{id} sempre recebe o cadastro inteiro (nome, descrição,
-   * ativo) — quem chama repassa os valores atuais do que não quer mudar. */
+   * ativo, data especial) — quem chama repassa os valores atuais do que não quer mudar. */
   async function atualizarCarrinho(
     carrinho: Carrinho,
-    dados: { nome: string; descricao: string | null; ativo: boolean },
+    dados: { nome: string; descricao: string | null; ativo: boolean; dataEspecial: string | null },
   ): Promise<boolean> {
     limparErroCarrinho(carrinho.id);
     setSalvandoId(carrinho.id);
@@ -144,6 +174,7 @@ export default function GestaoCarrinhos() {
       nome: carrinho.nome,
       descricao: carrinho.descricao,
       ativo: !carrinho.ativo,
+      dataEspecial: carrinho.dataEspecial ?? null,
     });
   }
 
@@ -152,6 +183,7 @@ export default function GestaoCarrinhos() {
     setEditandoId(carrinho.id);
     setNomeEdicao(carrinho.nome);
     setDescricaoEdicao(carrinho.descricao ?? "");
+    setDataEdicao(carrinho.dataEspecial ?? "");
   }
 
   function handleCancelarEdicao(carrinho: Carrinho) {
@@ -163,11 +195,17 @@ export default function GestaoCarrinhos() {
     event.preventDefault();
     const nome = nomeEdicao.trim();
     if (!nome) return;
+    const erroData = erroDaData(dataEdicao);
+    if (erroData) {
+      definirErroCarrinho(carrinho.id, erroData);
+      return;
+    }
 
     const salvou = await atualizarCarrinho(carrinho, {
       nome,
       descricao: descricaoEdicao.trim() || null,
       ativo: carrinho.ativo,
+      dataEspecial: dataEdicao || null,
     });
     if (salvou) setEditandoId(null);
   }
@@ -205,7 +243,8 @@ export default function GestaoCarrinhos() {
         <h1>Carrinhos</h1>
         <p className="text-muted-foreground">
           Escolha em quais dias e turnos cada carrinho funciona. Desativar um carrinho ou desmarcar
-          um turno não altera pedidos que já existem.
+          um turno não altera pedidos que já existem. Um carrinho com data especial funciona só nesse
+          dia e não conflita com a escala semanal dos publicadores.
         </p>
       </div>
 
@@ -230,6 +269,10 @@ export default function GestaoCarrinhos() {
                 placeholder="Ex.: em frente à estação central"
                 maxLength={500}
               />
+            </Label>
+            <Label className="flex min-w-40 flex-col items-start gap-1.5">
+              Data especial (opcional)
+              <Input type="date" value={novaData} onChange={(e) => setNovaData(e.target.value)} />
             </Label>
             <Button type="submit" disabled={criando}>
               {criando ? "Criando…" : "Criar carrinho"}
@@ -286,6 +329,10 @@ export default function GestaoCarrinhos() {
                           maxLength={500}
                         />
                       </Label>
+                      <Label className="flex flex-col items-start gap-1.5">
+                        Data especial (opcional)
+                        <Input type="date" value={dataEdicao} onChange={(e) => setDataEdicao(e.target.value)} />
+                      </Label>
                       <div className="flex flex-wrap gap-2">
                         <Button type="submit" size="sm" disabled={salvandoId === carrinho.id}>
                           {salvandoId === carrinho.id ? "Salvando…" : "Salvar"}
@@ -306,6 +353,9 @@ export default function GestaoCarrinhos() {
                       <h2 className="break-words">{carrinho.nome}</h2>
                       {carrinho.descricao && (
                         <p className="break-words text-muted-foreground">{carrinho.descricao}</p>
+                      )}
+                      {carrinho.dataEspecial && (
+                        <p className="font-semibold">Somente em {formatarDataCurta(carrinho.dataEspecial)}</p>
                       )}
                       <div>
                         <Button
@@ -340,7 +390,7 @@ export default function GestaoCarrinhos() {
                           <th scope="col" className="sr-only">
                             Turno
                           </th>
-                          {DIAS_SEMANA.map((dia) => (
+                          {diasDoCarrinho(carrinho).map((dia) => (
                             <th key={dia.valor} scope="col" className="font-semibold">
                               <abbr title={dia.label} className="no-underline">
                                 {dia.curto}
@@ -358,7 +408,7 @@ export default function GestaoCarrinhos() {
                               {turno.horaInicio}–<wbr />
                               {turno.horaFim}
                             </th>
-                            {DIAS_SEMANA.map((dia) => {
+                            {diasDoCarrinho(carrinho).map((dia) => {
                               const habilitado = temDisponibilidade(carrinho, dia.valor, turno.id);
                               return (
                                 <td key={dia.valor} className="p-0">

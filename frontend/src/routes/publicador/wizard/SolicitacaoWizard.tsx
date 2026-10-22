@@ -17,36 +17,53 @@ import { EtapaCarrinho, type VagaCarrinho } from "./EtapaCarrinho";
 
 /** Contrato de GET /api/carrinhos (TECHNICAL_SPEC.md, tarefas F1-BE-02/F5-BE-01/F6-BE-03):
  * `disponibilidades` são os pares (dia da semana, turno) habilitados no carrinho, com a
- * `ocupacao` atual da vaga na escala-alvo e `cheia` (publicador não pode mais pedi-la). */
+ * `ocupacao` atual da vaga na escala-alvo e `cheia` (publicador não pode mais pedi-la).
+ * `dataEspecial` (yyyy-MM-dd) = carrinho de um dia só (PLANNING.md regra 10a). */
 export interface Carrinho {
   id: number;
   nome: string;
   descricao: string | null;
+  dataEspecial?: string | null;
   disponibilidades: { diaSemana: DiaSemana; turnoId: number; ocupacao: number; cheia: boolean }[];
 }
 
-/** Chave de um horário (dia, turno), para o conjunto de horários em que o publicador já tem pedido. */
-function chaveHorario(dia: number, turnoId: number): string {
-  return `${dia}-${turnoId}`;
+/** Chave de um horário (dia, turno) num grupo de carrinhos, para o conjunto de horários em que o
+ * publicador já tem pedido. Os carrinhos normais são um grupo; cada data especial é outro — eles
+ * não ocupam o horário uns dos outros (PLANNING.md regra 10a). */
+function chaveHorario(dataEspecial: string | null | undefined, dia: number, turnoId: number): string {
+  return `${dataEspecial ?? ""}|${dia}-${turnoId}`;
 }
 
-/** Algum carrinho tem vaga não cheia nesse (dia, turno) e o publicador ainda não tem pedido no
- * horário — não dá para estar em dois carrinhos ao mesmo tempo (PLANNING.md regra 10). */
+/** O publicador já tem pedido nesse (dia, turno) num carrinho do mesmo grupo deste. */
+function jaTemPedidoNoCarrinho(
+  carrinho: Carrinho,
+  horariosOcupados: ReadonlySet<string>,
+  dia: DiaSemana,
+  turnoId: number,
+): boolean {
+  return horariosOcupados.has(chaveHorario(carrinho.dataEspecial, dia, turnoId));
+}
+
+/** O carrinho tem vaga não cheia nesse (dia, turno) e o publicador ainda não tem pedido no
+ * horário no grupo dele — não dá para estar em dois carrinhos ao mesmo tempo (PLANNING.md regra 10). */
+function vagaLivre(
+  carrinho: Carrinho | undefined,
+  horariosOcupados: ReadonlySet<string>,
+  dia: DiaSemana,
+  turnoId: number,
+): boolean {
+  if (!carrinho || jaTemPedidoNoCarrinho(carrinho, horariosOcupados, dia, turnoId)) return false;
+  return carrinho.disponibilidades.some((d) => d.diaSemana === dia && d.turnoId === turnoId && !d.cheia);
+}
+
+/** Algum carrinho tem vaga que o publicador pode pedir nesse (dia, turno). */
 function turnoLivre(
   carrinhos: readonly Carrinho[],
   horariosOcupados: ReadonlySet<string>,
   dia: DiaSemana,
   turnoId: number,
 ): boolean {
-  return (
-    !horariosOcupados.has(chaveHorario(dia, turnoId)) &&
-    carrinhos.some((c) => c.disponibilidades.some((d) => d.diaSemana === dia && d.turnoId === turnoId && !d.cheia))
-  );
-}
-
-/** O carrinho tem vaga não cheia nesse (dia, turno). */
-function vagaLivre(carrinho: Carrinho | undefined, dia: DiaSemana, turnoId: number): boolean {
-  return carrinho?.disponibilidades.some((d) => d.diaSemana === dia && d.turnoId === turnoId && !d.cheia) ?? false;
+  return carrinhos.some((c) => vagaLivre(c, horariosOcupados, dia, turnoId));
 }
 
 /** Algum carrinho tem esse (dia, turno) configurado (turno = null: qualquer turno no dia). */
@@ -107,7 +124,7 @@ export function SolicitacaoWizard({ mesAlvo }: SolicitacaoWizardProps) {
   const [carrinhos, setCarrinhos] = useState<Carrinho[]>([]);
   const [carregandoCarrinhos, setCarregandoCarrinhos] = useState(true);
   const [erroCarrinhos, setErroCarrinhos] = useState<string | null>(null);
-  /** Horários (dia, turno) em que o publicador já tem pedido na escala-alvo, em qualquer carrinho. */
+  /** Horários (grupo, dia, turno) em que o publicador já tem pedido na escala-alvo. */
   const [horariosOcupados, setHorariosOcupados] = useState<ReadonlySet<string>>(new Set());
 
   const [salvando, setSalvando] = useState(false);
@@ -145,7 +162,7 @@ export function SolicitacaoWizard({ mesAlvo }: SolicitacaoWizardProps) {
           new Set(
             resposta
               .filter((s) => s.escalaMesReferencia === mesAlvo)
-              .map((s) => chaveHorario(s.diaSemana, s.turnoId)),
+              .map((s) => chaveHorario(s.carrinhoDataEspecial, s.diaSemana, s.turnoId)),
           ),
         );
       })
@@ -170,20 +187,40 @@ export function SolicitacaoWizard({ mesAlvo }: SolicitacaoWizardProps) {
 
   const turnosDoDia = useMemo<OpcaoTurno[]>(() => {
     if (diaSemana == null) return [];
-    return TURNOS.filter((t) => configurado(carrinhos, diaSemana, t.id)).map((turno) => ({
-      turno,
-      livre: turnoLivre(carrinhos, horariosOcupados, diaSemana, turno.id),
-      jaTemPedido: horariosOcupados.has(chaveHorario(diaSemana, turno.id)),
-    }));
+    return TURNOS.filter((t) => configurado(carrinhos, diaSemana, t.id)).map((turno) => {
+      const livre = turnoLivre(carrinhos, horariosOcupados, diaSemana, turno.id);
+      return {
+        turno,
+        livre,
+        // Só justifica o desabilitado: com vaga livre em outro grupo (ex: carrinho de data
+        // especial), o aviso aparece no carrinho, na etapa seguinte.
+        jaTemPedido:
+          !livre &&
+          carrinhos.some(
+            (c) =>
+              c.disponibilidades.some((d) => d.diaSemana === diaSemana && d.turnoId === turno.id) &&
+              jaTemPedidoNoCarrinho(c, horariosOcupados, diaSemana, turno.id),
+          ),
+      };
+    });
   }, [carrinhos, horariosOcupados, diaSemana]);
 
   const vagasDoTurno = useMemo<VagaCarrinho[]>(() => {
     if (diaSemana == null || turnoId == null) return [];
     return carrinhos.flatMap((carrinho) => {
       const d = carrinho.disponibilidades.find((x) => x.diaSemana === diaSemana && x.turnoId === turnoId);
-      return d ? [{ carrinho, ocupacao: d.ocupacao, cheia: d.cheia }] : [];
+      return d
+        ? [
+            {
+              carrinho,
+              ocupacao: d.ocupacao,
+              cheia: d.cheia,
+              jaTemPedido: jaTemPedidoNoCarrinho(carrinho, horariosOcupados, diaSemana, turnoId),
+            },
+          ]
+        : [];
     });
-  }, [carrinhos, diaSemana, turnoId]);
+  }, [carrinhos, horariosOcupados, diaSemana, turnoId]);
 
   /** Recarga da ocupação (ao chegar no carrinho e quando a vaga encheu no envio). Ao chegar no
    * carrinho a falha é silenciosa — vale a lista já carregada e o backend continua barrando;
@@ -226,7 +263,7 @@ export function SolicitacaoWizard({ mesAlvo }: SolicitacaoWizardProps) {
     if (!turnoLivre(carrinhos, horariosOcupados, dia, turnoId)) {
       setTurnoId(null);
       setCarrinhoId(null);
-    } else if (carrinhoId != null && !vagaLivre(carrinhoSelecionado, dia, turnoId)) {
+    } else if (carrinhoId != null && !vagaLivre(carrinhoSelecionado, horariosOcupados, dia, turnoId)) {
       setCarrinhoId(null);
     }
   }
@@ -234,7 +271,7 @@ export function SolicitacaoWizard({ mesAlvo }: SolicitacaoWizardProps) {
   function selecionarTurno(turno: number) {
     setTurnoId(turno);
     // O carrinho escolhido antes pode não ter vaga livre nesse novo turno.
-    if (diaSemana != null && carrinhoId != null && !vagaLivre(carrinhoSelecionado, diaSemana, turno)) {
+    if (diaSemana != null && carrinhoId != null && !vagaLivre(carrinhoSelecionado, horariosOcupados, diaSemana, turno)) {
       setCarrinhoId(null);
     }
   }
@@ -272,9 +309,10 @@ export function SolicitacaoWizard({ mesAlvo }: SolicitacaoWizardProps) {
           ),
         );
       } else if (ehErroComCodigo(err, CODIGO_HORARIO_OCUPADO)) {
-        // Pedido feito por outro aparelho desde que o wizard abriu: o horário passa a ocupado e
-        // o publicador volta para escolher outro.
-        setHorariosOcupados((atuais) => new Set(atuais).add(chaveHorario(diaSemana, turnoId)));
+        // Pedido feito por outro aparelho desde que o wizard abriu: o horário passa a ocupado (no
+        // grupo do carrinho escolhido) e o publicador volta para escolher outro.
+        const chave = chaveHorario(carrinhoSelecionado?.dataEspecial, diaSemana, turnoId);
+        setHorariosOcupados((atuais) => new Set(atuais).add(chave));
         setTurnoId(null);
         setCarrinhoId(null);
         setEtapa(2);

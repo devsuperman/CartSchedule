@@ -34,6 +34,7 @@ public static class Endpoint
                     s.CarrinhoId,
                     s.Carrinho.Nome,
                     s.Carrinho.Descricao,
+                    s.Carrinho.DataEspecial,
                     (int)s.DiaSemana,
                     s.TurnoId,
                     (int)s.Origem))

@@ -33,6 +33,9 @@ namespace CartSchedule.Api.Infrastructure.Migrations
                     b.Property<bool>("Ativo")
                         .HasColumnType("boolean");
 
+                    b.Property<DateOnly?>("DataEspecial")
+                        .HasColumnType("date");
+
                     b.Property<string>("Descricao")
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)");

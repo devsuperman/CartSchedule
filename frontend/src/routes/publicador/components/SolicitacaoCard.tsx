@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { formatarDia, formatarTurno } from "../../../utils/formatacao";
+import { formatarDataCurta, formatarDia, formatarTurno } from "../../../utils/formatacao";
 
 /** Contrato de GET /api/solicitacoes (uma solicitação do publicador autenticado via token). */
 export interface Solicitacao {
@@ -11,6 +11,8 @@ export interface Solicitacao {
   carrinhoId: number;
   carrinhoNome: string;
   carrinhoDescricao: string | null;
+  /** yyyy-MM-dd: carrinho de um dia só (PLANNING.md regra 10a). */
+  carrinhoDataEspecial?: string | null;
   diaSemana: number;
   turnoId: number;
   origem: number;
@@ -45,7 +47,10 @@ export function SolicitacaoCard({
   return (
     <Card className="flex flex-col gap-1 p-4 sm:p-5">
       <span className="flex flex-wrap items-baseline gap-x-3 text-[1.05rem] font-bold">
-        <span>{formatarDia(solicitacao.diaSemana)}</span>
+        <span>
+          {formatarDia(solicitacao.diaSemana)}
+          {solicitacao.carrinhoDataEspecial && `, ${formatarDataCurta(solicitacao.carrinhoDataEspecial)}`}
+        </span>
         <span className="tabular-nums">{formatarTurno(solicitacao.turnoId)}</span>
       </span>
       <span className="flex flex-col">

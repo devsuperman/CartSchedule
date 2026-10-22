@@ -23,3 +23,10 @@ export function formatarTurno(turnoId: number): string {
 export function formatarDia(diaSemana: number): string {
   return DIAS_SEMANA.find((d) => d.valor === diaSemana)?.label ?? `Dia ${diaSemana}`;
 }
+
+/** Aceita "2026-10-14" e devolve "14/10" (data de carrinho especial, PLANNING.md regra 10a). */
+export function formatarDataCurta(valor: string): string {
+  const [, mes, dia] = valor.split("-");
+  if (!mes || !dia) return valor;
+  return `${dia}/${mes}`;
+}

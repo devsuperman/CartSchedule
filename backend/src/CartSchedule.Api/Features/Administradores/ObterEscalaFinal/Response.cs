@@ -21,11 +21,13 @@ public record EnvioDaEscalaResponse(bool Aberto);
 /// sido removido ou o carrinho desativado depois (regra 10) — nesse caso
 /// <see cref="Disponivel"/> é false e a célula não recebe novos pedidos pela tela.
 /// <see cref="CarrinhoDescricao"/> alimenta a imagem de compartilhamento da escala.
+/// <see cref="CarrinhoDataEspecial"/> preenchida = carrinho de um dia só (regra 10a).
 /// </summary>
 public record EscalaFinalCelulaResponse(
     int CarrinhoId,
     string CarrinhoNome,
     string? CarrinhoDescricao,
+    DateOnly? CarrinhoDataEspecial,
     DiaSemana DiaSemana,
     int TurnoId,
     bool Disponivel,
