@@ -503,7 +503,7 @@ Só frontend — nenhuma regra de negócio muda.
 
 | ID | Entrega | Critério de aceite |
 |---|---|---|
-| F10-FE-01 | `InicioPublicador.tsx` | O botão de terminar sai de baixo da lista e vai para o rodapé fixo, **acima** de "Solicitar Nova Escala", com 32 px entre os dois (contorno vs. preenchido) para evitar toque errado. Com a janela fechada, o rodapé tem só o botão de terminar. |
+| F10-FE-01 | `InicioPublicador.tsx` | O botão "Voltar ao WhatsApp" sai de baixo da lista e vai para o rodapé fixo, **acima** de "Solicitar Nova Escala", com 32 px entre os dois (contorno vs. preenchido) para evitar toque errado. Com a janela fechada, o rodapé tem só o botão "Voltar ao WhatsApp". |
 | F10-FE-02 | `InicioPublicador.tsx` | O botão se chama "Voltar ao WhatsApp" (antes "Pronto! Terminei minha escala!", que sugeria um estado "concluída" que o sistema não controla) e só aparece quando o publicador tem ao menos um pedido na escala (mês atual ou mês-alvo). O modal de agradecimento continua. |
 | F10-FE-03 | `components/ui/dialog.tsx`, `routes/publicador/components/ModalAgradecimento.tsx`, `constants/whatsapp.ts` | Tocar no botão abre o modal "Muito Obrigado!" ("Que Jeová abençoe seu trabalho árduo!") e a contagem "Voltando ao whatsapp em 10…"; ao fim, vai para o grupo do WhatsApp. Sem botão de ir na hora. Fechar o modal cancela o redirecionamento. |
 
