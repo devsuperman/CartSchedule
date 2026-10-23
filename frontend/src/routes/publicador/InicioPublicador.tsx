@@ -35,7 +35,7 @@ function ordenarPorDiaTurnoCarrinho(lista: Solicitacao[]): Solicitacao[] {
  * (o próximo; do dia 1 ao 14, o próprio mês atual). Com a janela aberta, há um botão para solicitar uma nova escala e os pedidos
  * do mês-alvo podem ser excluídos; com ela fechada, um aviso aparece no topo, o botão some
  * e a lista fica só para leitura (PLANNING.md regra 8). Os botões ficam num rodapé fixo na
- * base da tela: "Pronto! Terminei minha escala!" em cima (janela aberta ou fechada) e
+ * base da tela: "Voltar ao WhatsApp" em cima (janela aberta ou fechada, só com ao menos um pedido) e
  * "Solicitar Nova Escala" embaixo, bem separados para evitar toque errado. O primeiro abre
  * um agradecimento que leva ao grupo do WhatsApp (os navegadores não deixam o site fechar a
  * própria aba). Se o publicador nunca fez nenhuma
@@ -134,6 +134,8 @@ export default function InicioPublicador() {
   const relevantes = (solicitacoes ?? []).filter((s) => mesesRelevantes.has(s.escalaMesReferencia));
 
   const podeSolicitar = !erroJanela && janela?.aberta === true;
+  // Só faz sentido voltar ao grupo depois de ter ao menos um pedido na escala.
+  const podeVoltar = Boolean(GRUPO_WHATSAPP_URL) && relevantes.length > 0;
 
   const porMes = new Map<string, Solicitacao[]>();
   for (const s of relevantes) {
@@ -192,13 +194,13 @@ export default function InicioPublicador() {
           </div>
         ))}
 
-      {(GRUPO_WHATSAPP_URL || podeSolicitar) && (
+      {(podeVoltar || podeSolicitar) && (
         <>
           {/* Reserva o espaço do rodapé fixo para ele não cobrir o fim da página. */}
           <div
             aria-hidden
             className={cn(
-              GRUPO_WHATSAPP_URL && podeSolicitar
+              podeVoltar && podeSolicitar
                 ? "h-[calc(7rem+env(safe-area-inset-bottom))]"
                 : "h-[calc(2rem+env(safe-area-inset-bottom))]",
             )}
@@ -206,9 +208,9 @@ export default function InicioPublicador() {
           <div className="fixed inset-x-0 bottom-0 z-10 border-t border-border bg-background">
             {/* gap-8: espaço generoso entre os dois botões para não tocar no errado. */}
             <div className="mx-auto flex max-w-4xl flex-col gap-8 px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
-              {GRUPO_WHATSAPP_URL && (
+              {podeVoltar && (
                 <Button type="button" size="lg" variant="outline" className="w-full" onClick={() => setAgradecendo(true)}>
-                  Pronto! Terminei minha escala!
+                  Voltar ao WhatsApp
                 </Button>
               )}
               {podeSolicitar && (

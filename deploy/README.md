@@ -65,7 +65,7 @@ chmod 600 .env
 
 Opcional: `WHATSAPP_GRUPO_URL` com o link de convite do grupo do WhatsApp
 (WhatsApp → dados do grupo → *Convidar via link*). Ele liga o botão
-"Terminei!", que devolve o publicador para o grupo. Quem abre o site vê esse
+"Voltar ao WhatsApp", que devolve o publicador para o grupo. Quem abre o site vê esse
 link. Com o [deploy automático](#deploy-automático) esse valor vem da variável
 `WHATSAPP_GRUPO_URL` do GitHub, e não do `.env`.
 
@@ -136,7 +136,7 @@ ssh-keyscan -t ed25519 IP_ESTATICO
   - `LIGHTSAIL_SSH_KEY`: a chave privada inteira (de `-----BEGIN` até `END-----`).
   - `LIGHTSAIL_KNOWN_HOSTS`: a saída do `ssh-keyscan` acima.
 - *Secrets and variables* → *Actions* → aba **Variables** (do repositório):
-  - `WHATSAPP_GRUPO_URL` (opcional): link do botão "Terminei!". Agora ele é
+  - `WHATSAPP_GRUPO_URL` (opcional): link do botão "Voltar ao WhatsApp". Agora ele é
     embutido no build do GitHub, não no `.env` do servidor; mudou → rode o
     workflow de novo (*Actions → Deploy → Run workflow*).
   - `LIGHTSAIL_USER` (opcional): usuário SSH, se não for `ubuntu`.

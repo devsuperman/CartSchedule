@@ -149,38 +149,51 @@ describe("InicioPublicador — rodapé", () => {
     expect(lista.compareDocumentPosition(botao) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 
-  const TERMINEI = "Pronto! Terminei minha escala!";
+  const VOLTAR = "Voltar ao WhatsApp";
 
-  it("\"Pronto! Terminei minha escala!\" fica acima de \"Solicitar Nova Escala\"", async () => {
+  it("\"Voltar ao WhatsApp\" fica acima de \"Solicitar Nova Escala\"", async () => {
     whatsapp.url = GRUPO;
     comJanela(true);
     renderizar();
 
     const lista = await screen.findByRole("list");
-    const terminei = screen.getByRole("button", { name: TERMINEI });
+    const voltar = screen.getByRole("button", { name: VOLTAR });
     const solicitar = screen.getByRole("link", { name: "Solicitar Nova Escala" });
-    expect(lista.compareDocumentPosition(terminei) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-    expect(terminei.compareDocumentPosition(solicitar) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-    expect(screen.queryByText("Terminei!")).not.toBeInTheDocument();
+    expect(lista.compareDocumentPosition(voltar) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(voltar.compareDocumentPosition(solicitar) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(screen.queryByText(/Terminei/)).not.toBeInTheDocument();
   });
 
-  it("o botão de terminar também aparece com a janela fechada, sem o botão de solicitar", async () => {
+  it("sem nenhum pedido na escala, não mostra o botão de voltar", async () => {
+    whatsapp.url = GRUPO;
+    mockApiFetch.mockImplementation(async (path) => {
+      if (path === "/api/janela") return { aberta: false, mesAlvo: MES_ALVO };
+      if (path === "/api/solicitacoes") return [];
+      throw new Error(`chamada inesperada: ${path}`);
+    });
+    renderizar();
+
+    await screen.findByText("Envio de pedidos fechado");
+    expect(screen.queryByRole("button", { name: VOLTAR })).not.toBeInTheDocument();
+  });
+
+  it("o botão de voltar também aparece com a janela fechada, sem o botão de solicitar", async () => {
     whatsapp.url = GRUPO;
     comJanela(false);
     renderizar();
 
-    expect(await screen.findByRole("button", { name: TERMINEI })).toBeInTheDocument();
+    expect(await screen.findByRole("button", { name: VOLTAR })).toBeInTheDocument();
     expect(screen.getByText("Envio de pedidos fechado")).toBeInTheDocument();
     expect(screen.getByText(/Novos pedidos abrem no dia 15/)).toBeInTheDocument();
     expect(screen.queryByRole("link", { name: "Solicitar Nova Escala" })).not.toBeInTheDocument();
   });
 
-  it("sem o link do grupo configurado, não mostra o botão de terminar", async () => {
+  it("sem o link do grupo configurado, não mostra o botão de voltar", async () => {
     comJanela(true);
     renderizar();
 
     await screen.findByRole("link", { name: "Solicitar Nova Escala" });
-    expect(screen.queryByRole("button", { name: TERMINEI })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: VOLTAR })).not.toBeInTheDocument();
   });
 
   describe("agradecimento", () => {
@@ -197,7 +210,7 @@ describe("InicioPublicador — rodapé", () => {
       comJanela(true);
       renderizar();
       const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
-      await user.click(await screen.findByRole("button", { name: TERMINEI }));
+      await user.click(await screen.findByRole("button", { name: VOLTAR }));
       return { user, dialogo: screen.getByRole("dialog") };
     }
 
