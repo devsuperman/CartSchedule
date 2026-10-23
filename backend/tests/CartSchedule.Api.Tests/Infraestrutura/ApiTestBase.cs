@@ -54,6 +54,14 @@ public abstract class ApiTestBase(ApiFixture fixture) : IAsyncLifetime
         return (await resposta.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetInt32();
     }
 
+    /// <summary>Carrinho de data especial (PLANNING.md regra 10a), com data no formato yyyy-MM-dd.</summary>
+    protected async Task<int> CriarCarrinhoEspecialAsync(HttpClient admin, string dataEspecial, string nome = "Carrinho do evento")
+    {
+        var resposta = await admin.PostAsJsonAsync("/api/admin/carrinhos", new { nome, descricao = (string?)null, dataEspecial });
+        resposta.EnsureSuccessStatusCode();
+        return (await resposta.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetInt32();
+    }
+
     protected static Task<HttpResponseMessage> DefinirTurnosAsync(
         HttpClient admin, int carrinhoId, params (int Dia, int Turno)[] disponibilidades) =>
         admin.PutAsJsonAsync($"/api/admin/carrinhos/{carrinhoId}/turnos", new

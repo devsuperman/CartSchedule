@@ -24,6 +24,13 @@ public class Solicitacao
 
     public Turno Turno { get; set; } = null!;
 
+    /// <summary>
+    /// Data especial do carrinho no momento do pedido (PLANNING.md regra 10a); null = carrinho
+    /// normal. Define o grupo de horário ocupado do publicador. É gravado aqui, e não lido do
+    /// carrinho, para que mudar a data de um carrinho não mude o grupo de pedidos já feitos.
+    /// </summary>
+    public DateOnly? DataEspecial { get; set; }
+
     public OrigemSolicitacao Origem { get; set; }
 
     public DateTimeOffset CriadoEm { get; set; }

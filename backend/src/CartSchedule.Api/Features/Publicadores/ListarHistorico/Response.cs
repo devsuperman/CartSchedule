@@ -6,6 +6,7 @@ public record ListarHistoricoResponse(
     int CarrinhoId,
     string CarrinhoNome,
     string? CarrinhoDescricao,
+    DateOnly? CarrinhoDataEspecial,
     int DiaSemana,
     int TurnoId,
     int Origem);

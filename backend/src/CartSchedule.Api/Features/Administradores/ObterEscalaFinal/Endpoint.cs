@@ -31,11 +31,22 @@ public static class Endpoint
         }
 
         // Vagas configuradas dos carrinhos ativos: aparecem mesmo vazias, para o admin ver
-        // onde ainda cabe gente.
+        // onde ainda cabe gente. O carrinho de data especial só no mês da data (regra 10a).
+        var mesSeguinte = mesReferencia.AddMonths(1);
         var vagas = await db.CarrinhoTurnos
             .AsNoTracking()
             .Where(ct2 => ct2.Carrinho.Ativo)
-            .Select(ct2 => new { ct2.CarrinhoId, CarrinhoNome = ct2.Carrinho.Nome, CarrinhoDescricao = ct2.Carrinho.Descricao, ct2.DiaSemana, ct2.TurnoId })
+            .Where(ct2 => ct2.Carrinho.DataEspecial == null
+                || (ct2.Carrinho.DataEspecial >= mesReferencia && ct2.Carrinho.DataEspecial < mesSeguinte))
+            .Select(ct2 => new
+            {
+                ct2.CarrinhoId,
+                CarrinhoNome = ct2.Carrinho.Nome,
+                CarrinhoDescricao = ct2.Carrinho.Descricao,
+                CarrinhoDataEspecial = ct2.Carrinho.DataEspecial,
+                ct2.DiaSemana,
+                ct2.TurnoId,
+            })
             .ToListAsync(ct);
 
         // Só leitura: nunca cria a Escala; sem escala, as vagas vêm vazias.
@@ -62,8 +73,12 @@ public static class Endpoint
         var disponiveis = vagas.Select(v => (v.CarrinhoId, v.DiaSemana, v.TurnoId)).ToHashSet();
 
         var dadosDosCarrinhos = vagas
-            .Select(v => (v.CarrinhoId, v.CarrinhoNome, v.CarrinhoDescricao))
-            .Concat(solicitacoes.Select(s => (s.CarrinhoId, CarrinhoNome: s.Carrinho.Nome, CarrinhoDescricao: s.Carrinho.Descricao)))
+            .Select(v => (v.CarrinhoId, v.CarrinhoNome, v.CarrinhoDescricao, v.CarrinhoDataEspecial))
+            .Concat(solicitacoes.Select(s => (
+                s.CarrinhoId,
+                CarrinhoNome: s.Carrinho.Nome,
+                CarrinhoDescricao: s.Carrinho.Descricao,
+                CarrinhoDataEspecial: s.Carrinho.DataEspecial)))
             .DistinctBy(c => c.CarrinhoId)
             .ToDictionary(c => c.CarrinhoId);
 
@@ -76,6 +91,7 @@ public static class Endpoint
                 c.CarrinhoId,
                 dadosDosCarrinhos[c.CarrinhoId].CarrinhoNome,
                 dadosDosCarrinhos[c.CarrinhoId].CarrinhoDescricao,
+                dadosDosCarrinhos[c.CarrinhoId].CarrinhoDataEspecial,
                 c.DiaSemana,
                 c.TurnoId,
                 disponiveis.Contains(c),

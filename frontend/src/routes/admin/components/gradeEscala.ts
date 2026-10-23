@@ -17,6 +17,8 @@ export interface CelulaGrade {
   carrinhoNome: string;
   /** Texto opcional do carrinho (regra 9a); aparece na imagem de compartilhamento. */
   carrinhoDescricao?: string | null;
+  /** yyyy-MM-dd: carrinho de um dia só (regra 10a); não conflita com os carrinhos normais. */
+  carrinhoDataEspecial?: string | null;
   diaSemana: number;
   turnoId: number;
   /** Vaga configurada para o carrinho (ativo) nesse dia. Se false, a célula só existe por
@@ -99,7 +101,8 @@ export function descreverCelula(c: CelulaGrade): string {
 /**
  * Vaga de outro carrinho, no mesmo dia e turno do destino, em que a pessoa já está — não dá
  * para estar em dois lugares ao mesmo tempo (PLANNING.md regra 10). O publicador é barrado no
- * envio; o admin só é avisado. `ignorar` é o pedido que está sendo movido.
+ * envio; o admin só é avisado. `ignorar` é o pedido que está sendo movido. Carrinho de data
+ * especial só conflita com especiais da mesma data (regra 10a).
  */
 export function vagaNoMesmoHorario(
   celulas: readonly CelulaGrade[],
@@ -113,6 +116,7 @@ export function vagaNoMesmoHorario(
         c.diaSemana === destino.diaSemana &&
         c.turnoId === destino.turnoId &&
         c.carrinhoId !== destino.carrinhoId &&
+        (c.carrinhoDataEspecial ?? null) === (destino.carrinhoDataEspecial ?? null) &&
         c.publicadores.some((p) => p.solicitacaoId !== ignorar && ehAPessoa(p)),
     ) ?? null
   );

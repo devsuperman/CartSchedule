@@ -7,7 +7,7 @@ using Microsoft.EntityFrameworkCore;
 namespace CartSchedule.Api.Features.Administradores.GerenciarCarrinhos;
 
 /// <summary>
-/// CRUD de Carrinho (nome, descrição opcional, ativo) para o administrador. A associação com os turnos fixos
+/// CRUD de Carrinho (nome, descrição opcional, ativo, data especial opcional) para o administrador. A associação com os turnos fixos
 /// do sistema é responsabilidade do slice GerenciarTurnosDoCarrinho — aqui, Disponibilidades é
 /// apenas um campo de leitura de conveniência.
 /// </summary>
@@ -38,6 +38,7 @@ public static class Endpoint
                 c.Nome,
                 c.Descricao,
                 c.Ativo,
+                c.DataEspecial,
                 c.CarrinhoTurnos
                     .OrderBy(ct => ct.DiaSemana)
                     .ThenBy(ct => ct.TurnoId)
@@ -56,13 +57,14 @@ public static class Endpoint
             Nome = request.Nome,
             Descricao = NormalizarDescricao(request.Descricao),
             Ativo = true,
+            DataEspecial = request.DataEspecial,
         };
 
         db.Carrinhos.Add(carrinho);
         await db.SaveChangesAsync();
 
         var response = new CarrinhoResponse(
-            carrinho.Id, carrinho.Nome, carrinho.Descricao, carrinho.Ativo, []);
+            carrinho.Id, carrinho.Nome, carrinho.Descricao, carrinho.Ativo, carrinho.DataEspecial, []);
 
         return TypedResults.Created($"/api/admin/carrinhos/{carrinho.Id}", response);
     }
@@ -82,6 +84,14 @@ public static class Endpoint
         carrinho.Nome = request.Nome;
         carrinho.Descricao = NormalizarDescricao(request.Descricao);
         carrinho.Ativo = request.Ativo;
+        carrinho.DataEspecial = request.DataEspecial;
+
+        // Carrinho de data especial só funciona no dia da semana da data (regra 10a).
+        if (request.DataEspecial is { } data)
+        {
+            var dia = DataEspecial.DiaSemanaDe(data);
+            carrinho.CarrinhoTurnos.RemoveAll(ct => ct.DiaSemana != dia);
+        }
 
         await db.SaveChangesAsync();
 
@@ -90,6 +100,7 @@ public static class Endpoint
             carrinho.Nome,
             carrinho.Descricao,
             carrinho.Ativo,
+            carrinho.DataEspecial,
             carrinho.CarrinhoTurnos
                 .OrderBy(ct => ct.DiaSemana)
                 .ThenBy(ct => ct.TurnoId)

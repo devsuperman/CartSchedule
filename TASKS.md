@@ -653,7 +653,24 @@ muda.
 
 ---
 
-## Backlog (Fase 18 — opcional, fora do escopo inicial)
+## Fase 18 — Carrinho de data especial (escala de um dia só)
+
+Em situações especiais o administrador monta um carrinho que funciona numa data só, com os
+publicadores se inscrevendo pelo wizard, sem comprometer a escala semanal (PLANNING.md regra 10a).
+
+| ID | Arquivos | Entrega |
+|----|----------|---------|
+| F18-BE-01 | `Domain/Carrinho.cs`, migration `CarrinhoDataEspecial`, `Shared/{DataEspecial.cs,HorarioOcupado.cs}`, `GerenciarCarrinhos/`, `GerenciarTurnosDoCarrinho/`, `CriarSolicitacao/`, `ListarCarrinhosDisponiveis/`, `ObterEscalaFinal/`, `ListarHistorico/`, `Shared/CarrinhoDataEspecialTests.cs` | `Carrinho.DataEspecial` (Seg–Sex). Turnos só no dia da semana da data; carrinho só no mês da data (publicador e grade); `HORARIO_OCUPADO` compara só pedidos do mesmo grupo (normais × cada data). |
+| F18-FE-01 | `admin/GestaoCarrinhos.tsx` (+ teste) | Campo "Data especial (opcional)" ao criar/editar; grade só com o dia da data; desativar mantém a data. |
+| F18-FE-02 | `wizard/*`, `SolicitacaoCard.tsx`, `admin/EscalaFinal.tsx`, `admin/components/{gradeEscala.ts,escalaParaCompartilhar.ts}` (+ testes) | Horário ocupado por grupo no wizard (aviso no carrinho quando o turno ainda tem vaga do outro grupo); "Somente em dd/mm" no wizard, histórico e Escala; aviso do admin pelo mesmo critério. |
+
+### Verificação da Fase 18
+
+`dotnet test`, `npm test`, `npm run lint`, `npm run build`.
+
+---
+
+## Backlog (Fase 19 — opcional, fora do escopo inicial)
 
 Não paralelizar ainda — só entra depois que Fases 0–4 estiverem completas
 e validadas:

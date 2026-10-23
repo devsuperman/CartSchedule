@@ -1,5 +1,6 @@
 import { DIAS_SEMANA } from "../../../constants/diasSemana";
 import { TURNOS } from "../../../constants/turnos";
+import { formatarDataCurta } from "../../../utils/formatacao";
 import type { CelulaGrade } from "./gradeEscala";
 
 export interface TurnoParaCompartilhar {
@@ -42,7 +43,9 @@ export function escalaParaCompartilhar(celulas: CelulaGrade[]): CarrinhoParaComp
     }
     let dia = carrinho.dias.find((d) => d.dia === celula.diaSemana);
     if (!dia) {
-      const rotulo = DIAS_SEMANA.find((d) => d.valor === celula.diaSemana)?.label ?? `Dia ${celula.diaSemana}`;
+      const nomeDoDia = DIAS_SEMANA.find((d) => d.valor === celula.diaSemana)?.label ?? `Dia ${celula.diaSemana}`;
+      // Carrinho de data especial (regra 10a): o dia vem com a data.
+      const rotulo = celula.carrinhoDataEspecial ? `${nomeDoDia}, ${formatarDataCurta(celula.carrinhoDataEspecial)}` : nomeDoDia;
       dia = { dia: celula.diaSemana, rotulo, turnos: [] };
       carrinho.dias.push(dia);
     }

@@ -5,7 +5,7 @@ import { apiFetch } from "../../api/client";
 import { DIAS_SEMANA } from "../../constants/diasSemana";
 import { TURNOS } from "../../constants/turnos";
 import { useTelaLarga } from "../../hooks/useTelaLarga";
-import { formatarMes, formatarTurno } from "../../utils/formatacao";
+import { formatarDataCurta, formatarMes, formatarTurno } from "../../utils/formatacao";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -40,6 +40,7 @@ import {
 interface CarrinhoGrade {
   carrinhoId: number;
   carrinhoNome: string;
+  carrinhoDataEspecial?: string | null;
   celulas: CelulaGrade[];
 }
 
@@ -48,7 +49,12 @@ function agruparPorCarrinho(celulas: CelulaGrade[]): CarrinhoGrade[] {
   for (const celula of celulas) {
     let carrinho = carrinhos.find((c) => c.carrinhoId === celula.carrinhoId);
     if (!carrinho) {
-      carrinho = { carrinhoId: celula.carrinhoId, carrinhoNome: celula.carrinhoNome, celulas: [] };
+      carrinho = {
+        carrinhoId: celula.carrinhoId,
+        carrinhoNome: celula.carrinhoNome,
+        carrinhoDataEspecial: celula.carrinhoDataEspecial,
+        celulas: [],
+      };
       carrinhos.push(carrinho);
     }
     carrinho.celulas.push(celula);
@@ -394,7 +400,14 @@ export default function EscalaFinal() {
 
       {carrinhos.map((carrinho) => (
         <section key={carrinho.carrinhoId} className="flex flex-col gap-2">
-          <h2>{carrinho.carrinhoNome}</h2>
+          <div className="flex flex-col gap-0.5">
+            <h2>{carrinho.carrinhoNome}</h2>
+            {carrinho.carrinhoDataEspecial && (
+              <p className="text-sm font-semibold text-muted-foreground">
+                Somente em {formatarDataCurta(carrinho.carrinhoDataEspecial)}
+              </p>
+            )}
+          </div>
           {telaLarga ? renderTabela(carrinho) : renderPorDia(carrinho)}
         </section>
       ))}

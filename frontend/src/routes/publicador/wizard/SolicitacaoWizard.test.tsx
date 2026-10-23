@@ -297,6 +297,62 @@ describe("SolicitacaoWizard — horário em que o publicador já tem pedido", ()
   });
 });
 
+describe("SolicitacaoWizard — carrinho de data especial (PLANNING.md regra 10a)", () => {
+  const PEDIDO_NORMAL = {
+    id: 7,
+    carrinhoId: 1,
+    carrinhoNome: "Carrinho 01",
+    carrinhoDescricao: null,
+    carrinhoDataEspecial: null,
+    diaSemana: 1,
+    turnoId: 2,
+    origem: 0,
+    escalaMesReferencia: "2026-10-01",
+  };
+
+  // Segunda 08–10 no Carrinho 01 (normal, onde ele já tem pedido) e no carrinho do evento de 05/10.
+  const EVENTO: Carrinho = {
+    id: 6,
+    nome: "Carrinho do evento",
+    descricao: null,
+    dataEspecial: "2026-10-05",
+    disponibilidades: [{ diaSemana: 1, turnoId: 2, ocupacao: 0, cheia: false }],
+  };
+
+  it("o pedido na escala semanal não ocupa o horário do carrinho especial", async () => {
+    mockarApi({ carrinhos: () => [CARRINHOS[0], EVENTO], historico: () => [PEDIDO_NORMAL] });
+    const user = renderWizard();
+    await esperarEtapaDoDia();
+    await escolherDia(user, /Segunda-feira/);
+
+    const turno = screen.getByRole("radio", { name: /08:00–10:00/ });
+    await waitFor(() => expect(turno).toBeEnabled());
+    expect(turno).not.toHaveTextContent("Você já tem pedido");
+    await escolherTurno(user, /08:00–10:00/);
+
+    const normal = screen.getByRole("radio", { name: /Carrinho 01/ });
+    expect(normal).toBeDisabled();
+    expect(normal).toHaveTextContent("Você já tem pedido neste horário");
+    const evento = screen.getByRole("radio", { name: /Carrinho do evento/ });
+    expect(evento).toBeEnabled();
+    expect(evento).toHaveTextContent("Somente em 05/10");
+  });
+
+  it("o pedido no carrinho especial não ocupa o horário da escala semanal", async () => {
+    mockarApi({
+      carrinhos: () => [CARRINHOS[0], EVENTO],
+      historico: () => [{ ...PEDIDO_NORMAL, carrinhoId: 6, carrinhoDataEspecial: "2026-10-05" }],
+    });
+    const user = renderWizard();
+    await esperarEtapaDoDia();
+    await escolherDia(user, /Segunda-feira/);
+    await escolherTurno(user, /08:00–10:00/);
+
+    await waitFor(() => expect(screen.getByRole("radio", { name: /Carrinho do evento/ })).toBeDisabled());
+    expect(screen.getByRole("radio", { name: /Carrinho 01/ })).toBeEnabled();
+  });
+});
+
 describe("SolicitacaoWizard — voltar e trocar a escolha", () => {
   it("ao trocar para um dia em que o turno escolhido não existe, limpa o turno", async () => {
     const user = renderWizard();

@@ -38,17 +38,32 @@ public static class Endpoint
             return Results.NoContent();
         }
 
-        var destinoExiste = await db.CarrinhoTurnos.AnyAsync(
-            ct2 => ct2.CarrinhoId == request.CarrinhoId
+        var destino = await db.CarrinhoTurnos
+            .Where(ct2 => ct2.CarrinhoId == request.CarrinhoId
                 && ct2.DiaSemana == request.DiaSemana
-                && ct2.TurnoId == request.TurnoId,
-            ct);
+                && ct2.TurnoId == request.TurnoId)
+            .Select(ct2 => new { ct2.Carrinho.DataEspecial })
+            .FirstOrDefaultAsync(ct);
 
-        if (!destinoExiste)
+        if (destino is null)
         {
             return Results.ValidationProblem(new Dictionary<string, string[]>
             {
                 ["turnoId"] = ["O turno informado não está disponível para esse carrinho nesse dia da semana."],
+            });
+        }
+
+        // Regra 10a: carrinho de data especial só entra na escala do mês da data.
+        var mesEscala = await db.Escalas
+            .Where(e => e.Id == solicitacao.EscalaId)
+            .Select(e => e.MesReferencia)
+            .FirstAsync(ct);
+
+        if (!DataEspecial.CabeNaEscala(destino.DataEspecial, mesEscala))
+        {
+            return Results.ValidationProblem(new Dictionary<string, string[]>
+            {
+                ["carrinhoId"] = ["Esse carrinho só funciona numa data especial de outro mês."],
             });
         }
 
@@ -72,6 +87,7 @@ public static class Endpoint
         solicitacao.CarrinhoId = request.CarrinhoId;
         solicitacao.DiaSemana = request.DiaSemana;
         solicitacao.TurnoId = request.TurnoId;
+        solicitacao.DataEspecial = destino.DataEspecial;
 
         await db.SaveChangesAsync(ct);
 
