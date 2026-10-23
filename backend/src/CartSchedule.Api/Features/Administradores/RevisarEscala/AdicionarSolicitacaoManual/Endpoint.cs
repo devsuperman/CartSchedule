@@ -33,18 +33,27 @@ public static class Endpoint
             });
         }
 
-        var carrinhoTurnoExiste = await db.CarrinhoTurnos
-            .AnyAsync(
-                ct2 => ct2.CarrinhoId == request.CarrinhoId
-                    && ct2.DiaSemana == request.DiaSemana
-                    && ct2.TurnoId == request.TurnoId,
-                ct);
+        var carrinhoTurno = await db.CarrinhoTurnos
+            .Where(ct2 => ct2.CarrinhoId == request.CarrinhoId
+                && ct2.DiaSemana == request.DiaSemana
+                && ct2.TurnoId == request.TurnoId)
+            .Select(ct2 => new { ct2.Carrinho.DataEspecial })
+            .FirstOrDefaultAsync(ct);
 
-        if (!carrinhoTurnoExiste)
+        if (carrinhoTurno is null)
         {
             return Results.ValidationProblem(new Dictionary<string, string[]>
             {
                 ["turnoId"] = ["O turno informado não está disponível para esse carrinho nesse dia da semana."],
+            });
+        }
+
+        // Regra 10a: carrinho de data especial só entra na escala do mês da data.
+        if (!DataEspecial.CabeNaEscala(carrinhoTurno.DataEspecial, mesReferencia))
+        {
+            return Results.ValidationProblem(new Dictionary<string, string[]>
+            {
+                ["carrinhoId"] = ["Esse carrinho só funciona numa data especial de outro mês."],
             });
         }
 
@@ -101,6 +110,7 @@ public static class Endpoint
             CarrinhoId = request.CarrinhoId,
             DiaSemana = request.DiaSemana,
             TurnoId = request.TurnoId,
+            DataEspecial = carrinhoTurno.DataEspecial,
             Origem = OrigemSolicitacao.Administrador,
             CriadoEm = DateTimeOffset.UtcNow,
         };

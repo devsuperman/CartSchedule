@@ -149,4 +149,35 @@ describe("GestaoCarrinhos — carrinho de data especial (PLANNING.md regra 10a)"
     const chamada = mockApiFetch.mock.calls.findLast(([path]) => path === "/api/admin/carrinhos/3");
     expect(JSON.parse(chamada![1]!.body as string)).toMatchObject({ ativo: false, dataEspecial: "2026-10-14" });
   });
+
+  it("avisa antes de remover os turnos de outros dias ao definir a data especial", async () => {
+    const user = userEvent.setup();
+    const confirmar = vi.spyOn(window, "confirm").mockReturnValue(false);
+    const card = await cardDoCarrinho("Carrinho 01");
+
+    await user.click(card.getByRole("button", { name: "Editar" }));
+    await user.type(card.getByLabelText("Data especial (opcional)"), "2026-10-14");
+    await user.click(card.getByRole("button", { name: "Salvar" }));
+
+    expect(confirmar).toHaveBeenCalledWith(expect.stringContaining("1 turno(s)"));
+    expect(
+      mockApiFetch.mock.calls.some(([path, opcoes]) => path === "/api/admin/carrinhos/1" && opcoes?.method === "PUT"),
+    ).toBe(false);
+    confirmar.mockRestore();
+  });
+
+  it("salva a data especial quando o admin confirma a remoção dos turnos", async () => {
+    const user = userEvent.setup();
+    const confirmar = vi.spyOn(window, "confirm").mockReturnValue(true);
+    const card = await cardDoCarrinho("Carrinho 01");
+
+    await user.click(card.getByRole("button", { name: "Editar" }));
+    await user.type(card.getByLabelText("Data especial (opcional)"), "2026-10-14");
+    await user.click(card.getByRole("button", { name: "Salvar" }));
+
+    await waitFor(() => expect(card.queryByRole("button", { name: "Salvar" })).not.toBeInTheDocument());
+    const chamada = mockApiFetch.mock.calls.findLast(([path]) => path === "/api/admin/carrinhos/1");
+    expect(JSON.parse(chamada![1]!.body as string)).toMatchObject({ dataEspecial: "2026-10-14" });
+    confirmar.mockRestore();
+  });
 });

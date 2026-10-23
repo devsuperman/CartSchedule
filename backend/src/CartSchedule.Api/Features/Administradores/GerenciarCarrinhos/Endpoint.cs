@@ -90,12 +90,7 @@ public static class Endpoint
         if (request.DataEspecial is { } data)
         {
             var dia = DataEspecial.DiaSemanaDe(data);
-            var deOutrosDias = carrinho.CarrinhoTurnos.Where(ct => ct.DiaSemana != dia).ToList();
-            db.CarrinhoTurnos.RemoveRange(deOutrosDias);
-            foreach (var turno in deOutrosDias)
-            {
-                carrinho.CarrinhoTurnos.Remove(turno);
-            }
+            carrinho.CarrinhoTurnos.RemoveAll(ct => ct.DiaSemana != dia);
         }
 
         await db.SaveChangesAsync();

@@ -15,8 +15,8 @@ public class CriarCarrinhoRequestValidator : AbstractValidator<CriarCarrinhoRequ
             .MaximumLength(500);
 
         RuleFor(r => r.DataEspecial)
-            .Must(d => d is null || DataEspecial.DiaSemanaDe(d.Value) is not null)
-            .WithMessage("A data especial precisa cair de Segunda a Sexta.");
+            .Must(DataEspecial.EhDiaUtil)
+            .WithMessage(DataEspecial.MensagemDiaUtil);
     }
 }
 
@@ -32,7 +32,7 @@ public class AtualizarCarrinhoRequestValidator : AbstractValidator<AtualizarCarr
             .MaximumLength(500);
 
         RuleFor(r => r.DataEspecial)
-            .Must(d => d is null || DataEspecial.DiaSemanaDe(d.Value) is not null)
-            .WithMessage("A data especial precisa cair de Segunda a Sexta.");
+            .Must(DataEspecial.EhDiaUtil)
+            .WithMessage(DataEspecial.MensagemDiaUtil);
     }
 }

@@ -44,6 +44,20 @@ function jaTemPedidoNoCarrinho(
   return horariosOcupados.has(chaveHorario(carrinho.dataEspecial, dia, turnoId));
 }
 
+/** Algum carrinho com esse (dia, turno) configurado já tem pedido do publicador no horário dele. */
+function temPedidoNoHorario(
+  carrinhos: readonly Carrinho[],
+  horariosOcupados: ReadonlySet<string>,
+  dia: DiaSemana,
+  turnoId: number,
+): boolean {
+  return carrinhos.some(
+    (c) =>
+      c.disponibilidades.some((d) => d.diaSemana === dia && d.turnoId === turnoId) &&
+      jaTemPedidoNoCarrinho(c, horariosOcupados, dia, turnoId),
+  );
+}
+
 /** O carrinho tem vaga não cheia nesse (dia, turno) e o publicador ainda não tem pedido no
  * horário no grupo dele — não dá para estar em dois carrinhos ao mesmo tempo (PLANNING.md regra 10). */
 function vagaLivre(
@@ -194,13 +208,7 @@ export function SolicitacaoWizard({ mesAlvo }: SolicitacaoWizardProps) {
         livre,
         // Só justifica o desabilitado: com vaga livre em outro grupo (ex: carrinho de data
         // especial), o aviso aparece no carrinho, na etapa seguinte.
-        jaTemPedido:
-          !livre &&
-          carrinhos.some(
-            (c) =>
-              c.disponibilidades.some((d) => d.diaSemana === diaSemana && d.turnoId === turno.id) &&
-              jaTemPedidoNoCarrinho(c, horariosOcupados, diaSemana, turno.id),
-          ),
+        jaTemPedido: !livre && temPedidoNoHorario(carrinhos, horariosOcupados, diaSemana, turno.id),
       };
     });
   }, [carrinhos, horariosOcupados, diaSemana]);

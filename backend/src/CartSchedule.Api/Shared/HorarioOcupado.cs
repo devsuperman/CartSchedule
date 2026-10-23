@@ -17,8 +17,8 @@ public static class HorarioOcupado
     public const string Codigo = "HORARIO_OCUPADO";
 
     /// <summary>
-    /// Pedidos do publicador que ocupam o (dia, turno) num carrinho do grupo de
-    /// <paramref name="dataEspecial"/> (null = carrinhos normais).
+    /// Pedidos do publicador que ocupam o (dia, turno) no grupo de <paramref name="dataEspecial"/>
+    /// (null = carrinhos normais). Usa o grupo gravado em cada pedido, não o do carrinho atual.
     /// </summary>
     public static Expression<Func<Solicitacao, bool>> NoHorario(
         Guid publicadorId, int escalaId, DiaSemana diaSemana, int turnoId, DateOnly? dataEspecial) =>
@@ -26,5 +26,5 @@ public static class HorarioOcupado
             && s.EscalaId == escalaId
             && s.DiaSemana == diaSemana
             && s.TurnoId == turnoId
-            && s.Carrinho.DataEspecial == dataEspecial;
+            && s.DataEspecial == dataEspecial;
 }

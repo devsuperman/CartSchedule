@@ -201,6 +201,18 @@ export default function GestaoCarrinhos() {
       return;
     }
 
+    // Com data especial, o backend remove os turnos dos outros dias da semana (regra 10a).
+    const diaNovo = dataEdicao ? diaSemanaDaData(dataEdicao) : null;
+    const turnosQueSaem = dataEdicao ? carrinho.disponibilidades.filter((d) => d.diaSemana !== diaNovo) : [];
+    if (
+      turnosQueSaem.length > 0 &&
+      !window.confirm(
+        `Ao definir a data especial, ${turnosQueSaem.length} turno(s) em outros dias da semana serão removidos deste carrinho. Os pedidos já feitos não mudam. Continuar?`,
+      )
+    ) {
+      return;
+    }
+
     const salvou = await atualizarCarrinho(carrinho, {
       nome,
       descricao: descricaoEdicao.trim() || null,

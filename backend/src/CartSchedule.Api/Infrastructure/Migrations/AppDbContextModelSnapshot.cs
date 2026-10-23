@@ -123,6 +123,9 @@ namespace CartSchedule.Api.Infrastructure.Migrations
                     b.Property<DateTimeOffset>("CriadoEm")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<DateOnly?>("DataEspecial")
+                        .HasColumnType("date");
+
                     b.Property<int>("DiaSemana")
                         .HasColumnType("integer");
 

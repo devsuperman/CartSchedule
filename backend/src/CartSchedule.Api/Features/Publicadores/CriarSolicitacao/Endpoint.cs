@@ -60,7 +60,7 @@ public static class Endpoint
         }
 
         // Regra 10a: o carrinho de data especial só recebe pedidos na escala do mês da data.
-        if (vaga.DataEspecial is { } data && DataEspecial.MesDe(data) != janela.MesAlvo)
+        if (!DataEspecial.CabeNaEscala(vaga.DataEspecial, janela.MesAlvo))
         {
             return Results.Problem(
                 title: "Carrinho fora desta escala",
@@ -125,6 +125,7 @@ public static class Endpoint
             CarrinhoId = request.CarrinhoId,
             DiaSemana = request.DiaSemana,
             TurnoId = request.TurnoId,
+            DataEspecial = vaga.DataEspecial,
             Origem = OrigemSolicitacao.Publicador,
             CriadoEm = DateTimeOffset.UtcNow,
         };

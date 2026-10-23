@@ -165,4 +165,60 @@ public class CarrinhoDataEspecialTests(ApiFixture fixture) : ApiTestBase(fixture
         Assert.Null(datas[normal]);
         Assert.Equal(QuartaDeOutubro, datas[especial]);
     }
+
+    [Fact]
+    public async Task PedidoMantemOGrupo_QuandoADataDoCarrinhoMuda()
+    {
+        var admin = await AdminAsync();
+        var normal = await CriarCarrinhoAsync(admin, "Carrinho 01");
+        var outro = await CriarCarrinhoAsync(admin, "Carrinho 02");
+        await DefinirTurnosAsync(admin, normal, (Terca, Turno0810));
+        await DefinirTurnosAsync(admin, outro, (Terca, Turno0810));
+        var publicador = Publicador();
+        Assert.Equal(HttpStatusCode.Created, (await SolicitarAsync(publicador, normal, Terca, Turno0810)).StatusCode);
+
+        // O carrinho do pedido ganha uma data especial; o pedido já feito continua no grupo dos normais.
+        (await admin.PutAsJsonAsync($"/api/admin/carrinhos/{normal}", new
+        {
+            nome = "Carrinho 01", ativo = true, dataEspecial = "2026-10-13",
+        })).EnsureSuccessStatusCode();
+
+        var resposta = await SolicitarAsync(publicador, outro, Terca, Turno0810);
+
+        Assert.Equal(HttpStatusCode.Conflict, resposta.StatusCode);
+        Assert.Equal("HORARIO_OCUPADO", (await JsonAsync(resposta)).GetProperty("codigo").GetString());
+    }
+
+    [Fact]
+    public async Task MoverParaCarrinhoDeOutroMes_Recusa()
+    {
+        var admin = await AdminAsync();
+        var normal = await CriarCarrinhoAsync(admin, "Carrinho 01");
+        await DefinirTurnosAsync(admin, normal, (Quarta, Turno0810));
+        var especialDeNovembro = await CriarCarrinhoEspecialAsync(admin, QuartaDeNovembro);
+        await DefinirTurnosAsync(admin, especialDeNovembro, (Quarta, Turno0810));
+        var pedido = (await JsonAsync(await SolicitarAsync(Publicador(), normal, Quarta, Turno0810)))
+            .GetProperty("id").GetInt32();
+
+        var resposta = await admin.PatchAsJsonAsync($"/api/admin/solicitacoes/{pedido}", new
+        {
+            carrinhoId = especialDeNovembro, diaSemana = Quarta, turnoId = Turno0810,
+        });
+
+        Assert.Equal(HttpStatusCode.BadRequest, resposta.StatusCode);
+    }
+
+    [Fact]
+    public async Task AdicionarManual_RecusaCarrinhoDeOutroMes_AceitaNoMesCerto()
+    {
+        var admin = await AdminAsync();
+        var especialDeNovembro = await CriarCarrinhoEspecialAsync(admin, QuartaDeNovembro);
+        await DefinirTurnosAsync(admin, especialDeNovembro, (Quarta, Turno0810));
+
+        var deOutubro = await AdicionarManualAsync(admin, especialDeNovembro, Quarta, Turno0810, "Carla");
+        var deNovembro = await AdicionarManualAsync(admin, especialDeNovembro, Quarta, Turno0810, "Carla", "2026-11");
+
+        Assert.Equal(HttpStatusCode.BadRequest, deOutubro.StatusCode);
+        Assert.Equal(HttpStatusCode.Created, deNovembro.StatusCode);
+    }
 }
