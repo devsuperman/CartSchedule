@@ -488,12 +488,12 @@ configuração de build — nenhuma regra de negócio muda.
 | ID | Entrega | Critério de aceite |
 |---|---|---|
 | F9-FE-01 | `routes/publicador/InicioPublicador.tsx` | "Solicitar Nova Escala" sai do topo e vai para um rodapé fixo na base da tela (visível ao rolar, sem cobrir o último card). O aviso de janela fechada continua no topo. |
-| F9-FE-02 | `InicioPublicador.tsx`, `constants/whatsapp.ts`, `Dockerfile`, compose, `.env.example` | Botão "Terminei!" abaixo da lista de pedidos (janela aberta ou fechada) é um link para `WHATSAPP_GRUPO_URL`, que no celular abre o grupo no app do WhatsApp (o navegador não deixa o site fechar a aba). Sem a variável, o botão não aparece. |
+| F9-FE-02 | `InicioPublicador.tsx`, `constants/whatsapp.ts`, `Dockerfile`, compose, `.env.example` | Botão "Voltar ao WhatsApp" abaixo da lista de pedidos (janela aberta ou fechada) é um link para `WHATSAPP_GRUPO_URL`, que no celular abre o grupo no app do WhatsApp (o navegador não deixa o site fechar a aba). Sem a variável, o botão não aparece. |
 
 ### Verificação da Fase 9
 
 `npm test`, `npm run lint`, `npm run build`; no celular, abrir o site pelo
-WhatsApp e tocar em "Terminei!".
+WhatsApp e tocar em "Voltar ao WhatsApp".
 
 ---
 
@@ -504,7 +504,7 @@ Só frontend — nenhuma regra de negócio muda.
 | ID | Entrega | Critério de aceite |
 |---|---|---|
 | F10-FE-01 | `InicioPublicador.tsx` | O botão de terminar sai de baixo da lista e vai para o rodapé fixo, **acima** de "Solicitar Nova Escala", com 32 px entre os dois (contorno vs. preenchido) para evitar toque errado. Com a janela fechada, o rodapé tem só o botão de terminar. |
-| F10-FE-02 | `InicioPublicador.tsx` | O botão se chama "Pronto! Terminei minha escala!". |
+| F10-FE-02 | `InicioPublicador.tsx` | O botão se chama "Voltar ao WhatsApp" (antes "Pronto! Terminei minha escala!", que sugeria um estado "concluída" que o sistema não controla) e só aparece quando o publicador tem ao menos um pedido na escala (mês atual ou mês-alvo). O modal de agradecimento continua. |
 | F10-FE-03 | `components/ui/dialog.tsx`, `routes/publicador/components/ModalAgradecimento.tsx`, `constants/whatsapp.ts` | Tocar no botão abre o modal "Muito Obrigado!" ("Que Jeová abençoe seu trabalho árduo!") e a contagem "Voltando ao whatsapp em 10…"; ao fim, vai para o grupo do WhatsApp. Sem botão de ir na hora. Fechar o modal cancela o redirecionamento. |
 
 ### Verificação da Fase 10
