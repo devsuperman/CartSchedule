@@ -67,7 +67,7 @@ Opcional: `WHATSAPP_GRUPO_URL` com o link de convite do grupo do WhatsApp
 (WhatsApp → dados do grupo → *Convidar via link*). Ele liga o botão
 "Voltar ao WhatsApp", que devolve o publicador para o grupo. Quem abre o site vê esse
 link. Com o [deploy automático](#deploy-automático) esse valor vem da variável
-`WHATSAPP_GRUPO_URL` do GitHub, e não do `.env`.
+`WHATSAPP_GRUPO_URL` do GitHub (environment `production`), e não do `.env`.
 
 ## 5. Subir
 
@@ -135,10 +135,12 @@ ssh-keyscan -t ed25519 IP_ESTATICO
   - `LIGHTSAIL_HOST`: o IP estático.
   - `LIGHTSAIL_SSH_KEY`: a chave privada inteira (de `-----BEGIN` até `END-----`).
   - `LIGHTSAIL_KNOWN_HOSTS`: a saída do `ssh-keyscan` acima.
+  - *Environment variables* → `WHATSAPP_GRUPO_URL` (opcional): link do botão
+    "Voltar ao WhatsApp". Ele é embutido no build do GitHub, não no `.env` do
+    servidor; mudou → rode o workflow de novo (*Actions → Deploy → Run workflow*).
+    Também funciona como variável do repositório (abaixo); se existir nos dois, vale
+    a do environment.
 - *Secrets and variables* → *Actions* → aba **Variables** (do repositório):
-  - `WHATSAPP_GRUPO_URL` (opcional): link do botão "Voltar ao WhatsApp". Agora ele é
-    embutido no build do GitHub, não no `.env` do servidor; mudou → rode o
-    workflow de novo (*Actions → Deploy → Run workflow*).
   - `LIGHTSAIL_USER` (opcional): usuário SSH, se não for `ubuntu`.
 - *Branches* → **Add branch ruleset** para a `main`: exija PR e os checks
   **Backend (dotnet test)** e **Frontend (lint, test, build)**. Assim nada

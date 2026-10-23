@@ -36,6 +36,10 @@ jobs:
     name: Build e push das imagens
     needs: testes
     runs-on: ubuntu-latest
+    # O environment libera as variáveis dele (ex.: WHATSAPP_GRUPO_URL) para o
+    # build; sem isso, vars.* só enxerga as variáveis do repositório.
+    environment:
+      name: production
     permissions:
       contents: read
       packages: write
@@ -54,6 +58,9 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Conferir link do WhatsApp
+        if: ${{ matrix.nome == 'web' && vars.WHATSAPP_GRUPO_URL == '' }}
+        run: echo "::warning::WHATSAPP_GRUPO_URL vazia (nem no environment production nem no repositório) — o botão 'Voltar ao WhatsApp' não vai aparecer."
       - uses: docker/build-push-action@v6
         with:
           context: ${{ matrix.contexto }}
