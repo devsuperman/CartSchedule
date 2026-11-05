@@ -1,64 +1,119 @@
-import { DIAS_SEMANA } from "../../../constants/diasSemana";
 import { TURNOS } from "../../../constants/turnos";
-import { formatarDataCurta } from "../../../utils/formatacao";
+import { formatarDataCurta, formatarDia } from "../../../utils/formatacao";
 import type { CelulaGrade } from "./gradeEscala";
 
-export interface TurnoParaCompartilhar {
+/** Coluna da grade: um carrinho com gente na imagem. */
+export interface CarrinhoColuna {
+  carrinhoId: number;
+  nome: string;
+  descricao: string | null;
+}
+
+/** Linha da grade: um turno; `nomes[i]` são as pessoas do carrinho `carrinhos[i]` (vazio = ninguém). */
+export interface LinhaTurno {
   turnoId: number;
-  nomes: string[];
+  nomes: string[][];
 }
 
 export interface DiaParaCompartilhar {
   dia: number;
   rotulo: string;
-  turnos: TurnoParaCompartilhar[];
+  turnos: LinhaTurno[];
 }
 
-export interface CarrinhoParaCompartilhar {
-  carrinhoId: number;
-  nome: string;
-  descricao: string | null;
+/** Imagem do mês (carrinhos normais): mesmas colunas em todos os dias, para o carrinho não mudar de lugar. */
+export interface EscalaSemanal {
+  carrinhos: CarrinhoColuna[];
   dias: DiaParaCompartilhar[];
 }
 
-/**
- * Visão só leitura da escala para a imagem de compartilhamento: um item por carrinho, só com
- * os dias e turnos que têm gente (vagas vazias, dias vazios e carrinhos sem ninguém somem).
- * Não carrega nenhum estado de vaga (meta, excesso) — isso é só do admin (regra 3).
- */
-export function escalaParaCompartilhar(celulas: CelulaGrade[]): CarrinhoParaCompartilhar[] {
-  const carrinhos = new Map<number, CarrinhoParaCompartilhar>();
+/** Uma data especial (regra 10a): os carrinhos daquela data juntos, numa imagem própria. */
+export interface DataEspecialParaCompartilhar {
+  /** yyyy-MM-dd */
+  data: string;
+  /** "Quarta-feira, 18/11" */
+  rotulo: string;
+  carrinhos: CarrinhoColuna[];
+  turnos: LinhaTurno[];
+}
 
-  for (const celula of celulas) {
-    if (celula.publicadores.length === 0) continue;
-    let carrinho = carrinhos.get(celula.carrinhoId);
-    if (!carrinho) {
-      carrinho = {
-        carrinhoId: celula.carrinhoId,
-        nome: celula.carrinhoNome,
-        descricao: celula.carrinhoDescricao?.trim() || null,
-        dias: [],
-      };
-      carrinhos.set(celula.carrinhoId, carrinho);
+export interface EscalaParaCompartilhar {
+  semanal: EscalaSemanal;
+  datasEspeciais: DataEspecialParaCompartilhar[];
+}
+
+const ordemTurno = (id: number) => TURNOS.findIndex((t) => t.id === id);
+
+function colunas(celulas: CelulaGrade[]): CarrinhoColuna[] {
+  const carrinhos = new Map<number, CarrinhoColuna>();
+  for (const c of celulas) {
+    if (!carrinhos.has(c.carrinhoId)) {
+      carrinhos.set(c.carrinhoId, {
+        carrinhoId: c.carrinhoId,
+        nome: c.carrinhoNome,
+        descricao: c.carrinhoDescricao?.trim() || null,
+      });
     }
-    let dia = carrinho.dias.find((d) => d.dia === celula.diaSemana);
-    if (!dia) {
-      const nomeDoDia = DIAS_SEMANA.find((d) => d.valor === celula.diaSemana)?.label ?? `Dia ${celula.diaSemana}`;
-      // Carrinho de data especial (regra 10a): o dia vem com a data.
-      const rotulo = celula.carrinhoDataEspecial ? `${nomeDoDia}, ${formatarDataCurta(celula.carrinhoDataEspecial)}` : nomeDoDia;
-      dia = { dia: celula.diaSemana, rotulo, turnos: [] };
-      carrinho.dias.push(dia);
-    }
-    dia.turnos.push({ turnoId: celula.turnoId, nomes: celula.publicadores.map((p) => p.publicadorNome) });
   }
+  return [...carrinhos.values()].sort((a, b) => a.carrinhoId - b.carrinhoId);
+}
 
-  const ordemTurno = (id: number) => TURNOS.findIndex((t) => t.id === id);
-  return [...carrinhos.values()]
-    .sort((a, b) => a.carrinhoId - b.carrinhoId)
-    .map((c) => ({
-      ...c,
-      dias: c.dias
-        .sort((a, b) => a.dia - b.dia)
-        .map((d) => ({ ...d, turnos: d.turnos.sort((a, b) => ordemTurno(a.turnoId) - ordemTurno(b.turnoId)) })),
-    }));
+/** Uma linha por turno com gente, com os nomes alinhados às colunas. */
+function linhas(celulas: CelulaGrade[], carrinhos: CarrinhoColuna[]): LinhaTurno[] {
+  const porTurno = new Map<number, LinhaTurno>();
+  for (const c of celulas) {
+    let linha = porTurno.get(c.turnoId);
+    if (!linha) {
+      linha = { turnoId: c.turnoId, nomes: carrinhos.map(() => []) };
+      porTurno.set(c.turnoId, linha);
+    }
+    const coluna = carrinhos.findIndex((k) => k.carrinhoId === c.carrinhoId);
+    linha.nomes[coluna].push(...c.publicadores.map((p) => p.publicadorNome));
+  }
+  return [...porTurno.values()].sort((a, b) => ordemTurno(a.turnoId) - ordemTurno(b.turnoId));
+}
+
+function agruparPor<K>(celulas: CelulaGrade[], chave: (c: CelulaGrade) => K): [K, CelulaGrade[]][] {
+  const grupos = new Map<K, CelulaGrade[]>();
+  for (const celula of celulas) {
+    const k = chave(celula);
+    grupos.set(k, [...(grupos.get(k) ?? []), celula]);
+  }
+  return [...grupos];
+}
+
+/**
+ * Visão só leitura da escala para as imagens de compartilhamento (issue #34), na ordem em que as
+ * pessoas procuram: dia → turno → carrinho. Uma grade do mês (turnos nas linhas, carrinhos nas
+ * colunas) e uma por data especial. Só entra o que tem gente (turnos, dias e carrinhos vazios
+ * somem) e nenhum estado de vaga — isso é só do admin (regra 3).
+ */
+export function escalaParaCompartilhar(celulas: CelulaGrade[]): EscalaParaCompartilhar {
+  const comGente = celulas.filter((c) => c.publicadores.length > 0);
+  const normais = comGente.filter((c) => !c.carrinhoDataEspecial);
+  const especiais = comGente.filter((c) => c.carrinhoDataEspecial);
+
+  const carrinhos = colunas(normais);
+  const dias = agruparPor(normais, (c) => c.diaSemana)
+    .sort(([a], [b]) => a - b)
+    .map(([dia, doDia]) => ({ dia, rotulo: formatarDia(dia), turnos: linhas(doDia, carrinhos) }));
+
+  const datasEspeciais = agruparPor(especiais, (c) => c.carrinhoDataEspecial!)
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([data, daData]) => {
+      const carrinhosDaData = colunas(daData);
+      return {
+        data,
+        rotulo: `${formatarDia(daData[0].diaSemana)}, ${formatarDataCurta(data)}`,
+        carrinhos: carrinhosDaData,
+        turnos: linhas(daData, carrinhosDaData),
+      };
+    });
+
+  return { semanal: { carrinhos, dias }, datasEspeciais };
+}
+
+/** true quando não há ninguém para compartilhar. */
+export function escalaVazia(escala: EscalaParaCompartilhar): boolean {
+  return escala.semanal.dias.length === 0 && escala.datasEspeciais.length === 0;
 }

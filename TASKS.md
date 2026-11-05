@@ -670,7 +670,27 @@ publicadores se inscrevendo pelo wizard, sem comprometer a escala semanal (PLANN
 
 ---
 
-## Backlog (Fase 19 — opcional, fora do escopo inicial)
+## Fase 19 — Imagem do mês por dia → turno → carrinho (issue #34)
+
+A imagem por carrinho fazia quem abria o carrinho errado achar que não estava na escala. As
+pessoas procuram o nome por **dia → turno → carrinho**, então a imagem passa a ser **uma só para
+o mês**: uma grade por dia (turnos nas linhas, carrinhos com nome e descrição nas colunas, os
+nomes nas células; as colunas são as mesmas em todos os dias). Cada data especial (regra 10a)
+vira uma imagem separada. A visão por carrinho sai. Para não ficar alta demais para o WhatsApp,
+a grade é larga (≈ 1440 × 2900 px num mês cheio com 6 carrinhos) e a escala da imagem respeita o
+limite de área do Safari do iPhone (~16 milhões de pixels).
+
+| ID | Arquivos | Entrega |
+|----|----------|---------|
+| F19-FE-01 | `routes/admin/EscalaCompartilhar.tsx`, `components/escalaParaCompartilhar.ts`, `utils/imagemEscala.ts` (+ testes) | `escalaParaCompartilhar` devolve `{ semanal: { carrinhos, dias }, datasEspeciais }`; um botão "Compartilhar imagem" para o mês (`escala-<mes>.png`) e um por data especial (`escala-<data>.png`); `escalaDaImagem` limita a escala pela largura e pela área. |
+
+### Verificação da Fase 19
+
+`npm test`, `npm run lint`, `npm run build`; exportar a imagem de um mês cheio no navegador e conferir que lê bem.
+
+---
+
+## Backlog (opcional, fora do escopo inicial)
 
 Não paralelizar ainda — só entra depois que Fases 0–4 estiverem completas
 e validadas:
