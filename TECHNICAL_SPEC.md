@@ -245,7 +245,7 @@ frontend/
         Login.tsx
         GestaoCarrinhos.tsx       # cadastro/edição de carrinhos (nome, descrição, data especial) e associação com os 6 turnos fixos
         EscalaFinal.tsx           # gestão da escala por toque: vagas com ocupação; mover, adicionar (+), editar nome e excluir
-        EscalaCompartilhar.tsx    # /admin/escalas/:mes/compartilhar: visão só leitura, uma imagem PNG por carrinho (html-to-image + Web Share API) para o WhatsApp
+        EscalaCompartilhar.tsx    # /admin/escalas/:mes/compartilhar: visão só leitura para o WhatsApp — uma imagem PNG do mês (grade por dia: turnos × carrinhos) + uma por data especial (html-to-image + Web Share API)
         RedirecionaParaEscala.tsx # /admin/revisao/:mes e /admin/adicionar/:mes (telas antigas) → /admin/escalas/:mes
         components/               # CelulaEscala, ModaisEscala, gradeEscala (tipos + atualização local), ModalEditarNome
     hooks/

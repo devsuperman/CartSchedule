@@ -1,23 +1,21 @@
 import { toPng } from "html-to-image";
 
 const LARGURA_MAXIMA_PX = 1440;
+/** O Safari do iPhone não desenha canvas acima de ~16,7 milhões de pixels (sai em branco). */
+const AREA_MAXIMA_PX = 16_000_000;
 
-/** "Praça Central" → "praca-central", para nome de arquivo. */
-export function slug(texto: string): string {
-  return (
-    texto
-      .normalize("NFD")
-      .replace(/[̀-ͯ]/g, "")
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, "-")
-      .replace(/^-+|-+$/g, "") || "escala"
-  );
+/**
+ * Fator de escala da imagem: largura final ≈ 1080–1440px (nítida no WhatsApp sem pesar demais),
+ * sem passar da área que o Safari do iPhone consegue desenhar.
+ */
+export function escalaDaImagem(largura: number, altura: number): number {
+  if (largura <= 0 || altura <= 0) return 1;
+  return Math.min(3, LARGURA_MAXIMA_PX / largura, Math.sqrt(AREA_MAXIMA_PX / (largura * altura)));
 }
 
 async function renderizar(elemento: HTMLElement): Promise<Blob> {
   const opcoes = {
-    // Largura final ≈ 1080–1440px: nítida no WhatsApp sem pesar demais.
-    pixelRatio: Math.min(3, LARGURA_MAXIMA_PX / elemento.offsetWidth),
+    pixelRatio: escalaDaImagem(elemento.offsetWidth, elemento.offsetHeight),
     cacheBust: false,
     skipFonts: true,
     backgroundColor: "#ffffff",
