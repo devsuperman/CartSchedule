@@ -94,7 +94,7 @@ describe("EscalaCompartilhar", () => {
     const segunda = within(mes).getAllByRole("table")[0];
     expect(textos(within(segunda).getAllByRole("columnheader"))).toEqual([
       "Horário",
-      "Carrinho 01Em frente ao mercado",
+      "Carrinho 01",
       "Carrinho 02",
     ]);
     expect(textos(within(segunda).getAllByRole("rowheader"))).toEqual(["08:00–10:00", "10:00–12:00"]);
@@ -108,12 +108,49 @@ describe("EscalaCompartilhar", () => {
     expect(within(mes).queryByText("06:00–08:00", { selector: "th" })).toBeInTheDocument();
   });
 
-  it("mostra a descrição do carrinho, sem marca de criança ou idoso", async () => {
+  it("mostra a descrição do carrinho uma vez, na legenda, fora das colunas", async () => {
     renderizar();
     const mes = await imagemDoMes();
 
-    expect(within(mes).getAllByText("Em frente ao mercado")).toHaveLength(2); // um cabeçalho por dia
+    const legenda = within(mes).getByRole("region", { name: "Carrinhos" });
+    // Só os carrinhos com descrição; Carrinho 02 não tem.
+    expect(textos(within(legenda).getAllByRole("term"))).toEqual(["Carrinho 01"]);
+    expect(textos(within(legenda).getAllByRole("definition"))).toEqual(["Em frente ao mercado"]);
+    expect(within(mes).getAllByText("Em frente ao mercado")).toHaveLength(1);
+    for (const tabela of within(mes).getAllByRole("table")) {
+      expect(within(tabela).queryByText("Em frente ao mercado")).not.toBeInTheDocument();
+    }
     expect(screen.queryByText(/criança|idoso/i)).not.toBeInTheDocument();
+  });
+
+  it("sem descrição em nenhum carrinho, não mostra a legenda", async () => {
+    mockApiFetch.mockResolvedValue({
+      mes: "2026-10",
+      envio: null,
+      celulas: [celula(1, 1, 1, [pedido(1, "Ana")]), celula(2, 1, 1, [pedido(2, "Bia")])],
+    });
+    renderizar();
+    const mes = await imagemDoMes();
+
+    expect(within(mes).queryByRole("region", { name: "Carrinhos" })).not.toBeInTheDocument();
+  });
+
+  it("a imagem da data especial tem a legenda só dos carrinhos dela", async () => {
+    mockApiFetch.mockResolvedValue({
+      mes: "2026-10",
+      envio: null,
+      celulas: [
+        celula(1, 1, 1, [pedido(1, "Ana")], "Em frente ao mercado"),
+        celula(9, 3, 2, [pedido(8, "Hugo")], "Na praça do evento", "2026-10-21"),
+      ],
+    });
+    renderizar();
+    const mes = await imagemDoMes();
+
+    const especial = screen.getByRole("heading", { name: "Quarta-feira, 21/10" }).closest("article") as HTMLElement;
+    const legendaEspecial = within(especial).getByRole("region", { name: "Carrinhos" });
+    expect(textos(within(legendaEspecial).getAllByRole("definition"))).toEqual(["Na praça do evento"]);
+    expect(within(mes).queryByText("Na praça do evento")).not.toBeInTheDocument();
   });
 
   it("põe o carrinho de data especial numa imagem separada", async () => {

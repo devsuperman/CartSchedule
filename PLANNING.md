@@ -155,8 +155,10 @@ não dá para estar em dois lugares ao mesmo tempo.
    A **imagem de compartilhamento** (para o grupo do WhatsApp) segue a ordem
    em que as pessoas procuram o próprio nome — **dia → turno → carrinho**: é
    **uma imagem do mês inteiro**, com uma grade por dia da semana (turnos nas
-   linhas, carrinhos — nome e descrição — nas colunas, os nomes nas células),
-   só com o que tem gente e sem estado de vaga. Cada **data especial**
+   linhas, carrinhos — só o nome — nas colunas, os nomes nas células),
+   só com o que tem gente e sem estado de vaga. A descrição dos carrinhos
+   aparece uma vez por imagem, numa legenda acima das grades (só os que têm
+   descrição), para não alargar as colunas. Cada **data especial**
    (regra 10a) sai numa **imagem separada**, fora da imagem do mês.
 
 ## 7. Regras de Negócio

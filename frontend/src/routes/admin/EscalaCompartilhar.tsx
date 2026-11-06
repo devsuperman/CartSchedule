@@ -21,8 +21,8 @@ function capitalizar(texto: string): string {
 }
 
 /**
- * Grade de um dia: turnos nas linhas, carrinhos (nome e descrição) nas colunas, nomes nas
- * células. Vaga sem ninguém fica em branco (sem "Vago" nem estado de vaga).
+ * Grade de um dia: turnos nas linhas, carrinhos (só o nome) nas colunas, nomes nas
+ * células. A descrição do carrinho fica na legenda (`LegendaCarrinhos`), uma vez por imagem. Vaga sem ninguém fica em branco (sem "Vago" nem estado de vaga).
  * Texto sem quebra de linha e com folga à direita: o html-to-image copia o tamanho de cada
  * célula da tela mas desenha com outra fonte (skipFonts), e um texto que quebrasse diferente
  * vazaria para a linha de baixo na imagem.
@@ -41,14 +41,7 @@ function GradeDoDia({ carrinhos, turnos }: { carrinhos: CarrinhoColuna[]; turnos
               scope="col"
               className="border-l border-[#e4e7eb] py-1 pr-4 pl-2 align-bottom whitespace-nowrap"
             >
-              <div className="min-w-[8rem]">
-                <span className="block text-[1rem] leading-snug font-bold">{carrinho.nome}</span>
-                {carrinho.descricao && (
-                  <span className="block text-[0.8rem] leading-snug font-normal text-[#52606d]">
-                    {carrinho.descricao}
-                  </span>
-                )}
-              </div>
+              <div className="min-w-[8rem] text-[1rem] leading-snug font-bold">{carrinho.nome}</div>
             </th>
           ))}
         </tr>
@@ -80,6 +73,32 @@ function GradeDoDia({ carrinhos, turnos }: { carrinhos: CarrinhoColuna[]; turnos
         ))}
       </tbody>
     </table>
+  );
+}
+
+/**
+ * Descrição dos carrinhos, uma vez por imagem, acima das grades — fora das colunas, para a
+ * descrição (até 500 caracteres) não alargar a grade. Só os carrinhos com descrição; sem nenhum,
+ * não aparece. `w-0 min-w-full`: a largura vem da grade, não do texto, e a descrição quebra
+ * linha. Folga embaixo e entrelinha generosa porque o html-to-image desenha com outra fonte
+ * (skipFonts) e o texto quebrado pode ocupar um pouco mais que na tela.
+ */
+function LegendaCarrinhos({ carrinhos }: { carrinhos: CarrinhoColuna[] }) {
+  const comDescricao = carrinhos.filter((c) => c.descricao);
+  if (comDescricao.length === 0) return null;
+  return (
+    <section aria-label="Carrinhos" className="w-0 min-w-full pb-1">
+      <p className="m-0 text-[0.85rem] font-semibold tracking-wide text-[#52606d] uppercase">Carrinhos</p>
+      <dl className="m-0 flex flex-col gap-1">
+        {comDescricao.map((carrinho) => (
+          <div key={carrinho.carrinhoId} className="text-[0.9rem] leading-normal break-words">
+            <dt className="inline font-bold">{carrinho.nome}</dt>
+            <span aria-hidden> — </span>
+            <dd className="m-0 inline text-[#3e4c59]">{carrinho.descricao}</dd>
+          </div>
+        ))}
+      </dl>
+    </section>
   );
 }
 
@@ -124,6 +143,7 @@ function imagensDaEscala(escala: EscalaParaCompartilhar, mes: string, mesTexto: 
       arquivo: `escala-${mes}`,
       conteudo: (
         <div className="flex flex-col gap-3 px-4 py-3">
+          <LegendaCarrinhos carrinhos={escala.semanal.carrinhos} />
           {escala.semanal.dias.map((dia) => (
             <section key={dia.dia}>
               <h3 className="m-0 rounded-sm bg-primary px-2 py-0.5 text-[1rem] font-bold text-primary-foreground uppercase">
@@ -147,7 +167,8 @@ function imagensDaEscala(escala: EscalaParaCompartilhar, mes: string, mesTexto: 
             <h3 className="m-0 text-[1.4rem] leading-tight font-extrabold">{especial.rotulo}</h3>
             <p className="m-0 mt-0.5 text-[1rem] opacity-95">Somente nesta data</p>
           </div>
-          <div className="px-4 py-3">
+          <div className="flex flex-col gap-3 px-4 py-3">
+            <LegendaCarrinhos carrinhos={especial.carrinhos} />
             <GradeDoDia carrinhos={especial.carrinhos} turnos={especial.turnos} />
           </div>
         </>
@@ -230,8 +251,8 @@ export default function EscalaCompartilhar() {
         </Link>
         <h1>Compartilhar escala</h1>
         <p className="text-muted-foreground">
-          {mesTexto}. Uma imagem do mês, por dia e horário, com os carrinhos nas colunas e só quem tem
-          pedido; cada data especial vem numa imagem separada. No WhatsApp, envie em HD para os nomes ficarem nítidos.
+          {mesTexto}. Uma imagem do mês, por dia e horário, com os carrinhos nas colunas (a descrição
+          de cada um vem no topo) e só quem tem pedido; cada data especial vem numa imagem separada. No WhatsApp, envie em HD para os nomes ficarem nítidos.
         </p>
       </div>
 
