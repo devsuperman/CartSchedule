@@ -247,3 +247,27 @@ repo) ou pelo label `aprovado`.
    (seção Testes), respeite as regras de negócio acima e abra um PR que
    referencie a issue (`Closes #N`).
 3. Se o pedido conflitar com o `PLANNING.md`, pergunte em vez de implementar.
+
+## Hooks e revisor (`.claude/`)
+
+Regras que **não dependem** de o agente lembrar (`.claude/settings.json` →
+`.claude/hooks/`, lógica testada com `node --test .claude/hooks/test/*.test.mjs`):
+
+- **`guarda-edicao`** (antes de Edit/Write): bloqueia gravar `.env` e termos
+  Sábado/Domingo ou de status de aprovação (Pendente/Aprovada/Rejeitada/
+  `StatusSolicitacao`) em código de `backend/src` e `frontend/src` (comentários,
+  testes e migrations ficam de fora). Bloqueou? A regra é intencional: pergunte ao
+  usuário em vez de contornar.
+- **`guarda-git`** (antes de Bash): bloqueia `git push` para a `main` (vai a produção
+  pelo `deploy.yml`) e `push --force` (use `--force-with-lease` na própria branch).
+- **`lint-arquivo`** (depois de editar `.ts/.tsx`): `oxlint` no arquivo.
+- **`verificar-ao-parar`** (Stop): `tsc -b` + `vitest related` se o frontend mudou e
+  `dotnet build` se o backend mudou (pula sem SDK do .NET 10). Falhou → o agente
+  continua para corrigir (até 3 vezes). A suíte completa fica com o revisor e o CI.
+- **`session-start`**: em sessões na nuvem, `npm install` no `frontend/` quando o
+  `package.json`/lock mudam.
+
+**Antes de abrir/atualizar um PR**, chame o subagente **`revisor-regras`**
+(`.claude/agents/`), passando o pedido/critérios de aceite. Ele é somente leitura,
+usa a skill `checklist-regras` (`.claude/skills/`), roda os testes e devolve um
+veredito. Corrija o que ele apontar como violação ou teste faltando.
