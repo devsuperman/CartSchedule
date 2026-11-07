@@ -67,7 +67,7 @@ backend/
       Features/
         Publicadores/
           ConsultarJanela/           # GET  /api/janela
-          ListarCarrinhosDisponiveis/# GET  /api/carrinhos  (id, nome, descricao, dataEspecial — carrinho de data especial só no mês da data —, disponibilidades dia×turno por carrinho, cada uma com ocupacao e cheia na escala-alvo)
+          ListarCarrinhosDisponiveis/# GET  /api/carrinhos  (id, nome, descricao, dataEspecial — carrinho de data especial só no mês da data —, disponibilidades dia×turno por carrinho, cada uma com ocupacao, cheia e nomes — primeiro nome de quem está na vaga, vazio se cheia — na escala-alvo)
           CriarSolicitacao/          # POST /api/solicitacoes  (409 HORARIO_OCUPADO se o publicador já tem pedido no mesmo dia e turno, em qualquer carrinho do mesmo grupo — normais × cada data especial, HorarioOcupado.NoHorario; 400 se o carrinho especial é de outro mês; 409 VAGA_CHEIA com 2 pessoas na vaga: contagem + insert numa transação com pg_advisory_xact_lock(escalaId); o admin não é bloqueado)
           ListarHistorico/           # GET  /api/solicitacoes  (header X-Publicador-Token; carrinhoNome + carrinhoDescricao + carrinhoDataEspecial; sem data/hora do envio na resposta)
           ExcluirSolicitacao/        # DELETE /api/solicitacoes/{id}  (apaga o registro; não há status)

@@ -13,6 +13,7 @@ public record CarrinhoDisponivelResponse(
 
 /// <summary>
 /// `Ocupacao` = pessoas já na vaga na escala-alvo; `Cheia` = o publicador não pode mais pedi-la
-/// (o admin continua podendo adicionar/mover para lá).
+/// (o admin continua podendo adicionar/mover para lá). `Nomes` = primeiro nome de quem já está
+/// na vaga, em ordem de chegada (issue #33); vazio na vaga vazia e na cheia.
 /// </summary>
-public record DisponibilidadeResponse(DiaSemana DiaSemana, int TurnoId, int Ocupacao, bool Cheia);
+public record DisponibilidadeResponse(DiaSemana DiaSemana, int TurnoId, int Ocupacao, bool Cheia, List<string> Nomes);
