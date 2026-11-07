@@ -70,8 +70,8 @@ todas são intencionais, confirmadas no `PLANNING.md`:
    - **Publicador**: vaga com 2 pessoas = cheia (`LotacaoDaVaga`) →
      `POST /api/solicitacoes` recusa com 409 e `codigo: "VAGA_CHEIA"`
      (contagem + insert na mesma transação, com lock por escala). O
-     `GET /api/carrinhos` traz `ocupacao`/`cheia` por vaga; o wizard (dia → turno →
-     carrinho) mostra "1 pessoa nesta vaga" e desabilita o cheio com "Cheio" (vaga
+     `GET /api/carrinhos` traz `ocupacao`/`cheia`/`nomes` (só o primeiro nome, nunca na
+     vaga cheia) por vaga; o wizard (dia → turno → carrinho) mostra "Com: Maria" e desabilita o cheio com "Cheio" (vaga
      vazia sem texto — nada de "Vago"); dia/turno sem vaga livre ficam desabilitados; turno em que ele já tem pedido fica
      desabilitado com "Você já tem pedido neste horário" (regra 4). Contagem
      calculada a cada request: excluir/mover alguém libera a vaga. Quem já

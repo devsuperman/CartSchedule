@@ -17,14 +17,21 @@ import { EtapaCarrinho, type VagaCarrinho } from "./EtapaCarrinho";
 
 /** Contrato de GET /api/carrinhos (TECHNICAL_SPEC.md, tarefas F1-BE-02/F5-BE-01/F6-BE-03):
  * `disponibilidades` são os pares (dia da semana, turno) habilitados no carrinho, com a
- * `ocupacao` atual da vaga na escala-alvo e `cheia` (publicador não pode mais pedi-la).
+ * `ocupacao` atual da vaga na escala-alvo, `cheia` (publicador não pode mais pedi-la) e
+ * `nomes` (primeiro nome de quem já está na vaga; vazio na vaga cheia — issue #33).
  * `dataEspecial` (yyyy-MM-dd) = carrinho de um dia só (PLANNING.md regra 10a). */
 export interface Carrinho {
   id: number;
   nome: string;
   descricao: string | null;
   dataEspecial?: string | null;
-  disponibilidades: { diaSemana: DiaSemana; turnoId: number; ocupacao: number; cheia: boolean }[];
+  disponibilidades: {
+    diaSemana: DiaSemana;
+    turnoId: number;
+    ocupacao: number;
+    cheia: boolean;
+    nomes?: string[];
+  }[];
 }
 
 /** Chave de um horário (dia, turno) num grupo de carrinhos, para o conjunto de horários em que o
@@ -223,6 +230,7 @@ export function SolicitacaoWizard({ mesAlvo }: SolicitacaoWizardProps) {
               carrinho,
               ocupacao: d.ocupacao,
               cheia: d.cheia,
+              nomes: d.nomes ?? [],
               jaTemPedido: jaTemPedidoNoCarrinho(carrinho, horariosOcupados, diaSemana, turnoId),
             },
           ]

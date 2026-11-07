@@ -10,15 +10,18 @@ export interface VagaCarrinho {
   ocupacao: number;
   /** Vaga cheia: o backend recusa novos pedidos de publicador (PLANNING.md regra 3). */
   cheia: boolean;
+  /** Primeiro nome de quem já está na vaga, para o publicador formar a dupla (issue #33). */
+  nomes: readonly string[];
   /** O publicador já tem pedido nesse horário num carrinho do mesmo grupo (PLANNING.md regra 10). */
   jaTemPedido: boolean;
 }
 
-/** "Você já tem pedido…" e "Cheio" justificam o desabilitado; "1 pessoa nesta vaga" ajuda a
- * completar a dupla (a vaga vazia não diz nada). */
-function rotuloOcupacao({ ocupacao, cheia, jaTemPedido }: VagaCarrinho): string | null {
+/** "Você já tem pedido…" e "Cheio" justificam o desabilitado, sem nomes (a vaga não pode ser
+ * escolhida); "Com: Maria" ajuda a completar a dupla (a vaga vazia não diz nada). */
+function rotuloOcupacao({ ocupacao, cheia, nomes, jaTemPedido }: VagaCarrinho): string | null {
   if (jaTemPedido) return "Você já tem pedido neste horário";
   if (cheia) return "Cheio";
+  if (nomes.length > 0) return `Com: ${nomes.join(", ")}`;
   if (ocupacao === 1) return "1 pessoa nesta vaga";
   return null;
 }
@@ -31,8 +34,8 @@ interface EtapaCarrinhoProps {
 
 /** Etapa 3 (última) do wizard: carrinho. Só aparecem os carrinhos ativos (filtro do backend
  * em GET /api/carrinhos) com o turno escolhido configurado no dia escolhido (PLANNING.md
- * regra 17). A vaga cheia fica desabilitada com "Cheio"; a com uma pessoa mostra "1 pessoa
- * nesta vaga"; a vazia, nada. O carrinho de data especial (regra 10a) mostra a data e não
+ * regra 17). A vaga cheia fica desabilitada com "Cheio"; a com uma pessoa mostra o primeiro
+ * nome dela ("Com: Maria"); a vazia, nada. O carrinho de data especial (regra 10a) mostra a data e não
  * conflita com os normais: quem já tem pedido no horário só vê desabilitados, com o aviso, os
  * carrinhos do mesmo grupo. */
 export function EtapaCarrinho({ vagas, valor, onSelecionar }: EtapaCarrinhoProps) {
@@ -92,7 +95,9 @@ export function EtapaCarrinho({ vagas, valor, onSelecionar }: EtapaCarrinhoProps
               )}
             </span>
             {rotuloOcupacao(v) && (
-              <span className="shrink-0 text-sm font-normal opacity-80">{rotuloOcupacao(v)}</span>
+              <span className="min-w-0 shrink-0 break-words text-right text-sm font-normal opacity-80">
+                {rotuloOcupacao(v)}
+              </span>
             )}
           </Button>
         );

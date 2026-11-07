@@ -71,6 +71,22 @@ public class CarrinhoDataEspecialTests(ApiFixture fixture) : ApiTestBase(fixture
     }
 
     [Fact]
+    public async Task EspecialTrazONomeDeQuemEstaNaVaga_SemMisturarComONormal()
+    {
+        var (normal, especial) = await NormalEEspecialNaQuarta0810Async();
+        await SolicitarAsync(Publicador(), especial, Quarta, Turno0810, "Ana Lima");
+        await SolicitarAsync(Publicador(), normal, Quarta, Turno0810, "Bia");
+
+        var carrinhos = await Fixture.Factory.CreateClient().GetFromJsonAsync<JsonElement>("/api/carrinhos");
+        var nomes = carrinhos.EnumerateArray().ToDictionary(
+            c => c.GetProperty("id").GetInt32(),
+            c => c.GetProperty("disponibilidades")[0].GetProperty("nomes").EnumerateArray().Select(n => n.GetString()).ToArray());
+
+        Assert.Equal(["Ana"], nomes[especial]);
+        Assert.Equal(["Bia"], nomes[normal]);
+    }
+
+    [Fact]
     public async Task EspecialDeOutroMes_NaoApareceParaOPublicador_EEhRecusado()
     {
         var admin = await AdminAsync();
