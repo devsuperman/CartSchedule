@@ -116,7 +116,8 @@ public class ListarCarrinhosDisponiveisTests(ApiFixture fixture) : ApiTestBase(f
         await DefinirTurnosAsync(admin, carrinho, (Segunda, Turno0810));
         var token = Guid.NewGuid();
         await SolicitarAsync(Publicador(token), carrinho, Segunda, Turno0810, "Joao Pereira");
-        await admin.PutAsJsonAsync($"/api/admin/publicadores/{token}", new { nome = "Joao Pereira", criancaOuIdoso = true });
+        (await admin.PutAsJsonAsync($"/api/admin/publicadores/{token}", new { nome = "Joao Pereira", criancaOuIdoso = true }))
+            .EnsureSuccessStatusCode();
 
         var json = await Fixture.Factory.CreateClient().GetStringAsync("/api/carrinhos");
 
