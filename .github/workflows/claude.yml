@@ -1,8 +1,11 @@
 name: Claude
 
-# Fluxo de issues: o Claude pergunta primeiro e só implementa após autorização.
-#  - "@claude ..." num comentário (só do dono) → análise / perguntas / implementação
-#  - label "aprovado" na issue → implementação
+# Fluxo de issues: o Claude analisa primeiro e só implementa após autorização
+# (skill /feature: .claude/skills/feature/SKILL.md).
+#  - "@claude ..." num comentário (só do dono) → Fase 1: análise pelo subagente
+#    analista-requisitos, com perguntas e critérios de aceite comentados na issue
+#  - "@claude implementar" ou label "aprovado" → Fase 2: implementa com testes, passa
+#    pelo subagente revisor-regras e publica a branch com o link do PR
 on:
   issue_comment:
     types: [created]
@@ -19,6 +22,7 @@ jobs:
         github.event.label.name == 'aprovado' &&
         github.event.sender.login == 'devsuperman')
     runs-on: ubuntu-latest
+    timeout-minutes: 60
     permissions:
       contents: write
       pull-requests: write
@@ -26,9 +30,27 @@ jobs:
       id-token: write
     steps:
       - uses: actions/checkout@v4
+
+      # Ferramentas para os testes do CLAUDE.md e para os hooks (.claude/hooks):
+      # lint/vitest/tsc no frontend e dotnet build/test no backend (Docker já vem no
+      # runner para o Testcontainers).
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci
+        working-directory: frontend
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
       - uses: anthropics/claude-code-action@v1
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          # Bash fica desligado por padrão na Action: liberamos só build, teste, lint e
+          # git de leitura. Agent/Task = subagentes; Skill = /feature e checklist-regras.
           claude_args: |
-            --max-turns 60
-            --append-system-prompt "Siga a seção 'Fluxo de issues' do .claude/CLAUDE.md."
+            --max-turns 120
+            --allowedTools "Agent,Task,Skill,Bash(cd:*),Bash(npm ci:*),Bash(npm test:*),Bash(npm run lint:*),Bash(npm run build:*),Bash(npx vitest:*),Bash(npx tsc:*),Bash(npx oxlint:*),Bash(dotnet build:*),Bash(dotnet test:*),Bash(node --test:*),Bash(git diff:*),Bash(git log:*),Bash(git show:*),Bash(git status:*),Bash(git fetch:*),Bash(git merge-base:*)"
+            --append-system-prompt "Siga a seção 'Fluxo de issues' do .claude/CLAUDE.md: use a skill feature (.claude/skills/feature/SKILL.md) para esta issue."

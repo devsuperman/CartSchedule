@@ -234,19 +234,26 @@ depender de teste manual no navegador/curl a cada alteração.
 `JWT_CHAVE_SECRETA` — sempre via `.env` (nunca commitado; ver
 `.env.example`), nunca hardcoded em código ou `docker-compose.yml`.
 
-## Fluxo de issues (GitHub Action `claude.yml`)
+## Fluxo de issues (skill `/feature` + GitHub Action `claude.yml`)
 
 O Claude é acionado por `@claude` em comentários de issue (só do dono do
-repo) ou pelo label `aprovado`.
+repo) ou pelo label `aprovado` — ou, numa sessão local, por `/feature #N`.
+O passo a passo está na skill **`feature`** (`.claude/skills/feature/SKILL.md`):
 
-1. **Análise (padrão)**: leia a issue, `PLANNING.md`, `TECHNICAL_SPEC.md` e o
-   código relevante. Comente na issue as dúvidas objetivas (numeradas) e a
-   proposta resumida. **Não altere código nem abra PR** nesta etapa.
+1. **Análise (padrão)**: o subagente **`analista-requisitos`** (somente
+   leitura) lê a issue, o `PLANNING.md`, o `TECHNICAL_SPEC.md` e o código e
+   devolve conflitos, perguntas numeradas, critérios de aceite e plano de
+   testes — que viram o comentário na issue. **Não altere código nem abra PR**
+   nesta etapa.
 2. **Implementação**: só quando o comentário disser "implementar" (ou a issue
-   tiver o label `aprovado`). Crie uma branch, implemente com testes
-   (seção Testes), respeite as regras de negócio acima e abra um PR que
-   referencie a issue (`Closes #N`).
+   tiver o label `aprovado`) **e** já houver análise. Implemente com testes
+   (seção Testes), passe pelo **`revisor-regras`** (até 2 rodadas) e pela
+   checagem de segurança, e publique a branch com o PR referenciando a issue
+   (`Closes #N`). Na Action, ela faz o push e dá o link de criação do PR.
 3. Se o pedido conflitar com o `PLANNING.md`, pergunte em vez de implementar.
+
+Na Action, Bash só roda o que o `--allowedTools` do `claude.yml` libera
+(build, teste, lint, git de leitura); precisou de outro comando, ajuste lá.
 
 ## Hooks e revisor (`.claude/`)
 
