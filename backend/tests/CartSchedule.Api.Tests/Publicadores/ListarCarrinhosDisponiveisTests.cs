@@ -57,5 +57,87 @@ public class ListarCarrinhosDisponiveisTests(ApiFixture fixture) : ApiTestBase(f
         var vaga = carrinhos[0].GetProperty("disponibilidades")[0];
         Assert.Equal(0, vaga.GetProperty("ocupacao").GetInt32());
         Assert.False(vaga.GetProperty("cheia").GetBoolean());
+        Assert.Empty(Nomes(vaga));
+    }
+
+    private static async Task<JsonElement> PrimeiraVagaAsync(HttpClient cliente)
+    {
+        var carrinhos = await cliente.GetFromJsonAsync<JsonElement>("/api/carrinhos");
+        return carrinhos[0].GetProperty("disponibilidades")[0];
+    }
+
+    private static string?[] Nomes(JsonElement vaga) =>
+        vaga.GetProperty("nomes").EnumerateArray().Select(n => n.GetString()).ToArray();
+
+    [Fact]
+    public async Task TrazPrimeiroNomeDeQuemEstaNaVaga()
+    {
+        var admin = await AdminAsync();
+        var carrinho = await CriarCarrinhoAsync(admin);
+        await DefinirTurnosAsync(admin, carrinho, (Segunda, Turno0810));
+        await SolicitarAsync(Publicador(), carrinho, Segunda, Turno0810, "  Maria   da Silva ");
+
+        var vaga = await PrimeiraVagaAsync(Fixture.Factory.CreateClient());
+
+        Assert.Equal(1, vaga.GetProperty("ocupacao").GetInt32());
+        Assert.Equal(["Maria"], Nomes(vaga));
+    }
+
+    [Fact]
+    public async Task VagaVazia_TrazNomesVazio()
+    {
+        var admin = await AdminAsync();
+        var carrinho = await CriarCarrinhoAsync(admin);
+        await DefinirTurnosAsync(admin, carrinho, (Segunda, Turno0810));
+
+        Assert.Empty(Nomes(await PrimeiraVagaAsync(Fixture.Factory.CreateClient())));
+    }
+
+    [Fact]
+    public async Task VagaCheia_NaoExpoeNomes()
+    {
+        var admin = await AdminAsync();
+        var carrinho = await CriarCarrinhoAsync(admin);
+        await DefinirTurnosAsync(admin, carrinho, (Segunda, Turno0810));
+        await SolicitarAsync(Publicador(), carrinho, Segunda, Turno0810, "Ana");
+        await SolicitarAsync(Publicador(), carrinho, Segunda, Turno0810, "Bia");
+
+        var vaga = await PrimeiraVagaAsync(Fixture.Factory.CreateClient());
+
+        Assert.True(vaga.GetProperty("cheia").GetBoolean());
+        Assert.Empty(Nomes(vaga));
+    }
+
+    [Fact]
+    public async Task NaoExpoeIdNemCriancaOuIdoso()
+    {
+        var admin = await AdminAsync();
+        var carrinho = await CriarCarrinhoAsync(admin);
+        await DefinirTurnosAsync(admin, carrinho, (Segunda, Turno0810));
+        var token = Guid.NewGuid();
+        await SolicitarAsync(Publicador(token), carrinho, Segunda, Turno0810, "Joao Pereira");
+        (await admin.PutAsJsonAsync($"/api/admin/publicadores/{token}", new { nome = "Joao Pereira", criancaOuIdoso = true }))
+            .EnsureSuccessStatusCode();
+
+        var json = await Fixture.Factory.CreateClient().GetStringAsync("/api/carrinhos");
+
+        Assert.DoesNotContain(token.ToString(), json, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("Pereira", json);
+        Assert.DoesNotContain("criancaOuIdoso", json, StringComparison.OrdinalIgnoreCase);
+        var vaga = (await PrimeiraVagaAsync(Fixture.Factory.CreateClient())).EnumerateObject().Select(p => p.Name);
+        Assert.Equal(["diaSemana", "turnoId", "ocupacao", "cheia", "nomes"], vaga);
+    }
+
+    [Fact]
+    public async Task NomeRefleteAEdicaoDoAdmin()
+    {
+        var admin = await AdminAsync();
+        var carrinho = await CriarCarrinhoAsync(admin);
+        await DefinirTurnosAsync(admin, carrinho, (Segunda, Turno0810));
+        var token = Guid.NewGuid();
+        await SolicitarAsync(Publicador(token), carrinho, Segunda, Turno0810, "Mari");
+        (await admin.PutAsJsonAsync($"/api/admin/publicadores/{token}", new { nome = "Mariana Souza" })).EnsureSuccessStatusCode();
+
+        Assert.Equal(["Mariana"], Nomes(await PrimeiraVagaAsync(Fixture.Factory.CreateClient())));
     }
 }
