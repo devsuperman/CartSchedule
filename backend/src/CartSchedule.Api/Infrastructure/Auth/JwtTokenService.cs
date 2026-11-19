@@ -6,19 +6,37 @@ using Microsoft.IdentityModel.Tokens;
 
 namespace CartSchedule.Api.Infrastructure.Auth;
 
+/// <summary>Valores do claim de papel (<see cref="ClaimTypes.Role"/>) nos tokens de login.</summary>
+public static class Papeis
+{
+    public const string Publicador = "publicador";
+    public const string Administrador = "administrador";
+
+    /// <summary>Administrador de recuperação: credenciais do servidor, não é um publicador.</summary>
+    public const string Recuperacao = "recuperacao";
+}
+
+/// <summary>Claims próprios dos tokens de publicador.</summary>
+public static class ClaimsDaSessao
+{
+    public const string VersaoSessao = "versaoSessao";
+}
+
 /// <summary>
-/// Emite o JWT curto do administrador após um login bem-sucedido
-/// (TECHNICAL_SPEC.md §2.2 — 2 horas de validade, assinado com HMAC SHA256
-/// usando a chave em Jwt:ChaveSecreta).
+/// Emite o JWT do login (TECHNICAL_SPEC.md §2.2), assinado com HMAC SHA256 usando a chave em
+/// Jwt:ChaveSecreta. Administrador e administrador de recuperação: 2 horas; publicador: 180 dias.
 /// </summary>
 public interface IJwtTokenService
 {
-    string GerarToken(string usuario);
+    string GerarTokenDeRecuperacao(string usuario);
+
+    string GerarTokenDePublicador(Guid publicadorId, string nome, int versaoSessao, bool administrador);
 }
 
 public class JwtTokenService : IJwtTokenService
 {
-    private static readonly TimeSpan DuracaoToken = TimeSpan.FromHours(2);
+    private static readonly TimeSpan DuracaoAdministrador = TimeSpan.FromHours(2);
+    private static readonly TimeSpan DuracaoPublicador = TimeSpan.FromDays(180);
 
     private readonly JwtOptions _jwtOptions;
 
@@ -27,21 +45,30 @@ public class JwtTokenService : IJwtTokenService
         _jwtOptions = jwtOptions.Value;
     }
 
-    public string GerarToken(string usuario)
+    public string GerarTokenDeRecuperacao(string usuario) =>
+        Gerar(
+            [new Claim(ClaimTypes.Name, usuario), new Claim(ClaimTypes.Role, Papeis.Recuperacao)],
+            DuracaoAdministrador);
+
+    public string GerarTokenDePublicador(Guid publicadorId, string nome, int versaoSessao, bool administrador) =>
+        Gerar(
+            [
+                new Claim(ClaimTypes.NameIdentifier, publicadorId.ToString()),
+                new Claim(ClaimTypes.Name, nome),
+                new Claim(ClaimsDaSessao.VersaoSessao, versaoSessao.ToString(), ClaimValueTypes.Integer32),
+                new Claim(ClaimTypes.Role, administrador ? Papeis.Administrador : Papeis.Publicador),
+            ],
+            administrador ? DuracaoAdministrador : DuracaoPublicador);
+
+    private string Gerar(Claim[] claims, TimeSpan duracao)
     {
         var credenciaisAssinatura = new SigningCredentials(
             AuthSigningKey.CriarChave(_jwtOptions.ChaveSecreta),
             SecurityAlgorithms.HmacSha256);
 
-        var claims = new[]
-        {
-            new Claim(ClaimTypes.Name, usuario),
-            new Claim(ClaimTypes.Role, "Administrador"),
-        };
-
         var token = new JwtSecurityToken(
             claims: claims,
-            expires: DateTime.UtcNow.Add(DuracaoToken),
+            expires: DateTime.UtcNow.Add(duracao),
             signingCredentials: credenciaisAssinatura);
 
         return new JwtSecurityTokenHandler().WriteToken(token);

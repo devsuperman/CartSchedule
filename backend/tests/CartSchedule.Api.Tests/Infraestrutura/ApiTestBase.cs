@@ -29,15 +29,34 @@ public abstract class ApiTestBase(ApiFixture fixture) : IAsyncLifetime
     protected async Task<HttpClient> AdminAsync()
     {
         var client = Fixture.Factory.CreateClient();
-        var resposta = await client.PostAsJsonAsync("/api/admin/login", new
-        {
-            usuario = ApiFixture.AdminUsuario,
-            senha = ApiFixture.AdminSenha,
-        });
+        var resposta = await LoginAsync(client, ApiFixture.AdminUsuario, ApiFixture.AdminSenha);
         resposta.EnsureSuccessStatusCode();
-        var token = (await resposta.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("token").GetString();
-        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        return Autenticar(client, await resposta.Content.ReadFromJsonAsync<JsonElement>());
+    }
+
+    /// <summary>POST /api/login — o mesmo endpoint para o administrador de recuperação e os publicadores.</summary>
+    protected static Task<HttpResponseMessage> LoginAsync(HttpClient client, string usuario, string pin) =>
+        client.PostAsJsonAsync("/api/login", new { usuario, pin });
+
+    /// <summary>Cliente novo que manda o token da resposta de login no Authorization.</summary>
+    protected HttpClient ClienteComToken(JsonElement respostaLogin) =>
+        Autenticar(Fixture.Factory.CreateClient(), respostaLogin);
+
+    private static HttpClient Autenticar(HttpClient client, JsonElement respostaLogin)
+    {
+        client.DefaultRequestHeaders.Authorization =
+            new AuthenticationHeaderValue("Bearer", respostaLogin.GetProperty("token").GetString());
         return client;
+    }
+
+    /// <summary>Cria um publicador com conta pela API admin; devolve o id e o PIN gerado.</summary>
+    protected static async Task<(Guid Id, string Pin)> CriarContaAsync(
+        HttpClient admin, string nome, string usuario, bool administrador = false, bool criancaOuIdoso = false)
+    {
+        var resposta = await admin.PostAsJsonAsync("/api/admin/publicadores", new { nome, usuario, criancaOuIdoso, administrador });
+        Assert.Equal(System.Net.HttpStatusCode.Created, resposta.StatusCode);
+        var corpo = await resposta.Content.ReadFromJsonAsync<JsonElement>();
+        return (corpo.GetProperty("id").GetGuid(), corpo.GetProperty("pin").GetString()!);
     }
 
     protected HttpClient Publicador(Guid? token = null)

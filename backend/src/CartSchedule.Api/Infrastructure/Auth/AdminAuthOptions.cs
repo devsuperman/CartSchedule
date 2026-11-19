@@ -1,7 +1,7 @@
 namespace CartSchedule.Api.Infrastructure.Auth;
 
 /// <summary>
-/// Credenciais do único administrador do sistema, vindas da seção de
+/// Credenciais do administrador de recuperação (ADR 0001), vindas da seção de
 /// configuração "Admin" (env vars <c>Admin__Usuario</c> /
 /// <c>Admin__SenhaHash</c> em produção — ver TECHNICAL_SPEC.md §2.2 e
 /// §5.4). A senha nunca é armazenada em texto puro: <see cref="SenhaHash"/>

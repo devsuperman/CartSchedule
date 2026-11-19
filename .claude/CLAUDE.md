@@ -36,8 +36,9 @@ verdade.
 backend/src/CartSchedule.Api/
   Domain/                 # entidades + Enums/
   Infrastructure/          # AppDbContext, Migrations, Auth
-  Shared/                  # JanelaDeEnvio.cs, EscalaHelpers.cs, LotacaoDaVaga.cs, HorarioOcupado.cs, DataEspecial.cs
+  Shared/                  # JanelaDeEnvio.cs, EscalaHelpers.cs, LotacaoDaVaga.cs, HorarioOcupado.cs, DataEspecial.cs, Credenciais.cs (usuário normalizado, PIN)
   Features/
+    Autenticacao/Login/    # POST /api/login (login único)
     Publicadores/<Slice>/  # Endpoint.cs, Request.cs, Response.cs, Validator.cs
     Administradores/<Slice>/
   Program.cs
@@ -45,7 +46,8 @@ backend/src/CartSchedule.Api/
 frontend/src/
   api/                     # client.ts + wrappers por área
   routes/publicador/       # InicioPublicador (histórico + botões), SolicitarEscala, wizard/, Nome, JanelaFechada
-  routes/admin/            # Login, GestaoCarrinhos, EscalaFinal (gestão da escala: mover/adicionar/excluir), EscalaCompartilhar (imagem só leitura do mês, dia → turno → carrinho, + uma por data especial)
+  routes/Login.tsx         # login único (/login): usuário + PIN; /admin/login redireciona
+  routes/admin/            # GestaoCarrinhos, Publicadores (contas: criar, editar, PIN mostrado uma vez), EscalaFinal (gestão da escala: mover/adicionar/excluir), EscalaCompartilhar (imagem só leitura do mês, dia → turno → carrinho, + uma por data especial)
   hooks/                   # usePublicadorToken, useJanela, useAdminAuth
   constants/                # turnos.ts, diasSemana.ts (espelham enums do backend)
 ```
@@ -142,8 +144,11 @@ todas são intencionais, confirmadas no `PLANNING.md`:
 10. **Remover turno de um carrinho (em qualquer dia) / desativar carrinho**: nunca altera ou
     remove `Solicitacao` já existentes — só afeta novas gravações a partir dali, do
     publicador **e do admin** (pedir, adicionar ou mover para carrinho inativo é recusado).
-11. **Um único administrador**, sem múltiplos papéis/permissões — login
-    simples usuário/senha via variáveis de ambiente, JWT curto.
+11. **Administradores** são publicadores marcados como administrador (vários,
+    todos com os mesmos poderes), entrando por `POST /api/login` com usuário + PIN
+    (JWT de 2 h). As credenciais das variáveis de ambiente ficam só como
+    **administrador de recuperação** (ADR 0001). Sem bloqueio de conta: só o rate
+    limit `login` por IP.
 12. **Sem notificações** (e-mail/push) de nenhum tipo.
 13. **Contagem de apoio ao desempate**: ao selecionar uma pessoa na tela da
     Escala, mostrar quantas solicitações (todas as trincas) ela já tem na

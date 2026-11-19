@@ -59,8 +59,8 @@ backend/
         AppDbContext.cs
         Migrations/
         Auth/
-          AdminAuthOptions.cs        # usuário/senha (hash) via configuração
-          JwtTokenService.cs
+          AdminAuthOptions.cs        # usuário/senha (hash) do administrador de recuperação via configuração
+          JwtTokenService.cs         # papéis publicador/administrador/recuperacao (Papeis)
       Infrastructure/RateLimiting/   # limites por IP (ver 2.9)
       Shared/
         JanelaDeEnvio.cs             # mês-alvo pela data (dia 15, horário de Brasília) + se o admin fechou o envio (Escala.EnvioFechado)
@@ -68,6 +68,7 @@ backend/
         LotacaoDaVaga.cs             # limite de 2 (vaga cheia) para o publicador, código VAGA_CHEIA
         HorarioOcupado.cs            # filtro do "um lugar por horário" por grupo (normais × cada data especial), código HORARIO_OCUPADO
         DataEspecial.cs              # dia útil da data, mês da data, "cabe na escala"
+        Credenciais.cs               # UsuarioNormalizado (sem maiúsculas/acentos) e Pin (4 dígitos, gerado sem ser óbvio)
         ValidationFilter.cs          # filtro de endpoint que roda o FluentValidation do Request
       Features/
         Publicadores/
@@ -77,8 +78,9 @@ backend/
           ListarHistorico/           # GET  /api/solicitacoes  (header X-Publicador-Token; carrinhoNome + carrinhoDescricao + carrinhoDataEspecial; sem data/hora do envio na resposta)
           ExcluirSolicitacao/        # DELETE /api/solicitacoes/{id}  (apaga o registro; não há status)
           AtualizarNome/             # PUT    /api/publicador  (header X-Publicador-Token; 204; não cria o publicador se ainda não existe; sem janela)
+        Autenticacao/
+          Login/                    # POST /api/login  ({usuario, pin} → {token, papel}; administrador de recuperação ou publicador; 401 CREDENCIAIS_INVALIDAS; 403 PUBLICADOR_INATIVO)
         Administradores/
-          Login/                    # POST /api/admin/login
           GerenciarCarrinhos/       # GET/POST/PUT /api/admin/carrinhos  (nome, descricao opcional, ativo, dataEspecial opcional Seg–Sex; mudar a data de dia remove os turnos dos outros dias)
           GerenciarTurnosDoCarrinho/# GET/PUT       /api/admin/carrinhos/{id}/turnos (disponibilidades dia×turno; carrinho especial só no dia da semana da data; turnos em si são fixos, ver 2.4)
           RevisarEscala/                 # nome de pasta histórico (a antiga tela "Revisão" não existe mais); não renomear sem necessidade
@@ -87,7 +89,9 @@ backend/
           ObterEscalaFinal/         # GET  /api/admin/escalas/{mes}/grade  (todas as vagas configuradas + células com pedidos; disponivel; por célula: carrinhoDescricao, carrinhoDataEspecial (carrinho especial só no mês da data); por pedido: solicitacaoId, origem, totalNaEscala, criancaOuIdoso; envio: {aberto} só na escala em envio, senão null)
           AlterarEnvioEscala/       # PUT  /api/admin/escalas/{mes}/envio  ({aberto}; 204; 400 se o mês não é a escala em envio; idempotente; cria a escala se preciso)
           MoverSolicitacao/         # PATCH /api/admin/solicitacoes/{id}  ({carrinhoId, diaSemana, turnoId}; 204; 400 destino não configurado; 409 duplicidade; 404; sem janela; vaga com excesso não bloqueia)
-          RenomearPublicador/       # PUT  /api/admin/publicadores/{id}  ({nome, criancaOuIdoso?}; ausente = não muda; 204/404; nomes repetidos permitidos)
+          GerenciarPublicadores/    # GET  /api/admin/publicadores?busca=  (id, nome, usuario, criancaOuIdoso, administrador, ativo, temPin)
+                                    # POST /api/admin/publicadores  ({nome, usuario, criancaOuIdoso, administrador} → 201 {id, usuario, pin}; PIN só nesta resposta)
+                                    # PUT  /api/admin/publicadores/{id}  ({nome?, usuario?, criancaOuIdoso?, administrador?}; ausente = não muda; 204, ou 200 {id, usuario, pin} ao dar usuário a registro sem PIN; 409 USUARIO_EM_USO; nomes repetidos permitidos)
 ```
 
 Cada slice de `Features/` segue o mesmo padrão de arquivos:
@@ -96,13 +100,13 @@ Cada slice de `Features/` segue o mesmo padrão de arquivos:
 - `Validator.cs` — validação de entrada (FluentValidation).
 - Lógica do próprio handler, direto no delegate do endpoint (sem camadas extras).
 
-### 2.2 Autenticação do Administrador
+### 2.2 Autenticação (login único — ADR 0001)
 
-- Login simples com **usuário e senha** (não há múltiplos administradores — apenas uma conta).
-- Credenciais (usuário + hash da senha) definidas via **variáveis de ambiente** no deploy, não em código.
-- Senha armazenada com hash (`PasswordHasher` do ASP.NET Core ou BCrypt), nunca em texto puro.
-- `POST /api/admin/login` valida usuário/senha e retorna um **JWT** válido por **2 horas** (HMAC SHA256, chave em `Jwt:ChaveSecreta`), sem refresh token: expirou, faz login de novo. O frontend guarda o JWT em `sessionStorage` (some ao fechar a aba).
-- Todas as rotas de `Features/Administradores/*` exigem esse token (`[Authorize]` / `RequireAuthorization()` no Minimal API).
+- **Login único** `POST /api/login` (`{ usuario, pin }` → `{ token, papel }`), tela `/login` no frontend (`/admin/login` redireciona para ela).
+- Primeiro confere o **administrador de recuperação**: usuário + hash da senha via **variáveis de ambiente** (`Admin:Usuario`/`Admin:SenhaHash`, hash do `PasswordHasher` do ASP.NET Core), nunca em código; a senha vai no campo `pin`. Senão, procura o **publicador** pelo usuário normalizado (sem maiúsculas e sem acentos, coluna `UsuarioNormalizado` com índice único) e confere o PIN (`PinHash`, mesmo hasher).
+- Usuário inexistente, PIN errado e conta sem PIN → mesma resposta `401` `codigo: "CREDENCIAIS_INVALIDAS"`; conta desativada → `403` `codigo: "PUBLICADOR_INATIVO"`. Sem bloqueio de conta: só o rate limit `login` por IP (2.9).
+- **JWT** HMAC SHA256 (chave em `Jwt:ChaveSecreta`), sem refresh token, com o papel em `ClaimTypes.Role` (`Papeis`): `recuperacao` e `administrador` valem **2 horas**; `publicador` vale 180 dias. Tokens de publicador levam o id e `versaoSessao`. O frontend guarda o JWT de administrador em `sessionStorage` (some ao fechar a aba).
+- Todas as rotas de `Features/Administradores/*` exigem o token (`RequireAuthorization()`), e a política padrão exige o papel `administrador` ou `recuperacao`: o publicador comum recebe `403`.
 - Rotas de `Features/Publicadores/*` continuam públicas (sem autenticação), conforme regra de negócio.
 
 ### 2.3 Identificação do Publicador (sem cadastro formal)
