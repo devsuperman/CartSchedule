@@ -6,7 +6,7 @@ namespace CartSchedule.Api.Features.Publicadores.ConsultarJanela;
 /// <summary>
 /// GET /api/janela — consulta se a janela de envio do publicador está aberta e qual é
 /// o mês-alvo, calculado em tempo real a partir da data do servidor e de o administrador
-/// ter fechado o envio. Sem autenticação (PLANNING.md §4, TASKS.md F1-BE-01, F15-BE-02).
+/// ter fechado o envio. Sem autenticação (PLANNING.md §4).
 /// </summary>
 public static class Endpoint
 {

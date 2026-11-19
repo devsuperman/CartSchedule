@@ -67,7 +67,7 @@ function pedeAtencao(c: CelulaGrade): boolean {
 }
 
 /**
- * Gestão da escala do mês pelo administrador (F13-FE-01, F14-FE-02), pensada para celular e
+ * Gestão da escala do mês pelo administrador, pensada para celular e
  * tablet. Mostra todas as vagas configuradas, inclusive as vazias, coloridas pelo estado
  * (regra 1): verde completa, vermelho com 1 pessoa ou com excesso — sem texto na célula.
  * "Toque para selecionar, toque para colocar": tocar num nome abre a barra de ações no rodapé

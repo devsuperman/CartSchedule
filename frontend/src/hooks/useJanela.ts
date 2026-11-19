@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { apiFetch, ApiError } from "../api/client";
 
-/** Contrato de GET /api/janela (TECHNICAL_SPEC.md §2.5, tarefa F1-BE-01). */
+/** Contrato de GET /api/janela (TECHNICAL_SPEC.md §2.5). */
 export interface JanelaResponse {
   aberta: boolean;
   /** Primeiro dia do mês-alvo (mês seguinte), formato ISO (ex: "2026-10-01"). */

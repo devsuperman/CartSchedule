@@ -7,8 +7,8 @@ namespace CartSchedule.Api.Features.Administradores.ObterEscalaFinal;
 
 /// <summary>
 /// GET /api/admin/escalas/{mes}/grade — grade do mês (Carrinho × Dia × Turno), montada sob
-/// demanda a partir das vagas configuradas e de todas as Solicitacao da escala (TASKS.md
-/// F2-BE-07, F13-BE-02). É a base da tela de gestão da escala do administrador.
+/// demanda a partir das vagas configuradas e de todas as Solicitacao da escala
+/// (TECHNICAL_SPEC.md §2.1). É a base da tela de gestão da escala do administrador.
 /// </summary>
 public static class Endpoint
 {
