@@ -10,6 +10,10 @@ uns nos outros.
 Convenção de ID: `F<fase>-<área>-<número>` (ex: `F1-BE-02`). `BE` = backend,
 `FE` = frontend, `INFRA` = docker/repo.
 
+> **Arquivado.** Este arquivo não recebe mais tarefas: o trabalho novo vive em
+> GitHub Issues (`devsuperman/CartSchedule`), pelo fluxo de skills do Matt Pocock
+> (`docs/agents/issue-tracker.md`). A primeira issue nesse fluxo é a #41.
+>
 > **Este arquivo é um registro cronológico.** Cada fase descreve o sistema
 > como ele era quando ela foi feita, e fases posteriores substituem as
 > anteriores. Não implemente nada a partir de uma fase antiga sem conferir
@@ -708,22 +712,6 @@ limite de área do Safari do iPhone (~16 milhões de pixels).
 ### Verificação da Fase 19
 
 `npm test`, `npm run lint`, `npm run build`; exportar a imagem de um mês cheio no navegador e conferir que lê bem.
-
----
-
-## Fase 20 — Carrinho inativo e data especial passada (pendente)
-
-Regras decididas na revisão de ambiguidades dos docs (PLANNING.md regras 10a e 18,
-TECHNICAL_SPEC.md §2.8/§2.8a); ainda não implementadas.
-
-| ID | Arquivos | Entrega |
-|----|----------|---------|
-| F20-BE-01 | `CriarSolicitacao/`, `RevisarEscala/AdicionarSolicitacaoManual/`, `MoverSolicitacao/` (+ testes) | Carrinho com `Ativo = false` é recusado (400) no envio do publicador, na adição manual e como destino do mover, mesmo com turnos configurados. Excluir e as solicitações existentes não mudam. |
-| F20-BE-02 | `ListarCarrinhosDisponiveis/`, `CriarSolicitacao/` (+ testes) | Carrinho de data especial com a data anterior a hoje (Brasília) não é listado e o envio do publicador é recusado (400); no próprio dia ainda vale. Admin sem esse limite. |
-
-### Verificação da Fase 20
-
-`dotnet test`.
 
 ---
 

@@ -188,7 +188,7 @@ aplicam a **gravar** uma vaga — `CriarSolicitacao`, `AdicionarSolicitacaoManua
 destino de `MoverSolicitacao` (400) —, não são reavaliadas retroativamente sobre as
 existentes. Excluir uma solicitação de carrinho inativo continua permitido.
 
-> **Pendente no código** (regra decidida, ainda não implementada): hoje os três
+> **Pendente no código** (issue #41): hoje os três
 > endpoints só verificam `CarrinhoTurno`, não `Carrinho.Ativo` — um carrinho inativo
 > que ainda tenha turnos configurados é aceito pela API (a UI já o esconde).
 
@@ -198,7 +198,7 @@ existentes. Excluir uma solicitação de carrinho inativo continua permitido.
 cuja `DataEspecial` seja anterior a hoje (horário de Brasília, `JanelaDeEnvio.Hoje`).
 No próprio dia ainda é aceito. Não vale para o administrador (regra 7).
 
-> **Pendente no código** (regra decidida, ainda não implementada): hoje só se
+> **Pendente no código** (issue #41): hoje só se
 > verifica o mês da data (`DataEspecial.CabeNaEscala`).
 
 ### 2.9 Proteção contra abuso (sem login do publicador)
@@ -402,7 +402,7 @@ CartSchedule/
 Roadmap inicial, mantido como registro e alinhado ao roadmap original do
 `PLANNING.md` (seção 10). Cita conceitos que já saíram (cancelamento,
 aprovar/rejeitar, listagem agrupada); o estado atual está nas seções 1–6
-e a sequência real de entregas no `TASKS.md` (Fases 0–19).
+e a sequência de entregas no `TASKS.md` (arquivado, Fases 0–19) e, depois, nas issues do GitHub.
 
 - **Fase 1**: modelo de dados + migrations (incluindo o seed dos 6 turnos fixos); slices do Publicador (janela, carrinhos disponíveis, criar solicitação, histórico, cancelamento); frontend da área do Publicador; `docker-compose` funcional com os 3 serviços.
 - **Fase 2**: autenticação do administrador (login + JWT); slice de gestão de carrinhos e da associação carrinho-turno; slices de revisão de escala (listagem agrupada, exclusão pelo admin — antes da Fase 11, aprovar/rejeitar —, contagem de apoio ao desempate, adição manual); frontend da área do Administrador.

@@ -11,10 +11,13 @@ pessoas por combinação, ou 3 com uma criança/idoso).
 **Leia sempre, nesta ordem, antes de implementar algo:**
 1. [`PLANNING.md`](../docs/PLANNING.md) — regras de negócio (fonte da verdade).
 2. [`TECHNICAL_SPEC.md`](../docs/TECHNICAL_SPEC.md) — arquitetura e decisões técnicas.
-3. [`TASKS.md`](../docs/TASKS.md) — quebra de tarefas para execução paralela.
+3. A **issue do GitHub** da tarefa (fluxo na seção "Fluxo de issues").
 
-Se houver qualquer conflito entre este arquivo e os três acima, os três
-acima vencem — este arquivo é um resumo operacional, não a fonte da
+[`TASKS.md`](../docs/TASKS.md) está **arquivado** (registro das Fases 0–19):
+não recebe tarefas novas; consulte só para entender a história.
+
+Se houver qualquer conflito entre este arquivo e os dois primeiros acima,
+eles vencem — este arquivo é um resumo operacional, não a fonte da
 verdade.
 
 ## Stack
@@ -161,11 +164,9 @@ todas são intencionais, confirmadas no `PLANNING.md`:
   linhas desses arquivos que não sejam suas.
 - Nunca crie um slice de CRUD de `Turno` (turnos são fixos/seed, não
   gerenciáveis) nem endpoints/rotas para Sábado/Domingo.
-- Ao implementar uma tarefa de `TASKS.md`, siga o ID da tarefa no nome do
-  commit (ex: `F1-BE-03: cria slice CriarSolicitacao`) para rastreabilidade.
-- Consulte `TASKS.md` para dependências antes de começar — Fase 0
-  (domínio, `AppDbContext`, scaffolding) precisa estar mergeada antes de
-  qualquer slice de Fase 1/2.
+- Tarefas novas são issues do GitHub; o PR referencia a issue (`Closes #N`).
+  Dependências entre issues usam o "blocked by" nativo do GitHub
+  (`docs/agents/issue-tracker.md`).
 
 ## Comandos
 
