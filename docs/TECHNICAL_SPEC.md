@@ -365,8 +365,10 @@ CartSchedule/
     Dockerfile
   docker-compose.yml
   .env.example
-  PLANNING.md
-  TECHNICAL_SPEC.md
+  docs/
+    PLANNING.md
+    TECHNICAL_SPEC.md
+    TASKS.md
   README.md
 ```
 

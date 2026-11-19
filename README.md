@@ -12,9 +12,9 @@ Este é um projeto **AI Native**: foi especificado e implementado com agentes
 de IA ([Claude Code](https://claude.com/claude-code)) desde o primeiro
 commit, não com IA como ajuda pontual.
 
-- **Especificação como contrato para agentes**: [`PLANNING.md`](./PLANNING.md)
-  (regras de negócio), [`TECHNICAL_SPEC.md`](./TECHNICAL_SPEC.md)
-  (arquitetura) e [`TASKS.md`](./TASKS.md) (tarefas) são a fonte da verdade
+- **Especificação como contrato para agentes**: [`PLANNING.md`](./docs/PLANNING.md)
+  (regras de negócio), [`TECHNICAL_SPEC.md`](./docs/TECHNICAL_SPEC.md)
+  (arquitetura) e [`TASKS.md`](./docs/TASKS.md) (tarefas) são a fonte da verdade
   que os agentes leem antes de implementar.
 - **Tarefas pensadas para execução paralela**: cada fase é quebrada em
   tarefas com arquivos próprios (Vertical Slices no backend, uma tela por
@@ -61,7 +61,7 @@ commit, não com IA como ajuda pontual.
   para o admin) e a vaga cheia no envio do publicador.
 - Sem notificações (e-mail/push) e sem múltiplos administradores.
 
-A fonte da verdade das regras é o [`PLANNING.md`](./PLANNING.md).
+A fonte da verdade das regras é o [`PLANNING.md`](./docs/PLANNING.md).
 
 ## Stack
 
@@ -173,9 +173,9 @@ end-to-end e exportação da escala (backlog).
 
 | Documento | Conteúdo |
 |---|---|
-| [`PLANNING.md`](./PLANNING.md) | Regras de negócio, fluxos, estados e modelo de dados (fonte da verdade) |
-| [`TECHNICAL_SPEC.md`](./TECHNICAL_SPEC.md) | Arquitetura, endpoints, banco e Docker |
-| [`TASKS.md`](./TASKS.md) | Quebra de tarefas para execução paralela por agentes |
+| [`PLANNING.md`](./docs/PLANNING.md) | Regras de negócio, fluxos, estados e modelo de dados (fonte da verdade) |
+| [`TECHNICAL_SPEC.md`](./docs/TECHNICAL_SPEC.md) | Arquitetura, endpoints, banco e Docker |
+| [`TASKS.md`](./docs/TASKS.md) | Quebra de tarefas para execução paralela por agentes |
 | [`.claude/CLAUDE.md`](./.claude/CLAUDE.md) | Resumo operacional para agentes |
 
 Commits seguem o ID da tarefa do `TASKS.md` (ex.: `F1-BE-03: cria slice

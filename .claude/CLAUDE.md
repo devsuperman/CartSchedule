@@ -9,9 +9,9 @@ publicador) e um administrador ajusta/exclui os excedentes (meta de 2
 pessoas por combinação, ou 3 com uma criança/idoso).
 
 **Leia sempre, nesta ordem, antes de implementar algo:**
-1. [`PLANNING.md`](../PLANNING.md) — regras de negócio (fonte da verdade).
-2. [`TECHNICAL_SPEC.md`](../TECHNICAL_SPEC.md) — arquitetura e decisões técnicas.
-3. [`TASKS.md`](../TASKS.md) — quebra de tarefas para execução paralela.
+1. [`PLANNING.md`](../docs/PLANNING.md) — regras de negócio (fonte da verdade).
+2. [`TECHNICAL_SPEC.md`](../docs/TECHNICAL_SPEC.md) — arquitetura e decisões técnicas.
+3. [`TASKS.md`](../docs/TASKS.md) — quebra de tarefas para execução paralela.
 
 Se houver qualquer conflito entre este arquivo e os três acima, os três
 acima vencem — este arquivo é um resumo operacional, não a fonte da
@@ -278,3 +278,17 @@ Regras que **não dependem** de o agente lembrar (`.claude/settings.json` →
 (`.claude/agents/`), passando o pedido/critérios de aceite. Ele é somente leitura,
 usa a skill `checklist-regras` (`.claude/skills/`), roda os testes e devolve um
 veredito. Corrija o que ele apontar como violação ou teste faltando.
+
+## Agent skills
+
+### Issue tracker
+
+Issues live in GitHub Issues (`devsuperman/CartSchedule`, via `gh`). See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+Default names, except ready-for-agent = `aprovado` (the label that triggers `claude.yml`). See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Single-context: `GLOSSARY.md` + `docs/adr/` at the root, read alongside `docs/PLANNING.md` / `docs/TECHNICAL_SPEC.md` (the source of truth). See `docs/agents/domain.md`.
