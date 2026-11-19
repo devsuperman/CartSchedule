@@ -29,7 +29,7 @@ public class RateLimitingTests(ApiFixture fixture) : ApiTestBase(fixture)
     }
 
     private static Task<HttpResponseMessage> LoginErradoAsync(HttpClient client) =>
-        client.PostAsJsonAsync("/api/admin/login", new { usuario = "admin", senha = "errada" }, TestContext.Current.CancellationToken);
+        client.PostAsJsonAsync("/api/login", new { usuario = "admin", pin = "errada" }, TestContext.Current.CancellationToken);
 
     [Fact]
     public async Task LoginAcimaDoLimite_Retorna429ComCodigoERetryAfter()
@@ -59,8 +59,8 @@ public class RateLimitingTests(ApiFixture fixture) : ApiTestBase(fixture)
 
         var outro = ClienteDoIp(host, "198.51.100.7");
         var resposta = await outro.PostAsJsonAsync(
-            "/api/admin/login",
-            new { usuario = ApiFixture.AdminUsuario, senha = ApiFixture.AdminSenha },
+            "/api/login",
+            new { usuario = ApiFixture.AdminUsuario, pin = ApiFixture.AdminSenha },
             TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.OK, resposta.StatusCode);

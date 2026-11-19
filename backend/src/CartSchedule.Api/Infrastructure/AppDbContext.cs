@@ -23,6 +23,9 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
         {
             entity.ToTable("publicadores");
             entity.Property(p => p.Nome).IsRequired().HasMaxLength(200);
+            entity.Property(p => p.Usuario).HasMaxLength(50);
+            entity.Property(p => p.UsuarioNormalizado).HasMaxLength(50);
+            entity.HasIndex(p => p.UsuarioNormalizado).IsUnique();
         });
 
         modelBuilder.Entity<Carrinho>(entity =>

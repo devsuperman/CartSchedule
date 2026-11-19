@@ -1,13 +1,14 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.IdentityModel.Tokens;
 
 namespace CartSchedule.Api.Infrastructure.Auth;
 
 /// <summary>
-/// Wiring de autenticação do administrador. Program.cs chama
+/// Wiring de autenticação (login único de administradores e publicadores, ADR 0001). Program.cs chama
 /// <see cref="AddAdminAuthentication"/> no registro de serviços e
-/// <see cref="UseAdminAuth"/> no pipeline (antes de app.MapLogin() e de
+/// <see cref="UseAdminAuth"/> no pipeline (antes do login e de
 /// qualquer grupo de rotas administrativas com .RequireAuthorization()).
 /// </summary>
 public static class AuthServiceCollectionExtensions
@@ -36,7 +37,12 @@ public static class AuthServiceCollectionExtensions
                 };
             });
 
-        services.AddAuthorization();
+        // Toda rota com .RequireAuthorization() é administrativa: só administrador ou o
+        // administrador de recuperação. O publicador comum, mesmo logado, recebe 403.
+        services.AddAuthorizationBuilder()
+            .SetDefaultPolicy(new AuthorizationPolicyBuilder(JwtBearerDefaults.AuthenticationScheme)
+                .RequireRole(Papeis.Administrador, Papeis.Recuperacao)
+                .Build());
 
         return services;
     }

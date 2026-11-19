@@ -22,7 +22,7 @@ function Saudacao() {
   const { pathname } = useLocation();
   const primeiroNome = nome.trim().split(/\s+/)[0];
 
-  if (!primeiroNome || pathname === "/nome") return null;
+  if (!primeiroNome || pathname === "/nome" || pathname === "/login") return null;
 
   const origem: OrigemNome = { de: pathname };
   return (
@@ -66,6 +66,9 @@ function Navegacao({ admin }: { admin: boolean }) {
       <NavLink to="/admin/carrinhos" className={navLinkClasses}>
         Carrinhos
       </NavLink>
+      <NavLink to="/admin/publicadores" className={navLinkClasses}>
+        Publicadores
+      </NavLink>
       {mes && (
         <NavLink to={`/admin/escalas/${mes}`} className={navLinkClasses}>
           Escala
@@ -78,7 +81,7 @@ function Navegacao({ admin }: { admin: boolean }) {
         className="mb-[0.4rem] ml-auto border border-secondary-foreground/30 text-secondary-foreground/80 hover:bg-secondary-foreground/10 hover:text-secondary-foreground"
         onClick={() => {
           logout();
-          navigate("/admin/login", { replace: true });
+          navigate("/login", { replace: true });
         }}
       >
         Sair
@@ -89,7 +92,7 @@ function Navegacao({ admin }: { admin: boolean }) {
 
 export function Layout({ children }: PropsWithChildren) {
   const { pathname } = useLocation();
-  const admin = pathname.startsWith("/admin") && pathname !== "/admin/login";
+  const admin = pathname.startsWith("/admin");
 
   return (
     <div className="flex min-h-screen flex-col">

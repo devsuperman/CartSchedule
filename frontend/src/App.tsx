@@ -5,8 +5,9 @@ import { ExigeNome } from "./components/ExigeNome";
 import { useJanela } from "./hooks/useJanela";
 import { formatarMes } from "./utils/formatacao";
 import { Card } from "@/components/ui/card";
-import Login from "./routes/admin/Login";
+import Login from "./routes/Login";
 import GestaoCarrinhos from "./routes/admin/GestaoCarrinhos";
+import Publicadores from "./routes/admin/Publicadores";
 import RedirecionaParaEscala from "./routes/admin/RedirecionaParaEscala";
 import EscalaFinal from "./routes/admin/EscalaFinal";
 import EscalaCompartilhar from "./routes/admin/EscalaCompartilhar";
@@ -39,6 +40,16 @@ function AdminHome() {
               <strong className="text-[1.1rem] font-bold text-primary">Carrinhos</strong>
               <span className="text-[0.95rem] font-normal text-muted-foreground">
                 Cadastre carrinhos e escolha os turnos de cada um.
+              </span>
+            </Card>
+          </Link>
+        </li>
+        <li>
+          <Link to="/admin/publicadores" className="block h-full no-underline">
+            <Card className="h-full gap-1 transition-colors hover:border-primary">
+              <strong className="text-[1.1rem] font-bold text-primary">Publicadores</strong>
+              <span className="text-[0.95rem] font-normal text-muted-foreground">
+                Crie contas, dê usuário e PIN e marque administradores.
               </span>
             </Card>
           </Link>
@@ -84,7 +95,8 @@ export default function App() {
               </ExigeNome>
             }
           />
-          <Route path="/admin/login" element={<Login />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/admin/login" element={<Navigate to="/login" replace />} />
           <Route
             path="/admin"
             element={
@@ -98,6 +110,14 @@ export default function App() {
             element={
               <RequireAdminAuth>
                 <GestaoCarrinhos />
+              </RequireAdminAuth>
+            }
+          />
+          <Route
+            path="/admin/publicadores"
+            element={
+              <RequireAdminAuth>
+                <Publicadores />
               </RequireAdminAuth>
             }
           />

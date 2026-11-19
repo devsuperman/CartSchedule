@@ -8,7 +8,7 @@ export function RequireAdminAuth({ children }: { children: ReactElement }): Reac
   const location = useLocation();
 
   if (!estaAutenticado) {
-    return <Navigate to="/admin/login" replace state={{ from: location }} />;
+    return <Navigate to="/login" replace state={{ from: location }} />;
   }
 
   return children;

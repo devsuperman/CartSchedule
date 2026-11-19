@@ -96,6 +96,12 @@ namespace CartSchedule.Api.Infrastructure.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
+                    b.Property<bool>("Administrador")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("Ativo")
+                        .HasColumnType("boolean");
+
                     b.Property<bool>("CriancaOuIdoso")
                         .HasColumnType("boolean");
 
@@ -104,7 +110,24 @@ namespace CartSchedule.Api.Infrastructure.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("character varying(200)");
 
+                    b.Property<string>("PinHash")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Usuario")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("UsuarioNormalizado")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<int>("VersaoSessao")
+                        .HasColumnType("integer");
+
                     b.HasKey("Id");
+
+                    b.HasIndex("UsuarioNormalizado")
+                        .IsUnique();
 
                     b.ToTable("publicadores", (string)null);
                 });
