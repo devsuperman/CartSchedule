@@ -11,8 +11,6 @@ namespace CartSchedule.Api.Shared;
 /// </summary>
 public static class UsuarioNormalizado
 {
-    public const string CodigoUsuarioEmUso = "USUARIO_EM_USO";
-
     public static string De(string usuario)
     {
         var decomposto = usuario.Trim().Normalize(NormalizationForm.FormD);
@@ -35,9 +33,6 @@ public static class UsuarioNormalizado
 /// </summary>
 public static class Pin
 {
-    public static bool FormatoValido(string? pin) =>
-        pin is { Length: 4 } && pin.All(char.IsAsciiDigit);
-
     public static bool EhFraco(string pin)
     {
         var d = pin.Select(c => c - '0').ToArray();

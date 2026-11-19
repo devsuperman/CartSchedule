@@ -17,6 +17,8 @@ namespace CartSchedule.Api.Features.Administradores.GerenciarPublicadores;
 /// </summary>
 public static class Endpoint
 {
+    public const string CodigoUsuarioEmUso = "USUARIO_EM_USO";
+
     public static IEndpointRouteBuilder MapGerenciarPublicadores(this IEndpointRouteBuilder app)
     {
         var group = app.MapGroup("/api/admin/publicadores").RequireAuthorization();
@@ -160,5 +162,5 @@ public static class Endpoint
         Results.Problem(
             title: "Este usuário já está em uso. Escolha outro (ex: MariaS).",
             statusCode: StatusCodes.Status409Conflict,
-            extensions: new Dictionary<string, object?> { ["codigo"] = UsuarioNormalizado.CodigoUsuarioEmUso });
+            extensions: new Dictionary<string, object?> { ["codigo"] = CodigoUsuarioEmUso });
 }

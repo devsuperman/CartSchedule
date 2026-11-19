@@ -36,8 +36,9 @@ verdade.
 backend/src/CartSchedule.Api/
   Domain/                 # entidades + Enums/
   Infrastructure/          # AppDbContext, Migrations, Auth
-  Shared/                  # JanelaDeEnvio.cs, EscalaHelpers.cs, LotacaoDaVaga.cs, HorarioOcupado.cs, DataEspecial.cs
+  Shared/                  # JanelaDeEnvio.cs, EscalaHelpers.cs, LotacaoDaVaga.cs, HorarioOcupado.cs, DataEspecial.cs, Credenciais.cs (usuário normalizado, PIN)
   Features/
+    Autenticacao/Login/    # POST /api/login (login único)
     Publicadores/<Slice>/  # Endpoint.cs, Request.cs, Response.cs, Validator.cs
     Administradores/<Slice>/
   Program.cs
