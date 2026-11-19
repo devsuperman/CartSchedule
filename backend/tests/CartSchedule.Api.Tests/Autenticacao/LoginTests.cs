@@ -29,6 +29,15 @@ public class LoginTests(ApiFixture fixture) : ApiTestBase(fixture)
     }
 
     [Fact]
+    public async Task AdministradorDeRecuperacao_UsuarioIgnoraMaiusculasEEspacos()
+    {
+        var resposta = await LoginAsync(Anonimo(), " ADMIN ", ApiFixture.AdminSenha);
+
+        Assert.Equal(HttpStatusCode.OK, resposta.StatusCode);
+        Assert.Equal("recuperacao", (await JsonAsync(resposta)).GetProperty("papel").GetString());
+    }
+
+    [Fact]
     public async Task PublicadorAdministrador_EntraComUsuarioEPin_EAcessaAAreaAdministrativa()
     {
         var (_, pin) = await CriarContaAsync(await AdminAsync(), "Maria Souza", "maria", administrador: true);

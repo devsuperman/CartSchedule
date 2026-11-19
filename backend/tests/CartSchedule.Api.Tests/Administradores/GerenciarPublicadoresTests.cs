@@ -80,6 +80,7 @@ public class GerenciarPublicadoresTests(ApiFixture fixture) : ApiTestBase(fixtur
     [InlineData("", "maria")]
     [InlineData("Maria", "")]
     [InlineData("Maria", "maria souza")]
+    [InlineData("Maria", "\u0301\u0301")] // só acentos soltos: vazio depois de normalizado
     public async Task Criar_NomeOuUsuarioInvalido_Retorna400(string nome, string usuario)
     {
         var admin = await AdminAsync();

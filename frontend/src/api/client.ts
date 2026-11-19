@@ -31,6 +31,21 @@ function getPublicadorToken(): string | null {
   }
 }
 
+/**
+ * Token de administrador expirado, revogado ou de antes de uma mudança de papéis: a API recusa
+ * (401/403) e a guarda de rota só olha se existe token. Limpa a sessão e volta ao login, em vez
+ * de deixar a tela presa em erros.
+ */
+function encerrarSessaoAdmin(): void {
+  adminToken = null;
+  try {
+    sessionStorage.removeItem(ADMIN_TOKEN_SESSION_KEY);
+  } catch {
+    // sessionStorage indisponível — o token já saiu da memória.
+  }
+  window.location.replace("/login");
+}
+
 export class ApiError extends Error {
   status: number;
   details?: unknown;
@@ -61,6 +76,9 @@ export async function apiFetch<T>(path: string, options: RequestInit = {}): Prom
   const response = await fetch(`${API_BASE_URL}${path}`, { ...options, headers });
 
   if (!response.ok) {
+    if ((response.status === 401 || response.status === 403) && adminToken && path.startsWith("/api/admin/")) {
+      encerrarSessaoAdmin();
+    }
     const problem = await response.json().catch(() => null);
     throw new ApiError(response.status, problem?.title ?? response.statusText, problem);
   }

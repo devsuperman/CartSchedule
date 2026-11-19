@@ -1,3 +1,4 @@
+using CartSchedule.Api.Shared;
 using FluentValidation;
 
 namespace CartSchedule.Api.Features.Administradores.GerenciarPublicadores;
@@ -10,7 +11,11 @@ internal static class RegrasDoUsuario
     public static bool Valido(string? usuario)
     {
         var limpo = usuario?.Trim();
-        return !string.IsNullOrEmpty(limpo) && limpo.Length <= TamanhoMaximo && !limpo.Any(char.IsWhiteSpace);
+        return !string.IsNullOrEmpty(limpo)
+            && limpo.Length <= TamanhoMaximo
+            && !limpo.Any(char.IsWhiteSpace)
+            // Só acentos soltos viram "" depois de normalizado (Shared/Credenciais.cs).
+            && UsuarioNormalizado.De(limpo) != string.Empty;
     }
 
     public const string Mensagem = "Usuário obrigatório, sem espaços, com até 50 caracteres.";
