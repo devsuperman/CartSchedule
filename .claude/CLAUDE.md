@@ -248,24 +248,10 @@ Tudo numa sessão local do Claude Code (sem GitHub Action):
 
 Se o pedido conflitar com o `docs/PLANNING.md`, pergunte em vez de implementar.
 
-## Hooks (`.claude/`)
+## Git
 
-Regras que **não dependem** de o agente lembrar (`.claude/settings.json` →
-`.claude/hooks/`, lógica testada com `node --test .claude/hooks/test/*.test.mjs`):
-
-- **`guarda-edicao`** (antes de Edit/Write): bloqueia gravar `.env` e termos
-  Sábado/Domingo ou de status de aprovação (Pendente/Aprovada/Rejeitada/
-  `StatusSolicitacao`) em código de `backend/src` e `frontend/src` (comentários,
-  testes e migrations ficam de fora). Bloqueou? A regra é intencional: pergunte ao
-  usuário em vez de contornar.
-- **`guarda-git`** (antes de Bash): bloqueia `git push` para a `main` (vai a produção
-  pelo `deploy.yml`) e `push --force` (use `--force-with-lease` na própria branch).
-- **`lint-arquivo`** (depois de editar `.ts/.tsx`): `oxlint` no arquivo.
-- **`verificar-ao-parar`** (Stop): `tsc -b` + `vitest related` se o frontend mudou e
-  `dotnet build` se o backend mudou (pula sem SDK do .NET 10). Falhou → o agente
-  continua para corrigir (até 3 vezes). A suíte completa fica com o CI.
-- **`session-start`**: em sessões na nuvem, `npm install` no `frontend/` quando o
-  `package.json`/lock mudam.
+A `main` vai a produção a cada merge (`deploy.yml`) e é protegida por um ruleset no
+GitHub (só via PR, sem force push). Nunca faça commit na `main`: crie uma branch.
 
 ## Agent skills
 
