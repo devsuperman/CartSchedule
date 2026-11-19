@@ -11,10 +11,13 @@ pessoas por combinação, ou 3 com uma criança/idoso).
 **Leia sempre, nesta ordem, antes de implementar algo:**
 1. [`PLANNING.md`](../docs/PLANNING.md) — regras de negócio (fonte da verdade).
 2. [`TECHNICAL_SPEC.md`](../docs/TECHNICAL_SPEC.md) — arquitetura e decisões técnicas.
-3. [`TASKS.md`](../docs/TASKS.md) — quebra de tarefas para execução paralela.
+3. A **issue do GitHub** da tarefa (fluxo na seção "Fluxo de issues").
 
-Se houver qualquer conflito entre este arquivo e os três acima, os três
-acima vencem — este arquivo é um resumo operacional, não a fonte da
+[`TASKS.md`](../docs/TASKS.md) está **arquivado** (registro das Fases 0–19):
+não recebe tarefas novas; consulte só para entender a história.
+
+Se houver qualquer conflito entre este arquivo e os dois primeiros acima,
+eles vencem — este arquivo é um resumo operacional, não a fonte da
 verdade.
 
 ## Stack
@@ -36,7 +39,7 @@ verdade.
 backend/src/CartSchedule.Api/
   Domain/                 # entidades + Enums/
   Infrastructure/          # AppDbContext, Migrations, Auth
-  Shared/                  # JanelaDeEnvio.cs, EscalaHelpers.cs, LotacaoDaVaga.cs, HorarioOcupado.cs
+  Shared/                  # JanelaDeEnvio.cs, EscalaHelpers.cs, LotacaoDaVaga.cs, HorarioOcupado.cs, DataEspecial.cs
   Features/
     Publicadores/<Slice>/  # Endpoint.cs, Request.cs, Response.cs, Validator.cs
     Administradores/<Slice>/
@@ -44,7 +47,7 @@ backend/src/CartSchedule.Api/
 
 frontend/src/
   api/                     # client.ts + wrappers por área
-  routes/publicador/       # NovaSolicitacao, Historico, JanelaFechada
+  routes/publicador/       # InicioPublicador (histórico + botões), SolicitarEscala, wizard/, Nome, JanelaFechada
   routes/admin/            # Login, GestaoCarrinhos, EscalaFinal (gestão da escala: mover/adicionar/excluir), EscalaCompartilhar (imagem só leitura do mês, dia → turno → carrinho, + uma por data especial)
   hooks/                   # usePublicadorToken, useJanela, useAdminAuth
   constants/                # turnos.ts, diasSemana.ts (espelham enums do backend)
@@ -93,14 +96,16 @@ todas são intencionais, confirmadas no `PLANNING.md`:
 4a. **Carrinho de data especial** (escala de um dia só, PLANNING.md regra 10a):
    `Carrinho.DataEspecial` (Seg–Sex) — turnos só no dia da semana da data, aparece só
    na escala do mês da data, "Somente em dd/mm" na UI. Para o horário ocupado, normais
-   e cada data especial são grupos separados (`HorarioOcupado.NoHorario`): pedir o
-   especial não ocupa o horário da escala semanal, nem o contrário.
+   e cada data especial são grupos separados (`HorarioOcupado.NoHorario`, pelo
+   `Solicitacao.DataEspecial` gravado no pedido): pedir o especial não ocupa o horário da
+   escala semanal, nem o contrário. O publicador só pede até a própria data (admin sem limite).
 5. **Sem cadastro/login para o publicador.** Identificação via token
    anônimo (GUID) gerado no frontend e salvo em `localStorage`, enviado no
    header `X-Publicador-Token`. Nome é um campo livre, pedido no primeiro
    acesso (rota `/nome`, guarda `ExigeNome`) e fora do wizard; editável
    pelo publicador ("Olá, Fulano" → `PUT /api/publicador`) e pelo admin
-   (`PUT /api/admin/publicadores/{id}`). Nomes repetidos são permitidos.
+   (`PUT /api/admin/publicadores/{id}`). Nomes repetidos são permitidos. O nome do aparelho
+   vai em cada pedido e sobrescreve uma correção do admin (consequência aceita).
 6. **Janela de envio: abre sozinha no dia 15, só o admin fecha**, sem
    job/cron: calculada a cada request (`JanelaDeEnvio`). Escala-alvo = a
    aberta no último dia 15 (dia ≥ 15 → mês seguinte; dia 1–14 → mês
@@ -138,7 +143,8 @@ todas são intencionais, confirmadas no `PLANNING.md`:
     último recurso) fica na tela da Escala (`/admin/escalas/:mes`), feita para
     toque em celular/tablet; não há mais telas Revisão/Adicionar.
 10. **Remover turno de um carrinho (em qualquer dia) / desativar carrinho**: nunca altera ou
-    remove `Solicitacao` já existentes — só afeta novos envios a partir dali.
+    remove `Solicitacao` já existentes — só afeta novas gravações a partir dali, do
+    publicador **e do admin** (pedir, adicionar ou mover para carrinho inativo é recusado).
 11. **Um único administrador**, sem múltiplos papéis/permissões — login
     simples usuário/senha via variáveis de ambiente, JWT curto.
 12. **Sem notificações** (e-mail/push) de nenhum tipo.
@@ -158,11 +164,9 @@ todas são intencionais, confirmadas no `PLANNING.md`:
   linhas desses arquivos que não sejam suas.
 - Nunca crie um slice de CRUD de `Turno` (turnos são fixos/seed, não
   gerenciáveis) nem endpoints/rotas para Sábado/Domingo.
-- Ao implementar uma tarefa de `TASKS.md`, siga o ID da tarefa no nome do
-  commit (ex: `F1-BE-03: cria slice CriarSolicitacao`) para rastreabilidade.
-- Consulte `TASKS.md` para dependências antes de começar — Fase 0
-  (domínio, `AppDbContext`, scaffolding) precisa estar mergeada antes de
-  qualquer slice de Fase 1/2.
+- Tarefas novas são issues do GitHub; o PR referencia a issue (`Closes #N`).
+  Dependências entre issues usam o "blocked by" nativo do GitHub
+  (`docs/agents/issue-tracker.md`).
 
 ## Comandos
 

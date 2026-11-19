@@ -14,12 +14,13 @@ commit, não com IA como ajuda pontual.
 
 - **Especificação como contrato para agentes**: [`PLANNING.md`](./docs/PLANNING.md)
   (regras de negócio), [`TECHNICAL_SPEC.md`](./docs/TECHNICAL_SPEC.md)
-  (arquitetura) e [`TASKS.md`](./docs/TASKS.md) (tarefas) são a fonte da verdade
-  que os agentes leem antes de implementar.
+  (arquitetura) são a fonte da verdade
+  que os agentes leem antes de implementar; as tarefas vivem em GitHub Issues.
 - **Tarefas pensadas para execução paralela**: cada fase é quebrada em
   tarefas com arquivos próprios (Vertical Slices no backend, uma tela por
   arquivo no frontend), para vários agentes trabalharem ao mesmo tempo sem
-  conflito. Cada commit leva o ID da tarefa.
+  conflito. O histórico das Fases 0–19 está em [`TASKS.md`](./docs/TASKS.md)
+  (arquivado); o trabalho novo é feito por issues.
 - **Contexto operacional versionado**: [`.claude/CLAUDE.md`](./.claude/CLAUDE.md)
   resume stack, convenções e as regras que não podem ser quebradas.
 - **Testes automatizados como verificação**: toda mudança de regra ou de tela
@@ -175,8 +176,7 @@ end-to-end e exportação da escala (backlog).
 |---|---|
 | [`PLANNING.md`](./docs/PLANNING.md) | Regras de negócio, fluxos, estados e modelo de dados (fonte da verdade) |
 | [`TECHNICAL_SPEC.md`](./docs/TECHNICAL_SPEC.md) | Arquitetura, endpoints, banco e Docker |
-| [`TASKS.md`](./docs/TASKS.md) | Quebra de tarefas para execução paralela por agentes |
+| [`TASKS.md`](./docs/TASKS.md) | Arquivado: histórico das Fases 0–19 (tarefas novas em GitHub Issues) |
 | [`.claude/CLAUDE.md`](./.claude/CLAUDE.md) | Resumo operacional para agentes |
 
-Commits seguem o ID da tarefa do `TASKS.md` (ex.: `F1-BE-03: cria slice
-CriarSolicitacao`).
+Tarefas novas são GitHub Issues; o PR referencia a issue (`Closes #N`).
