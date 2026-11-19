@@ -1,8 +1,9 @@
-import type { PropsWithChildren } from "react";
+import { useEffect, useRef, useState, type PropsWithChildren } from "react";
 import { Link, NavLink, useLocation, useNavigate } from "react-router-dom";
-import { PencilIcon } from "lucide-react";
+import { MenuIcon, PencilIcon, XIcon } from "lucide-react";
 import { useAdminAuth } from "../hooks/useAdminAuth";
 import { useJanela } from "../hooks/useJanela";
+import { useTelaLarga } from "../hooks/useTelaLarga";
 import { usePublicadorToken } from "../hooks/usePublicadorToken";
 import type { OrigemNome } from "../routes/publicador/Nome";
 import { Button } from "@/components/ui/button";
@@ -38,12 +39,13 @@ function Saudacao() {
   );
 }
 
-function Navegacao({ admin }: { admin: boolean }) {
-  const { janela } = useJanela();
-  const { logout } = useAdminAuth();
-  const navigate = useNavigate();
-  const mes = janela?.mesAlvo.slice(0, 7);
+interface LinkAdmin {
+  to: string;
+  rotulo: string;
+  end?: boolean;
+}
 
+function Navegacao({ admin }: { admin: boolean }) {
   // O publicador não tem menu: todas as telas dele já levam de volta ao início, e o título
   // "Escala TPL" também é um link para lá.
   if (!admin) {
@@ -55,38 +57,119 @@ function Navegacao({ admin }: { admin: boolean }) {
     );
   }
 
+  return <NavegacaoAdmin />;
+}
+
+/**
+ * Menu do administrador. No tablet/computador os links ficam à vista no cabeçalho; no celular
+ * ficam atrás do botão "Menu", um por linha (alvos de toque grandes), com "Sair" por último.
+ */
+function NavegacaoAdmin() {
+  const telaLarga = useTelaLarga();
+  const { janela } = useJanela();
+  const { logout } = useAdminAuth();
+  const navigate = useNavigate();
+  const mes = janela?.mesAlvo.slice(0, 7);
+
+  const links: LinkAdmin[] = [
+    { to: "/admin", rotulo: "Início", end: true },
+    { to: "/admin/carrinhos", rotulo: "Carrinhos" },
+    { to: "/admin/publicadores", rotulo: "Publicadores" },
+    ...(mes ? [{ to: `/admin/escalas/${mes}`, rotulo: "Escala" }] : []),
+  ];
+
+  function sair() {
+    logout();
+    navigate("/login", { replace: true });
+  }
+
+  if (!telaLarga) {
+    return <MenuCelular links={links} onSair={sair} />;
+  }
+
   return (
-    <nav
-      className="flex flex-1 flex-wrap items-end gap-1"
-      aria-label="Administração"
-    >
-      <NavLink to="/admin" end className={navLinkClasses}>
-        Início
-      </NavLink>
-      <NavLink to="/admin/carrinhos" className={navLinkClasses}>
-        Carrinhos
-      </NavLink>
-      <NavLink to="/admin/publicadores" className={navLinkClasses}>
-        Publicadores
-      </NavLink>
-      {mes && (
-        <NavLink to={`/admin/escalas/${mes}`} className={navLinkClasses}>
-          Escala
+    <nav className="flex flex-1 flex-wrap items-end gap-1" aria-label="Administração">
+      {links.map((link) => (
+        <NavLink key={link.to} to={link.to} end={link.end} className={navLinkClasses}>
+          {link.rotulo}
         </NavLink>
-      )}
+      ))}
       <Button
         type="button"
         variant="ghost"
         size="sm"
         className="mb-[0.4rem] ml-auto border border-secondary-foreground/30 text-secondary-foreground/80 hover:bg-secondary-foreground/10 hover:text-secondary-foreground"
-        onClick={() => {
-          logout();
-          navigate("/login", { replace: true });
-        }}
+        onClick={sair}
       >
         Sair
       </Button>
     </nav>
+  );
+}
+
+function menuLinkClasses({ isActive }: { isActive: boolean }) {
+  return cn(
+    "flex min-h-12 items-center rounded-md border-l-[3px] border-transparent px-3 text-[1rem] font-semibold text-secondary-foreground/80 no-underline hover:bg-secondary-foreground/10 hover:text-secondary-foreground focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent",
+    isActive && "border-accent bg-secondary-foreground/10 text-secondary-foreground",
+  );
+}
+
+function MenuCelular({ links, onSair }: { links: LinkAdmin[]; onSair: () => void }) {
+  const [aberto, setAberto] = useState(false);
+  const botao = useRef<HTMLButtonElement>(null);
+
+  // Esc fecha e devolve o foco ao botão (teclado externo / leitor de tela).
+  useEffect(() => {
+    if (!aberto) return;
+    function aoTeclar(evento: KeyboardEvent) {
+      if (evento.key === "Escape") {
+        setAberto(false);
+        botao.current?.focus();
+      }
+    }
+    document.addEventListener("keydown", aoTeclar);
+    return () => document.removeEventListener("keydown", aoTeclar);
+  }, [aberto]);
+
+  return (
+    <>
+      <Button
+        ref={botao}
+        type="button"
+        variant="ghost"
+        size="icon"
+        aria-label="Menu"
+        aria-expanded={aberto}
+        aria-controls="menu-administracao"
+        className="mb-[0.55rem] ml-auto border [&_svg]:size-6 border-secondary-foreground/30 text-secondary-foreground/90 hover:bg-secondary-foreground/10 hover:text-secondary-foreground"
+        onClick={() => setAberto((atual) => !atual)}
+      >
+        {aberto ? <XIcon aria-hidden /> : <MenuIcon aria-hidden />}
+      </Button>
+      {aberto && (
+        // basis-full: o menu ocupa uma linha inteira abaixo do título e do botão.
+        <nav id="menu-administracao" aria-label="Administração" className="basis-full pb-3">
+          <ul className="flex list-none flex-col gap-1 p-0">
+            {links.map((link) => (
+              <li key={link.to}>
+                <NavLink to={link.to} end={link.end} className={menuLinkClasses} onClick={() => setAberto(false)}>
+                  {link.rotulo}
+                </NavLink>
+              </li>
+            ))}
+            <li className="mt-2 border-t border-secondary-foreground/20 pt-2">
+              <button
+                type="button"
+                className="flex min-h-12 w-full items-center rounded-md px-3 text-left text-[1rem] font-semibold text-secondary-foreground/80 hover:bg-secondary-foreground/10 hover:text-secondary-foreground focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent"
+                onClick={onSair}
+              >
+                Sair
+              </button>
+            </li>
+          </ul>
+        </nav>
+      )}
+    </>
   );
 }
 
