@@ -13,9 +13,6 @@ pessoas por combinação, ou 3 com uma criança/idoso).
 2. [`TECHNICAL_SPEC.md`](../docs/TECHNICAL_SPEC.md) — arquitetura e decisões técnicas.
 3. A **issue do GitHub** da tarefa (fluxo na seção "Fluxo de issues").
 
-[`TASKS.md`](../docs/TASKS.md) está **arquivado** (registro das Fases 0–19):
-não recebe tarefas novas; consulte só para entender a história.
-
 Se houver qualquer conflito entre este arquivo e os dois primeiros acima,
 eles vencem — este arquivo é um resumo operacional, não a fonte da
 verdade.

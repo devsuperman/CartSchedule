@@ -81,7 +81,7 @@ backend/
           Login/                    # POST /api/admin/login
           GerenciarCarrinhos/       # GET/POST/PUT /api/admin/carrinhos  (nome, descricao opcional, ativo, dataEspecial opcional Seg–Sex; mudar a data de dia remove os turnos dos outros dias)
           GerenciarTurnosDoCarrinho/# GET/PUT       /api/admin/carrinhos/{id}/turnos (disponibilidades dia×turno; carrinho especial só no dia da semana da data; turnos em si são fixos, ver 2.4)
-          RevisarEscala/                 # nome de pasta histórico (a tela "Revisão" saiu na Fase 13); não renomear sem necessidade
+          RevisarEscala/                 # nome de pasta histórico (a antiga tela "Revisão" não existe mais); não renomear sem necessidade
             ExcluirSolicitacao/          # DELETE /api/admin/solicitacoes/{id}  (sem aprovação: o admin exclui; 204/404, sem janela)
             AdicionarSolicitacaoManual/  # POST /api/admin/escalas/{mes}/solicitacoes  ({nome, carrinhoId, diaSemana, turnoId, criancaOuIdoso?}; true marca a pessoa, nunca desmarca)
           ObterEscalaFinal/         # GET  /api/admin/escalas/{mes}/grade  (todas as vagas configuradas + células com pedidos; disponivel; por célula: carrinhoDescricao, carrinhoDataEspecial (carrinho especial só no mês da data); por pedido: solicitacaoId, origem, totalNaEscala, criancaOuIdoso; envio: {aberto} só na escala em envio, senão null)
@@ -295,7 +295,7 @@ Tabelas espelhando o modelo de dados do `PLANNING.md` (seção 9):
 | `turnos` | `id`, `hora_inicio`, `hora_fim` — **tabela com dado fixo (seed)**, sempre as mesmas 6 linhas, sem endpoint de criação/edição |
 | `carrinho_turnos` | `carrinho_id`, `dia_semana`, `turno_id` (PK composta) |
 | `escalas` | `id`, `mes_referencia` (ex: `2026-10-01`, primeiro dia do mês; na URL da API, `yyyy-MM`), `envio_fechado` (bool, padrão `false`) |
-| `solicitacoes` | `id`, `publicador_id`, `escala_id`, `carrinho_id`, `dia_semana`, `turno_id`, `data_especial` (cópia da do carrinho ao gravar/mover), `origem`, `criado_em` — sem `status`: toda solicitação existente conta na escala (Fase 11 removeu `status`/`decidido_em`) |
+| `solicitacoes` | `id`, `publicador_id`, `escala_id`, `carrinho_id`, `dia_semana`, `turno_id`, `data_especial` (cópia da do carrinho ao gravar/mover), `origem`, `criado_em` — sem `status`: toda solicitação existente conta na escala (as colunas `status`/`decidido_em` foram removidas) |
 
 Índices/constraints relevantes:
 - Único: `(publicador_id, escala_id, carrinho_id, dia_semana, turno_id)` em `solicitacoes` (regra 10 — bloqueio de duplicidade). O "um lugar por horário" `(publicador, escala, dia, turno)` não tem índice: só o envio do publicador barra (no código, sob o mesmo lock da vaga cheia); o admin pode, com aviso.
@@ -393,18 +393,7 @@ CartSchedule/
   docs/
     PLANNING.md
     TECHNICAL_SPEC.md
-    TASKS.md
+    agents/                       # configuração das skills (issues, labels, domínio)
   README.md
 ```
 
-## 7. Roadmap Técnico (histórico)
-
-Roadmap inicial, mantido como registro e alinhado ao roadmap original do
-`PLANNING.md` (seção 10). Cita conceitos que já saíram (cancelamento,
-aprovar/rejeitar, listagem agrupada); o estado atual está nas seções 1–6
-e a sequência de entregas no `TASKS.md` (arquivado, Fases 0–19) e, depois, nas issues do GitHub.
-
-- **Fase 1**: modelo de dados + migrations (incluindo o seed dos 6 turnos fixos); slices do Publicador (janela, carrinhos disponíveis, criar solicitação, histórico, cancelamento); frontend da área do Publicador; `docker-compose` funcional com os 3 serviços.
-- **Fase 2**: autenticação do administrador (login + JWT); slice de gestão de carrinhos e da associação carrinho-turno; slices de revisão de escala (listagem agrupada, exclusão pelo admin — antes da Fase 11, aprovar/rejeitar —, contagem de apoio ao desempate, adição manual); frontend da área do Administrador.
-- **Fase 3**: slice e tela da escala mensal final (grade Carrinho × Dia × Turno).
-- **Fase 4 (opcional, futura)**: exportação da escala (PDF/Excel), relatórios de escalas passadas.

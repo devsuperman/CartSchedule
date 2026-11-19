@@ -13,7 +13,7 @@ import { formatarDataCurta } from "../../utils/formatacao";
 
 /**
  * Contrato de GET/POST/PUT /api/admin/carrinhos e GET/PUT /api/admin/carrinhos/{id}/turnos
- * (TECHNICAL_SPEC.md §2.1/§2.4, tarefas F2-BE-02/F2-BE-03/F5-BE-01/F6-BE-02). `disponibilidades`
+ * (TECHNICAL_SPEC.md §2.1/§2.4). `disponibilidades`
  * no carrinho (pares dia da semana × turno) é só uma conveniência de leitura — sempre
  * re-sincronizada após uma alteração. `descricao` é opcional (o backend grava texto em
  * branco como null). `dataEspecial` (yyyy-MM-dd) = carrinho de um dia só (PLANNING.md regra

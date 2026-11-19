@@ -1,6 +1,6 @@
 import { formatarDia, formatarTurno } from "../../../utils/formatacao";
 
-/** Contrato de GET /api/admin/escalas/{mes}/grade (TECHNICAL_SPEC.md, F2-BE-07 / F13-BE-02). */
+/** Contrato de GET /api/admin/escalas/{mes}/grade (TECHNICAL_SPEC.md §2.1). */
 export interface PedidoGrade {
   solicitacaoId: number;
   publicadorId: string;

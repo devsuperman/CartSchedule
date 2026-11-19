@@ -15,7 +15,7 @@ import { EtapaDiaSemana, type OpcaoDia } from "./EtapaDiaSemana";
 import { EtapaTurno, type OpcaoTurno } from "./EtapaTurno";
 import { EtapaCarrinho, type VagaCarrinho } from "./EtapaCarrinho";
 
-/** Contrato de GET /api/carrinhos (TECHNICAL_SPEC.md, tarefas F1-BE-02/F5-BE-01/F6-BE-03):
+/** Contrato de GET /api/carrinhos (TECHNICAL_SPEC.md §2.1/§2.4):
  * `disponibilidades` são os pares (dia da semana, turno) habilitados no carrinho, com a
  * `ocupacao` atual da vaga na escala-alvo, `cheia` (publicador não pode mais pedi-la) e
  * `nomes` (primeiro nome de quem já está na vaga; vazio na vaga cheia — issue #33).
@@ -103,7 +103,7 @@ function ehErroComCodigo(err: unknown, codigo: string): boolean {
   return err instanceof ApiError && (err.details as { codigo?: string } | null | undefined)?.codigo === codigo;
 }
 
-/** Contrato de POST /api/solicitacoes (TECHNICAL_SPEC.md, tarefa F1-BE-03). */
+/** Contrato de POST /api/solicitacoes (TECHNICAL_SPEC.md §2.1). */
 interface SolicitacaoCriadaResponse {
   id: number;
   carrinhoId: number;

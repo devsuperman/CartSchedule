@@ -16,11 +16,10 @@ commit, não com IA como ajuda pontual.
   (regras de negócio), [`TECHNICAL_SPEC.md`](./docs/TECHNICAL_SPEC.md)
   (arquitetura) são a fonte da verdade
   que os agentes leem antes de implementar; as tarefas vivem em GitHub Issues.
-- **Tarefas pensadas para execução paralela**: cada fase é quebrada em
+- **Tarefas pensadas para execução paralela**: cada issue é quebrada em
   tarefas com arquivos próprios (Vertical Slices no backend, uma tela por
   arquivo no frontend), para vários agentes trabalharem ao mesmo tempo sem
-  conflito. O histórico das Fases 0–19 está em [`TASKS.md`](./docs/TASKS.md)
-  (arquivado); o trabalho novo é feito por issues.
+  conflito.
 - **Contexto operacional versionado**: [`.claude/CLAUDE.md`](./.claude/CLAUDE.md)
   resume stack, convenções e as regras que não podem ser quebradas.
 - **Testes automatizados como verificação**: toda mudança de regra ou de tela
@@ -166,9 +165,10 @@ usando `docker-compose.prod.yml`. Passo a passo em
 
 ## Status
 
-Implementados (Fases 0, 1 e 2): fundação, fluxo do publicador, painel do
-administrador e escala final. Docker (Fase 4) configurado. Pendentes: smoke test
-end-to-end e exportação da escala (backlog).
+Em produção: fluxo do publicador, gestão da escala pelo administrador,
+imagem para o WhatsApp e deploy automático. Trabalho aberto em
+[GitHub Issues](https://github.com/devsuperman/CartSchedule/issues); ideias
+futuras em `PLANNING.md` §10.
 
 ## Documentação
 
@@ -176,7 +176,6 @@ end-to-end e exportação da escala (backlog).
 |---|---|
 | [`PLANNING.md`](./docs/PLANNING.md) | Regras de negócio, fluxos, estados e modelo de dados (fonte da verdade) |
 | [`TECHNICAL_SPEC.md`](./docs/TECHNICAL_SPEC.md) | Arquitetura, endpoints, banco e Docker |
-| [`TASKS.md`](./docs/TASKS.md) | Arquivado: histórico das Fases 0–19 (tarefas novas em GitHub Issues) |
 | [`.claude/CLAUDE.md`](./.claude/CLAUDE.md) | Resumo operacional para agentes |
 
 Tarefas novas são GitHub Issues; o PR referencia a issue (`Closes #N`).

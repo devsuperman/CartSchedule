@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
-/** Contrato de POST /api/admin/login (TECHNICAL_SPEC.md §2.2, tarefa F2-BE-01). */
+/** Contrato de POST /api/admin/login (TECHNICAL_SPEC.md §2.2). */
 interface LoginResponse {
   token: string;
 }

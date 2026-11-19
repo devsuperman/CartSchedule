@@ -8,7 +8,7 @@ namespace CartSchedule.Api.Features.Publicadores.ListarCarrinhosDisponiveis;
 /// GET /api/carrinhos — lista os carrinhos ativos (nome, descrição) e as disponibilidades
 /// (dia da semana × turno) que cada um tem habilitadas, com a ocupação atual de cada vaga na
 /// escala-alvo. Carrinhos de data especial (PLANNING.md regra 10a) só aparecem quando a data
-/// cai no mês da escala-alvo. Rota pública, sem autenticação (TASKS.md F1-BE-02).
+/// cai no mês da escala-alvo. Rota pública, sem autenticação.
 /// Cada vaga não cheia traz o primeiro nome de quem já está nela (issue #33 — ajuda o
 /// publicador a formar a dupla); o nome completo, o id e a marca criança/idoso nunca saem
 /// daqui, e a vaga cheia não expõe nomes (PLANNING.md seção 5, passo 5).

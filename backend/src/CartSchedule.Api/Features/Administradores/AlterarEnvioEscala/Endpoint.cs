@@ -6,7 +6,7 @@ namespace CartSchedule.Api.Features.Administradores.AlterarEnvioEscala;
 
 /// <summary>
 /// PUT /api/admin/escalas/{mes}/envio — o administrador fecha (ou reabre) o envio de pedidos
-/// dos publicadores (PLANNING.md §4, TASKS.md F15-BE-03). A abertura é automática no dia 15;
+/// dos publicadores (PLANNING.md §4). A abertura é automática no dia 15;
 /// o fechamento é só este. Vale apenas para a escala em envio (o mês-alvo de hoje): as outras
 /// já não recebem pedidos dos publicadores de qualquer forma. Idempotente; cria a escala se
 /// ela ainda não existe (fechar antes do primeiro pedido).
