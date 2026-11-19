@@ -6,7 +6,6 @@ import {
   violacoes,
   ehArquivoDeSegredo,
   motivoBloqueioGit,
-  trechoNaoPermitidoParaRevisor,
   classificarAlterados,
 } from "../lib/regras.mjs";
 
@@ -74,18 +73,6 @@ test("git push: libera branch de trabalho e force-with-lease", () => {
   assert.equal(motivoBloqueioGit("git push --force-with-lease origin claude/x"), null);
   assert.equal(motivoBloqueioGit("git push origin main-nova-tela"), null);
   assert.equal(motivoBloqueioGit("git fetch origin main"), null);
-});
-
-test("revisor: só leitura, build e testes", () => {
-  assert.equal(trechoNaoPermitidoParaRevisor("git diff origin/main...HEAD"), null);
-  assert.equal(trechoNaoPermitidoParaRevisor("cd frontend && npm test 2>&1 | tail -50"), null);
-  assert.equal(trechoNaoPermitidoParaRevisor("dotnet test --solution backend/CartSchedule.Api.slnx"), null);
-  assert.equal(trechoNaoPermitidoParaRevisor("npx vitest related --run src/x.tsx >/dev/null"), null);
-  assert.ok(trechoNaoPermitidoParaRevisor("git commit -m x"));
-  assert.ok(trechoNaoPermitidoParaRevisor("git diff > patch.txt"));
-  assert.ok(trechoNaoPermitidoParaRevisor("sed -i s/a/b/ x.cs"));
-  assert.ok(trechoNaoPermitidoParaRevisor("rm -rf frontend"));
-  assert.ok(trechoNaoPermitidoParaRevisor("find . -name '*.tmp' -delete"));
 });
 
 test("Stop: separa o que é frontend e backend", () => {

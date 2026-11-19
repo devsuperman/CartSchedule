@@ -4,7 +4,7 @@
 //
 // - Frontend: `vitest related` nos arquivos alterados + `tsc -b` (tipos).
 // - Backend: `dotnet build` (a suíte completa precisa de Docker e é lenta: fica com o
-//   revisor-regras e o CI).
+//   CI).
 // - Só roda de novo se o conteúdo mudou desde a última verificação que passou.
 // - Depois de 3 bloqueios seguidos libera, avisando o usuário (evita laço infinito).
 import { createHash } from "node:crypto";
@@ -59,7 +59,7 @@ if (backend.length > 0) {
   // `dotnet --version` falha se não houver dotnet ou se faltar o SDK do .NET 10.
   const versao = spawnSync("dotnet", ["--version"], { cwd: dir, encoding: "utf8" });
   if (versao.error || versao.status !== 0 || !versao.stdout.startsWith("10.")) {
-    avisos.push("SDK do .NET 10 não encontrado: build do backend pulado (o CI e o revisor-regras cobrem).");
+    avisos.push("SDK do .NET 10 não encontrado: build do backend pulado (o CI cobre).");
   } else {
     rodar("dotnet build", "dotnet", ["build", "CartSchedule.Api.slnx", "-nologo", "-v", "q", "-clp:ErrorsOnly"], dir);
   }

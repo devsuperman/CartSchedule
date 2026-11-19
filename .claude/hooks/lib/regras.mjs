@@ -102,31 +102,6 @@ export function motivoBloqueioGit(comando, branchAtual = "") {
   return null;
 }
 
-/**
- * Para o revisor (somente leitura): o comando Bash só roda se cada trecho for de leitura
- * ou de build/teste. Retorna o trecho recusado ou null.
- */
-export function trechoNaoPermitidoParaRevisor(comando) {
-  const permitidos = [
-    /^cd\s/,
-    /^git\s+(diff|log|show|status|merge-base|rev-parse|ls-files|blame|branch\s+--show-current|fetch)\b/,
-    /^dotnet\s+(build|test)\b/,
-    /^npm\s+(test|run\s+(lint|build|test))\b/,
-    /^npm\s+(ci|install)$/,
-    /^npx\s+(vitest|tsc|oxlint)\b/,
-    /^docker\s+run\s+--rm\b.*\b(mcr\.microsoft\.com\/dotnet\/sdk|node:)/,
-    /^(ls|cat|head|tail|wc|grep|rg|sort|uniq|find|echo|pwd)\b/,
-  ];
-  // Redirecionar para arquivo escreve no disco; 2>&1 e >/dev/null são inofensivos.
-  const semRedirInofensivo = comando.replace(/\d?>&\d/g, "").replace(/\d?>\s*\/dev\/null/g, "");
-  if (/>/.test(semRedirInofensivo)) return "redirecionamento para arquivo (>)";
-  for (const seg of segmentos(comando)) {
-    if (/^find\b/.test(seg) && /-(delete|exec)/.test(seg)) return seg;
-    if (!permitidos.some((r) => r.test(seg))) return seg;
-  }
-  return null;
-}
-
 /** Arquivos alterados agrupados pelo que o hook Stop precisa checar. */
 export function classificarAlterados(arquivos) {
   const frontend = arquivos.filter((f) => /^frontend\/src\/.*\.(ts|tsx|css)$/.test(f) || /^frontend\/[^/]+\.(json|ts)$/.test(f));
