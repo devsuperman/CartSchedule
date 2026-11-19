@@ -185,4 +185,108 @@ describe("Publicadores", () => {
     expect(corpoDa("/api/admin/publicadores/j", "PUT")).not.toHaveProperty("usuario");
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
+  it("redefine o PIN com confirmação e mostra o novo PIN uma vez", async () => {
+    mockApiFetch.mockImplementation(async (path, opcoes) => {
+      if (path === "/api/admin/publicadores" && !opcoes?.method) return LISTA;
+      if (path === "/api/admin/publicadores/a/pin" && opcoes?.method === "POST") {
+        return { id: "a", usuario: "aninha", pin: "8042" };
+      }
+      throw new Error(`chamada inesperada: ${path}`);
+    });
+    const user = renderizar();
+
+    await user.click((await itemDe("Ana Paula")).getByRole("button", { name: "Editar Ana Paula" }));
+    await user.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Redefinir PIN" }));
+
+    const confirmacao = within(screen.getByRole("dialog", { name: "Redefinir o PIN de Ana Paula?" }));
+    expect(confirmacao.getByText(/desconecta.*todos os aparelhos/i)).toBeInTheDocument();
+    expect(mockApiFetch).not.toHaveBeenCalledWith("/api/admin/publicadores/a/pin", expect.anything());
+    await user.click(confirmacao.getByRole("button", { name: "Redefinir PIN" }));
+
+    expect(mockApiFetch).toHaveBeenCalledWith("/api/admin/publicadores/a/pin", { method: "POST" });
+    const pin = within(await screen.findByRole("dialog", { name: "Acesso de Ana Paula" }));
+    expect(pin.getByText("8042")).toBeInTheDocument();
+    await user.click(pin.getByRole("button", { name: "Copiar mensagem" }));
+    expect(await navigator.clipboard.readText()).toContain("PIN: 8042");
+  });
+
+  it("cancelar a confirmação volta ao formulário sem chamar a API", async () => {
+    const user = renderizar();
+
+    await user.click((await itemDe("Ana Paula")).getByRole("button", { name: "Editar Ana Paula" }));
+    await user.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Desativar" }));
+    await user.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Voltar" }));
+
+    expect(within(screen.getByRole("dialog")).getByLabelText("Nome")).toHaveValue("Ana Paula");
+    expect(mockApiFetch).toHaveBeenCalledTimes(1);
+  });
+
+  it("registro sem usuário não oferece redefinir PIN", async () => {
+    const user = renderizar();
+
+    await user.click((await itemDe("José Lima")).getByRole("button", { name: "Editar José Lima" }));
+
+    const dialogo = within(screen.getByRole("dialog"));
+    expect(dialogo.queryByRole("button", { name: "Redefinir PIN" })).not.toBeInTheDocument();
+    expect(dialogo.getByRole("button", { name: "Desativar" })).toBeInTheDocument();
+  });
+
+  it("desativa com confirmação e a pessoa some da lista", async () => {
+    mockApiFetch.mockImplementation(async (path, opcoes) => {
+      if (path === "/api/admin/publicadores" && !opcoes?.method) return LISTA;
+      if (path === "/api/admin/publicadores/a" && opcoes?.method === "PUT") return undefined;
+      throw new Error(`chamada inesperada: ${path}`);
+    });
+    const user = renderizar();
+
+    await user.click((await itemDe("Ana Paula")).getByRole("button", { name: "Editar Ana Paula" }));
+    await user.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Desativar" }));
+    const confirmacao = within(screen.getByRole("dialog", { name: "Desativar Ana Paula?" }));
+    expect(confirmacao.getByText(/pedidos já feitos continuam na escala/i)).toBeInTheDocument();
+    await user.click(confirmacao.getByRole("button", { name: "Desativar" }));
+
+    expect(corpoDa("/api/admin/publicadores/a", "PUT")).toEqual({ ativo: false });
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(screen.queryByText("Ana Paula")).not.toBeInTheDocument();
+    expect(screen.getByText("José Lima")).toBeInTheDocument();
+  });
+
+  it("mostrar desativados busca com incluirInativos e permite reativar", async () => {
+    const desativado = { id: "p", nome: "Pedro", usuario: "pedro", criancaOuIdoso: false, administrador: false, ativo: false, temPin: true };
+    mockApiFetch.mockImplementation(async (path, opcoes) => {
+      if (path === "/api/admin/publicadores" && !opcoes?.method) return LISTA;
+      if (path === "/api/admin/publicadores?incluirInativos=true" && !opcoes?.method) return [...LISTA, desativado];
+      if (path === "/api/admin/publicadores/p" && opcoes?.method === "PUT") return undefined;
+      throw new Error(`chamada inesperada: ${path}`);
+    });
+    const user = renderizar();
+    await screen.findByText("Ana Paula");
+    expect(screen.queryByText("Pedro")).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("checkbox", { name: "Mostrar desativados" }));
+
+    const pedro = await itemDe("Pedro");
+    expect(pedro.getByText("Desativado")).toBeInTheDocument();
+    await user.click(pedro.getByRole("button", { name: "Editar Pedro" }));
+    await user.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Reativar" }));
+    await user.click(within(screen.getByRole("dialog", { name: "Reativar Pedro?" })).getByRole("button", { name: "Reativar" }));
+
+    expect(corpoDa("/api/admin/publicadores/p", "PUT")).toEqual({ ativo: true });
+    expect((await itemDe("Pedro")).queryByText("Desativado")).not.toBeInTheDocument();
+  });
+
+  it("erro ao desativar aparece na confirmação", async () => {
+    mockApiFetch.mockImplementation(async (path, opcoes) => {
+      if (path === "/api/admin/publicadores" && !opcoes?.method) return LISTA;
+      throw new ApiError(404, "Não encontrado.");
+    });
+    const user = renderizar();
+
+    await user.click((await itemDe("Ana Paula")).getByRole("button", { name: "Editar Ana Paula" }));
+    await user.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Desativar" }));
+    const confirmacao = within(screen.getByRole("dialog"));
+    await user.click(confirmacao.getByRole("button", { name: "Desativar" }));
+
+    expect(await confirmacao.findByText("Não encontrado.")).toBeInTheDocument();
+  });
 });

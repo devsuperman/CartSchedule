@@ -10,5 +10,5 @@ public record PublicadorResponse(
     bool Ativo,
     bool TemPin);
 
-/// <summary>PIN em claro: só nesta resposta (criação ou criação das credenciais), nunca mais.</summary>
+/// <summary>PIN em claro: só nesta resposta (criação, criação das credenciais ou redefinição), nunca mais.</summary>
 public record CredenciaisResponse(Guid Id, string Usuario, string Pin);

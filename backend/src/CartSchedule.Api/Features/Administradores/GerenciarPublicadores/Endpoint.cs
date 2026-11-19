@@ -14,10 +14,14 @@ namespace CartSchedule.Api.Features.Administradores.GerenciarPublicadores;
 /// valem em todos os pedidos da pessoa. Nomes repetidos são permitidos; usuários não
 /// (comparados sem maiúsculas e sem acentos → 409 USUARIO_EM_USO). Registros antigos, sem
 /// usuário, recebem usuário pela edição e, junto, o PIN — mantendo id e histórico.
+/// Redefinir o PIN (gera outro, mostrado uma vez) e desativar desconectam todos os aparelhos da
+/// pessoa: incrementam <c>VersaoSessao</c>, conferida em todo request (Auth/ValidacaoDaSessao).
+/// Desativado some da lista por padrão (<c>incluirInativos</c> para vê-lo) e mantém o histórico.
 /// </summary>
 public static class Endpoint
 {
     public const string CodigoUsuarioEmUso = "USUARIO_EM_USO";
+    public const string CodigoSemUsuario = "SEM_USUARIO";
 
     public static IEndpointRouteBuilder MapGerenciarPublicadores(this IEndpointRouteBuilder app)
     {
@@ -31,15 +35,19 @@ public static class Endpoint
         group.MapPut("/{id:guid}", EditarAsync)
             .AddEndpointFilter<ValidationFilter<EditarPublicadorRequest>>();
 
+        group.MapPost("/{id:guid}/pin", RedefinirPinAsync);
+
         return app;
     }
 
-    private static async Task<IResult> ListarAsync(string? busca, AppDbContext db, CancellationToken ct)
+    private static async Task<IResult> ListarAsync(
+        string? busca, bool? incluirInativos, AppDbContext db, CancellationToken ct)
     {
         // Poucas centenas de pessoas no máximo: a busca sem acentos é feita em memória, com a
         // mesma normalização do usuário.
         var publicadores = await db.Publicadores
             .AsNoTracking()
+            .Where(p => p.Ativo || incluirInativos == true)
             .OrderBy(p => p.Nome)
             .Select(p => new PublicadorResponse(
                 p.Id, p.Nome, p.Usuario, p.CriancaOuIdoso, p.Administrador, p.Ativo, p.PinHash != null))
@@ -113,6 +121,16 @@ public static class Endpoint
         publicador.CriancaOuIdoso = request.CriancaOuIdoso ?? publicador.CriancaOuIdoso;
         publicador.Administrador = request.Administrador ?? publicador.Administrador;
 
+        if (request.Ativo is { } ativo && ativo != publicador.Ativo)
+        {
+            publicador.Ativo = ativo;
+            // Desativar desconecta os aparelhos; reativar não devolve as sessões antigas.
+            if (!ativo)
+            {
+                publicador.VersaoSessao++;
+            }
+        }
+
         string? pinGerado = null;
         if (request.Usuario is not null)
         {
@@ -139,6 +157,34 @@ public static class Endpoint
         return pinGerado is null
             ? Results.NoContent()
             : Results.Ok(new CredenciaisResponse(publicador.Id, publicador.Usuario!, pinGerado));
+    }
+
+    private static async Task<IResult> RedefinirPinAsync(
+        Guid id,
+        AppDbContext db,
+        [FromServices] PasswordHasher<object> passwordHasher,
+        CancellationToken ct)
+    {
+        var publicador = await db.Publicadores.SingleOrDefaultAsync(p => p.Id == id, ct);
+        if (publicador is null)
+        {
+            return Results.NotFound();
+        }
+
+        if (publicador.Usuario is null)
+        {
+            return Results.Problem(
+                title: "Este publicador ainda não tem usuário. Dê um usuário a ele para criar o acesso.",
+                statusCode: StatusCodes.Status400BadRequest,
+                extensions: new Dictionary<string, object?> { ["codigo"] = CodigoSemUsuario });
+        }
+
+        var pin = Pin.Gerar();
+        publicador.PinHash = passwordHasher.HashPassword(new object(), pin);
+        publicador.VersaoSessao++;
+        await db.SaveChangesAsync(ct);
+
+        return Results.Ok(new CredenciaisResponse(publicador.Id, publicador.Usuario, pin));
     }
 
     private static Task<bool> UsuarioEmUsoAsync(AppDbContext db, string normalizado, Guid id, CancellationToken ct) =>
