@@ -234,50 +234,24 @@ depender de teste manual no navegador/curl a cada alteração.
 `JWT_CHAVE_SECRETA` — sempre via `.env` (nunca commitado; ver
 `.env.example`), nunca hardcoded em código ou `docker-compose.yml`.
 
-## Fluxo de issues (skill `/feature` + GitHub Action `claude.yml`)
+## Fluxo de issues (skills do Matt Pocock)
 
-O Claude é acionado por `@claude` em comentários de issue (só do dono do
-repo) ou pelo label `aprovado` — ou, numa sessão local, por `/feature #N`.
-O passo a passo está na skill **`feature`** (`.claude/skills/feature/SKILL.md`):
+Tudo numa sessão local do Claude Code (sem GitHub Action):
 
-1. **Análise (padrão)**: o subagente **`analista-requisitos`** (somente
-   leitura) lê a issue, o `PLANNING.md`, o `TECHNICAL_SPEC.md` e o código e
-   devolve conflitos, perguntas numeradas, critérios de aceite e plano de
-   testes — que viram o comentário na issue. **Não altere código nem abra PR**
-   nesta etapa.
-2. **Implementação**: só quando o comentário disser "implementar" (ou a issue
-   tiver o label `aprovado`) **e** já houver análise. Implemente com testes
-   (seção Testes), passe pelo **`revisor-regras`** (até 2 rodadas) e pela
-   checagem de segurança, e publique a branch com o PR referenciando a issue
-   (`Closes #N`). Na Action, ela faz o push e dá o link de criação do PR.
-3. Se o pedido conflitar com o `PLANNING.md`, pergunte em vez de implementar.
+1. **`/triage`**: classifica a issue com os labels de triagem
+   (`docs/agents/triage-labels.md`), pergunta o que falta e, quando a issue está
+   pronta, escreve o brief para o agente (`ready-for-agent`).
+2. **`/grill-with-docs`** (opcional): aperta o plano contra o `docs/PLANNING.md`.
+3. **`/to-spec`** e **`/to-tickets`**: viram spec e tickets na issue tracker.
+4. **`/implement`** (ou `/tdd`): implementa com testes (seção Testes) numa branch.
+5. **`/code-review`** antes do PR; o PR referencia a issue (`Closes #N`).
 
-Na Action, Bash só roda o que o `--allowedTools` do `claude.yml` libera
-(build, teste, lint, git de leitura); precisou de outro comando, ajuste lá.
+Se o pedido conflitar com o `docs/PLANNING.md`, pergunte em vez de implementar.
 
-## Hooks e revisor (`.claude/`)
+## Git
 
-Regras que **não dependem** de o agente lembrar (`.claude/settings.json` →
-`.claude/hooks/`, lógica testada com `node --test .claude/hooks/test/*.test.mjs`):
-
-- **`guarda-edicao`** (antes de Edit/Write): bloqueia gravar `.env` e termos
-  Sábado/Domingo ou de status de aprovação (Pendente/Aprovada/Rejeitada/
-  `StatusSolicitacao`) em código de `backend/src` e `frontend/src` (comentários,
-  testes e migrations ficam de fora). Bloqueou? A regra é intencional: pergunte ao
-  usuário em vez de contornar.
-- **`guarda-git`** (antes de Bash): bloqueia `git push` para a `main` (vai a produção
-  pelo `deploy.yml`) e `push --force` (use `--force-with-lease` na própria branch).
-- **`lint-arquivo`** (depois de editar `.ts/.tsx`): `oxlint` no arquivo.
-- **`verificar-ao-parar`** (Stop): `tsc -b` + `vitest related` se o frontend mudou e
-  `dotnet build` se o backend mudou (pula sem SDK do .NET 10). Falhou → o agente
-  continua para corrigir (até 3 vezes). A suíte completa fica com o revisor e o CI.
-- **`session-start`**: em sessões na nuvem, `npm install` no `frontend/` quando o
-  `package.json`/lock mudam.
-
-**Antes de abrir/atualizar um PR**, chame o subagente **`revisor-regras`**
-(`.claude/agents/`), passando o pedido/critérios de aceite. Ele é somente leitura,
-usa a skill `checklist-regras` (`.claude/skills/`), roda os testes e devolve um
-veredito. Corrija o que ele apontar como violação ou teste faltando.
+A `main` vai a produção a cada merge (`deploy.yml`) e é protegida por um ruleset no
+GitHub (só via PR, sem force push). Nunca faça commit na `main`: crie uma branch.
 
 ## Agent skills
 
@@ -287,7 +261,7 @@ Issues live in GitHub Issues (`devsuperman/CartSchedule`, via `gh`). See `docs/a
 
 ### Triage labels
 
-Default names, except ready-for-agent = `aprovado` (the label that triggers `claude.yml`). See `docs/agents/triage-labels.md`.
+Default names (`needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`). See `docs/agents/triage-labels.md`.
 
 ### Domain docs
 
