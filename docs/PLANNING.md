@@ -10,23 +10,28 @@ semana, por turno** — ou 3, quando uma delas é criança ou idoso (regra 1).
 
 ## 2. Atores
 
-- **Publicador**: informa seu nome, escolhe o carrinho, o(s) dia(s) da
-  semana e o turno em que quer trabalhar, e envia a solicitação — apenas
+- **Publicador**: informa seu nome (uma vez, no primeiro acesso) e, a cada
+  solicitação, escolhe o dia da semana, o turno e o carrinho em que quer
+  trabalhar — uma combinação por solicitação — e a envia, apenas
   enquanto o envio estiver aberto (abre sozinho no dia 15 e fecha quando o
   administrador decidir — ver seção 4).
-- **Administrador**: visualiza todas as solicitações recebidas para uma
-  escala (todas já contam na escala), exclui as que decidir tirar
-  (buscando o limite de 2 por combinação), pode adicionar solicitações manualmente a qualquer escala
-  a qualquer momento, decide quando fechar (e, se quiser, reabrir) o envio
-  dos publicadores, e gera a escala mensal final.
+- **Administrador**: visualiza todas as solicitações de uma escala (todas
+  já contam na escala), move, adiciona e exclui solicitações em qualquer
+  escala a qualquer momento (buscando a meta de 2 por vaga, ou 3 com uma
+  criança/idoso — regra 1), decide quando fechar (e, se quiser, reabrir) o
+  envio dos publicadores, e divulga a escala no grupo de WhatsApp. Não há
+  etapa de "gerar" ou "finalizar" a escala: ela é sempre o retrato atual
+  das solicitações existentes (regra 5).
 
 ## 3. Conceitos-chave
 
 | Conceito | Descrição |
 |---|---|
 | **Escala (mês de referência)** | O mês/ano para o qual a escala está sendo montada (ex: Outubro/2026). |
-| **Janela de envio** | Período em que o sistema aceita novas solicitações de Publicadores para a escala do mês seguinte: abre sozinho no dia 15 e fecha quando o administrador decidir (ver seção 4). |
-| **Carrinho** | Um carrinho de trabalho disponível (ex: Carrinho 1, Carrinho 2...). Tem um nome e uma **descrição** opcional (ex: local onde fica), exibida ao publicador abaixo do nome na hora de escolher o carrinho. |
+| **Escala em envio (mês-alvo)** | A escala que recebe os pedidos dos publicadores agora: a aberta no último dia 15 — do dia 15 em diante, a do mês seguinte; do dia 1 ao 14, a do mês corrente. "Escala em envio", "mês-alvo" e "escala-alvo" são sinônimos. Datas sempre no horário de Brasília. |
+| **Janela de envio** | Período em que o sistema aceita novas solicitações de Publicadores para a escala em envio: abre sozinha no dia 15 e fecha quando o administrador decidir (ver seção 4). "Janela aberta" e "envio aberto" são sinônimos. |
+| **Vaga (trinca)** | Uma combinação `(carrinho, dia da semana, turno)` configurada pelo administrador, dentro de uma escala. "Vaga", "trinca" e "combinação" são sinônimos. |
+| **Carrinho** | Um carrinho de trabalho disponível (ex: Carrinho 1, Carrinho 2...). Tem um nome e uma **descrição** opcional (ex: local onde fica), exibida ao publicador abaixo do nome na hora de escolher o carrinho. Pode ser **desativado** (regra 18): deixa de receber novas solicitações, de publicadores e do administrador, mas as existentes continuam. |
 | **Dia da semana** | **Sempre Segunda a Sexta-feira** — são os únicos dias que existem no sistema; não há Sábado nem Domingo. A escolha é **recorrente**: se o publicador escolhe "Segunda-feira", isso vale para todas as segundas-feiras daquele mês — não é uma data específica do calendário. A única exceção é o **carrinho de data especial** (regra 10a), que funciona numa data só. |
 | **Turno** | Faixa de horário **fixa do sistema**, não cadastrável pelo administrador. São sempre estes 6 turnos: **06:00–08:00, 08:00–10:00, 10:00–12:00, 14:00–16:00, 16:00–18:00, 18:00–20:00**. Os mesmos horários valem para todos os carrinhos que usarem aquele turno. |
 | **Turnos disponíveis do carrinho** | Cada carrinho usa apenas um subconjunto dos turnos fixos, definido pelo administrador **por dia da semana**. Um carrinho pode ter turnos diferentes de outro, e o mesmo carrinho pode ter turnos diferentes em cada dia (ex: Carrinho 01 tem 08:00–10:00 na Segunda, mas só 10:00–12:00 na Terça). |
@@ -36,8 +41,9 @@ semana, por turno** — ou 3, quando uma delas é criança ou idoso (regra 1).
 
 ## 4. Janela de Envio (abre sozinha, o administrador fecha)
 
-- **Abertura (automática)**: todo dia **15** do mês, o sistema abre
-  automaticamente o envio de solicitações para a escala do **mês seguinte**.
+- **Abertura (automática)**: todo dia **15** do mês (à meia-noite, horário
+  de Brasília), o sistema abre automaticamente o envio de solicitações para
+  a escala do **mês seguinte**.
   - Ex: dia 15 de setembro → abre a escala de Outubro.
 - **Fechamento (manual)**: não há data fixa — o envio fica aberto até o
   **administrador fechá-lo**, na tela da Escala daquele mês. Ele pode
@@ -53,7 +59,8 @@ semana, por turno** — ou 3, quando uma delas é criança ou idoso (regra 1).
   pode ser fechada ou reaberta pelo administrador.
 - Depois de fechar, começa o período em que o **administrador
   realiza os ajustes** (movendo, excluindo e adicionando solicitações
-  manualmente) e finaliza a escala mensal.
+  manualmente) e divulga a escala. Não há ação de "finalizar": a escala
+  continua editável pelo administrador depois de divulgada (regra 7).
 - **Com o envio fechado**: o Publicador que acessar o site vê uma
   **mensagem informando que o envio de novas solicitações está fechado**
   (ex: "Envio fechado. Abre novamente no dia 15."). O **histórico de suas
@@ -69,7 +76,7 @@ semana, por turno** — ou 3, quando uma delas é criança ou idoso (regra 1).
 
 ## 5. Fluxo do Publicador
 
-1. Acessa o site durante a janela de envio (do dia 15 até o administrador fechar).
+1. Acessa o site (pelo link do grupo de WhatsApp). Para pedir, a janela de envio precisa estar aberta (do dia 15 até o administrador fechar); fora dela, vê só o histórico e o aviso de envio fechado.
 2. No **primeiro acesso** (janela aberta ou fechada), antes de qualquer
    outra coisa, informa seu **nome**. Não há cadastro/login com senha — o
    nome fica salvo no aparelho e não é pedido de novo. A partir daí o site
@@ -77,12 +84,12 @@ semana, por turno** — ou 3, quando uma delas é criança ou idoso (regra 1).
    publicador corrige o nome a qualquer momento, e a correção vale na hora
    também para o administrador. O formulário de solicitação não pede o
    nome.
-3. Seleciona o **dia da semana** em que quer trabalhar — só aparecem os dias em que algum carrinho tem turno configurado; um dia em que nenhuma vaga pode mais ser pedida por ele (todas cheias ou em horários em que ele já tem pedido) aparece desabilitado, sem texto.
+3. Toca em **"Solicitar Nova Escala"** e seleciona o **dia da semana** em que quer trabalhar — só aparecem os dias em que algum carrinho oferecido tem turno configurado (carrinho oferecido = ativo e, se for de data especial, da escala em envio e com a data ainda não passada — regras 10a e 18); um dia em que nenhuma vaga pode mais ser pedida por ele (todas cheias ou em horários em que ele já tem pedido) aparece desabilitado, sem texto.
 4. Seleciona o **turno** desejado — só aparecem os turnos que algum carrinho tem configurados **naquele dia da semana**; um turno sem nenhuma vaga que ele possa pedir aparece desabilitado, sem texto. Se ele já tem pedido naquele dia e horário (em qualquer carrinho), o turno fica desabilitado e mostra "Você já tem pedido neste horário" — não dá para estar em dois lugares ao mesmo tempo (regra 10).
 5. Seleciona o **carrinho** — só aparecem os carrinhos que o administrador configurou com aquele turno **naquele dia da semana** (carrinhos diferentes, e dias diferentes do mesmo carrinho, podem ter turnos diferentes). Vê o nome e, abaixo dele, a descrição (quando houver); a vaga cheia fica desabilitada com "Cheio" e a vaga com uma pessoa mostra o **primeiro nome** de quem já está nela ("Com: Maria") — para ajudar a completar a dupla, inclusive pelo gênero (homem trabalha com homem e mulher com mulher, salvo casais); a vaga vazia não mostra texto. Só o primeiro nome é exposto (o `GET /api/carrinhos` é público): nunca o nome completo, o id ou a marca criança/idoso, e nem a vaga cheia nem a desabilitada por "Você já tem pedido neste horário" mostram nomes. As etapas de dia e turno não mostram nomes.
-6. Pode repetir os passos 3–5 para pedir mais de uma combinação na mesma escala (ex: Carrinho A / Segunda / Manhã **e** Carrinho B / Quinta / Tarde). O mês/escala já está implícito (é sempre a escala em envio, definida automaticamente pela janela aberta).
-7. Revisa e **envia** as solicitações.
-8. A qualquer momento (mesmo fora da janela de envio), pode acessar a tela de **histórico** e ver as solicitações que enviou (as que foram excluídas não existem mais), sem data/hora do envio — a escala oficial é divulgada pelo administrador no grupo de WhatsApp, fora do sistema. Cada pedido mostra em destaque o dia da semana e, ao lado, o turno; por último o carrinho (nome e descrição), e a lista segue essa mesma ordem. Abaixo da lista, o botão **"Voltar ao WhatsApp"** (abre um agradecimento e leva ao grupo; não indica "escala concluída", pois o sistema não tem esse status) só aparece quando o publicador tem ao menos um pedido na escala (mês atual ou mês-alvo) e o link do grupo está configurado.
+6. Ao confirmar o carrinho, a solicitação é **enviada na hora** (uma por vez — não há carrinho de compras nem etapa de revisão) e ele volta à tela inicial. Para pedir mais de uma combinação na mesma escala (ex: Carrinho A / Segunda / 08–10 **e** Carrinho B / Quinta / 14–16), repete os passos 3–5. O mês/escala não é escolhido: é sempre a escala em envio.
+7. Se a vaga encher ou o horário ficar ocupado entre a escolha e o envio (`VAGA_CHEIA` / `HORARIO_OCUPADO`), o formulário avisa e volta para ele escolher de novo; se a janela fechar nesse meio-tempo, mostra o aviso de envio fechado.
+8. A qualquer momento (mesmo fora da janela de envio), a **tela inicial** funciona como histórico: mostra as solicitações dele na escala do **mês corrente** e na **escala em envio** (quando forem meses diferentes, uma lista por mês; escalas mais antigas não aparecem). As excluídas não existem mais. Não mostra data/hora do envio — a escala oficial é divulgada pelo administrador no grupo de WhatsApp, fora do sistema. Cada pedido mostra em destaque o dia da semana e, ao lado, o turno; por último o carrinho (nome e descrição), e a lista segue essa mesma ordem. Abaixo da lista, o botão **"Voltar ao WhatsApp"** (abre um agradecimento e leva ao grupo; não indica "escala concluída", pois o sistema não tem esse status) só aparece quando o publicador tem ao menos um pedido na escala (mês atual ou mês-alvo) e o link do grupo está configurado.
 9. Nessa mesma tela de histórico, pode **excluir** uma solicitação sua **somente enquanto a janela de envio estiver aberta e apenas para a escala do mês-alvo**. A exclusão apaga o registro. Fora disso, só o administrador pode excluí-la.
 
 Regra do horário (regra 10): o mesmo publicador não pode ter dois pedidos
@@ -105,8 +112,11 @@ não dá para estar em dois lugares ao mesmo tempo.
    futura).
 4. Toda a gestão é feita na **tela da Escala** (usada em celular e
    tablet, por toque). Ela mostra um **resumo geral** (total de pedidos,
-   vagas com 1 pessoa e vagas com excesso) e a grade Carrinho × Dia × Turno
-   com **todas as vagas configuradas, inclusive as vazias**, cada uma
+   vagas com 1 pessoa e vagas com excesso) e, **um bloco por carrinho**, as
+   vagas dele (no celular, um seletor de dia e a lista de turnos daquele
+   dia; a partir de 768 px, uma grade Turno × Dia) — **todas as vagas configuradas
+   dos carrinhos ativos, inclusive as vazias**, e também qualquer vaga que
+   ainda tenha pedidos (de turno removido ou carrinho desativado), cada uma
    colorida pelo estado (regra 1): sem cor se vazia, verde se completa,
    vermelho se incompleta (1 pessoa) ou com excesso. Quem é criança ou
    idoso aparece com um ícone ao lado do nome.
@@ -114,25 +124,27 @@ não dá para estar em dois lugares ao mesmo tempo.
    e quantos pedidos tem na escala, e escolhe o que fazer:
    - **Mover** (a ação mais comum): depois de conversar com o
      publicador, toca na vaga de destino (outro carrinho, dia ou turno
-     da mesma escala) e confirma. O pedido continua o mesmo (mesma
+     da mesma escala, de carrinho ativo) e confirma. O pedido continua o mesmo (mesma
      origem), só muda de vaga. Mover para uma vaga que ficaria com
      excesso, ou deixar a vaga de origem com 1 pessoa, é permitido — a
      tela apenas avisa — também se a pessoa já estiver em outro carrinho no mesmo dia e turno. Vale a regra de duplicidade (regra 10).
    - **Editar pessoa**: nome e marca "criança ou idoso" (valem para
      todos os pedidos daquela pessoa).
    - **Excluir** (último recurso, discreto na tela, com confirmação).
-6. Não há aprovação nem rejeição: toda solicitação já conta na escala. O objetivo é **encaixar cada publicador numa vaga disponível**, de preferência movendo; quando não houver jeito, o administrador **exclui** (com confirmação — é definitivo) as solicitações que decidir tirar. **O critério de desempate é de uso exclusivo do administrador** — o sistema não sugere nem impõe nenhum critério (ordem de chegada, prioridade, etc.); a escolha de quem fica é inteiramente sua. Para ajudá-lo nessa decisão, o sistema mostra, ao lado de cada publicador do grupo, **quantas solicitações esse publicador já tem na mesma escala** (contando todas as trincas, não só a que está em desempate).
+6. Não há aprovação nem rejeição: toda solicitação já conta na escala. O objetivo é **encaixar cada publicador numa vaga disponível**, de preferência movendo; quando não houver jeito, o administrador **exclui** (com confirmação — é definitivo) as solicitações que decidir tirar. **O critério de desempate é de uso exclusivo do administrador** — o sistema não sugere nem impõe nenhum critério (ordem de chegada, prioridade, etc.); a escolha de quem fica é inteiramente sua. Para ajudá-lo nessa decisão, o sistema mostra, ao selecionar uma pessoa na tela da Escala, **quantas solicitações ela já tem na mesma escala** (contando todas as trincas, não só a selecionada — regra 16).
 7. **A qualquer momento**, o administrador também pode **adicionar
    manualmente** uma nova solicitação a qualquer escala, pelo "+" da vaga
    na tela da Escala:
    - Escolhe o carrinho, o dia da semana e o turno (a vaga tocada) — o turno só pode
      ser um dos configurados como disponível para aquele carrinho
-     naquele dia da semana (mesma restrição que vale para o publicador, ver item 2).
+     naquele dia da semana, e o carrinho precisa estar ativo (mesma restrição que vale para o publicador, ver item 2 e regra 18).
    - Informa o nome do publicador — pode escolher um publicador já
      cadastrado **ou digitar um nome novo livremente** (o sistema cria
-     o publicador automaticamente se ele ainda não existir). Se houver
-     mais de um publicador com exatamente esse nome, usa sempre o que
-     fez o pedido mais antigo.
+     o publicador automaticamente se ele ainda não existir). A comparação
+     é exata depois de tirar os espaços das pontas (maiúsculas, minúsculas
+     e acentos contam). Se houver mais de um publicador com exatamente esse
+     nome, usa sempre o que fez o pedido mais antigo (quem não tem nenhum
+     pedido fica por último; empate pelo identificador).
    - Vale a **regra de duplicidade** (regra 10): o sistema não permite
      criar uma solicitação manual idêntica a uma que aquele publicador
      já tenha na mesma escala. Se ele já estiver em outro carrinho no
@@ -141,17 +153,16 @@ não dá para estar em dois lugares ao mesmo tempo.
      outra.
    - Pode marcar a pessoa como **criança ou idoso** (regra 1). Se o nome
      já existe, a marca passa a valer para ela; a adição nunca desmarca.
-   - **Não há bloqueio do sistema** caso uma trinca fique com mais de
-     2 pessoas (seja por adição manual, seja por envios normais) — a
+   - **Não há bloqueio do sistema** caso uma trinca passe da meta da
+     regra 1 (seja por adição manual, seja por mover) — a
      tela apenas **sinaliza visualmente** o excesso, e cabe ao
      administrador decidir quando e como ajustar (excluindo alguma
      solicitação daquela trinca).
-8. Ao concluir as decisões da escala, o sistema mantém a **escala
-   mensal sempre atualizada automaticamente** a partir de todas as
-   solicitações existentes (sejam vindas de publicadores ou adicionadas
-   manualmente pelo administrador).
-9. A mesma tela é a escala final (grade Carrinho × Dia da semana ×
-   Turno, com os nomes), que o administrador pode compartilhar/exportar.
+8. A **escala mensal é sempre calculada na hora** a partir de todas as
+   solicitações existentes (vindas de publicadores ou adicionadas
+   manualmente) — não há passo de gerar, aprovar ou publicar.
+9. A mesma tela é a escala final (com os nomes). Pelo botão
+   "Compartilhar", o administrador gera imagens só leitura para o grupo.
    A **imagem de compartilhamento** (para o grupo do WhatsApp) segue a ordem
    em que as pessoas procuram o próprio nome — **dia → turno → carrinho**: é
    **uma imagem do mês inteiro**, com uma grade por dia da semana (turnos nas
@@ -163,7 +174,7 @@ não dá para estar em dois lugares ao mesmo tempo.
 
 ## 7. Regras de Negócio
 
-1. **Limite alvo por combinação**: cada trinca `(carrinho, dia da semana, turno)` em uma escala deve ter **2 pessoas** — ou **3, se pelo menos uma delas for criança ou idoso** (marca que o administrador põe na pessoa, na tela da Escala: em "Editar pessoa" ou ao adicionar alguém). Vale tanto para solicitações de publicadores quanto para adições manuais do administrador. Esse limite **não é imposto ao administrador**; é uma meta que ele persegue manualmente ao revisar a escala. **Para o publicador, a vaga com 2 pessoas é "cheia" e o envio é recusado** (`409`, `codigo: "VAGA_CHEIA"`; o 3º, de criança/idoso, é adicionado só pelo administrador). No envio, na escolha do carrinho, a vaga com uma pessoa mostra o primeiro nome dela ("Com: Maria", seção 5, passo 5) e a cheia fica desabilitada com "Cheio" (dia ou turno sem nenhuma vaga livre também); ao excluir/mover alguém, a vaga volta a aceitar pedidos (calculado a cada request). Quem já tem pedido numa vaga que depois enche mantém o pedido. Na tela do administrador o sistema apenas **sinaliza pela cor** cada vaga, sem texto:
+1. **Limite alvo por combinação**: cada trinca `(carrinho, dia da semana, turno)` em uma escala deve ter **2 pessoas** — ou **3, se pelo menos uma delas for criança ou idoso** (marca que o administrador põe na pessoa, na tela da Escala: em "Editar pessoa" ou ao adicionar alguém). Vale tanto para solicitações de publicadores quanto para adições manuais do administrador. Esse limite **não é imposto ao administrador**; é uma meta que ele persegue manualmente ao revisar a escala. **Para o publicador, a vaga com 2 pessoas é "cheia" e o envio é recusado** (`409`, `codigo: "VAGA_CHEIA"`; o 3º, de criança/idoso, é adicionado só pelo administrador). No envio, na escolha do carrinho, a vaga com uma pessoa mostra o primeiro nome dela ("Com: Maria", seção 5, passo 5) e a cheia fica desabilitada com "Cheio" (dia ou turno sem nenhuma vaga livre também); ao excluir/mover alguém, a vaga volta a aceitar pedidos (calculado a cada request). Quem já tem pedido numa vaga que depois enche mantém o pedido. Para o publicador, "cheia" é sempre **2 ou mais pessoas**, mesmo que uma delas seja criança/idoso. Na tela do administrador o sistema apenas **sinaliza pela cor** cada vaga, sem texto:
    - **vazia** (0 pessoas): sem cor;
    - **incompleta** (1 pessoa, mesmo que seja criança ou idoso): cor de perigo (vermelho) — precisa de atenção;
    - **completa** (2 pessoas, ou 3 com pelo menos uma criança/idoso): cor de sucesso (verde);
@@ -175,19 +186,19 @@ não dá para estar em dois lugares ao mesmo tempo.
 6. **Janela de envio — abre sozinha, o administrador fecha**: todo dia 15 abre o envio para a escala do mês seguinte; ele só fecha quando o administrador fecha (e pode reabrir) — não há fechamento automático. Com o envio fechado, os publicadores não enviam nem excluem pedidos (seção 4).
 7. **Administrador sem restrição de janela**: pode gerenciar (ver, excluir, adicionar) qualquer escala a qualquer momento, independentemente da janela de envio. Depois de fechar o envio, esse é o período esperado para os ajustes finais antes do mês da escala começar.
 8. **Sem limite** de quantas trincas um mesmo publicador pode ter em uma escala — pode trabalhar em vários carrinhos/dias/turnos livremente.
-9. **Identificação do publicador**: não há cadastro com login e senha — o nome é informado livremente, pelo publicador no primeiro acesso ou na adição manual pelo administrador. O nome pode ser corrigido a qualquer momento pelo próprio publicador ("Olá, Fulano") ou pelo administrador (na tela da Escala); a correção vale para todos os pedidos daquela pessoa. Se depois o publicador enviar um pedido ou editar o nome, prevalece o nome salvo no aparelho dele. **Nomes repetidos são permitidos** (não é bloqueio — a regra 10 continua sendo o único).
+9. **Identificação do publicador**: não há cadastro com login e senha — o nome é informado livremente, pelo publicador no primeiro acesso ou na adição manual pelo administrador. O nome pode ser corrigido a qualquer momento pelo próprio publicador ("Olá, Fulano") ou pelo administrador (na tela da Escala); a correção vale para todos os pedidos daquela pessoa. O nome fica guardado também no aparelho do publicador e vai junto em cada pedido: se o administrador corrigir o nome e depois o publicador enviar um pedido ou editar o nome, **o nome do aparelho sobrescreve a correção do administrador** (consequência aceita). **Nomes repetidos são permitidos** (não é bloqueio — os únicos bloqueios automáticos são os da regra 10 e a vaga cheia da regra 1). Nome: obrigatório, até 200 caracteres, sem espaços nas pontas.
 10. **Um lugar por horário e bloqueio de duplicidade**: um publicador não pode estar em dois lugares ao mesmo tempo. **No envio do publicador**, ele não pode pedir um `(dia da semana, turno)` em que já tem solicitação na mesma escala, **em qualquer carrinho** — o sistema recusa (`409`, `codigo: "HORARIO_OCUPADO"`) e o formulário mostra o turno desabilitado com "Você já tem pedido neste horário". **Para o administrador** (adição manual e mudança de vaga — regra 12b), estar em outro carrinho no mesmo dia e turno **só é avisado**, nunca bloqueado (ex: dois publicadores com o mesmo nome). Para o administrador continua bloqueada só a duplicidade exata: duas solicitações do mesmo publicador para a mesma combinação `(escala, carrinho, dia da semana, turno)` — o único bloqueio que vale também para ele. Pedidos que já existiam no mesmo horário quando a regra entrou continuam valendo; o administrador os vê pelo aviso. O limite por trinca (regras 1 e 3) bloqueia **só o envio do publicador** (vaga cheia); o administrador nunca é bloqueado por lotação, apenas avisado.
-10a. **Carrinho de data especial (escala de um dia só)**: em situações especiais (ex: um evento), o administrador cria um carrinho com uma **data especial** (sempre Segunda a Sexta). Esse carrinho só tem turnos no dia da semana da data, só aparece para os publicadores e na tela da Escala **na escala do mês da data**, e mostra "Somente em dd/mm" no formulário, no histórico, na Escala e na imagem de compartilhamento (numa imagem só dela, fora da imagem do mês). Os publicadores se inscrevem nele pelo formulário normal, com a mesma janela, o mesmo limite de vaga (regra 3) e a mesma duplicidade. **Ele não compromete a escala semanal**: para a regra 10, os carrinhos normais formam um grupo e cada data especial forma outro — um pedido no carrinho especial não ocupa o `(dia, turno)` da escala semanal, nem o contrário; dois carrinhos especiais da mesma data continuam conflitando entre si. No formulário, o turno só fica desabilitado se não sobrar carrinho livre do outro grupo; na etapa do carrinho, os do grupo ocupado aparecem desabilitados com "Você já tem pedido neste horário". O aviso do administrador segue o mesmo critério. Mudar a data para outro dia da semana remove os turnos dos outros dias, sem tocar nos pedidos existentes; apagar a data volta a ser um carrinho normal.
-11. **Histórico de solicitações**: o publicador deve conseguir consultar as solicitações que ele mesmo enviou, sem precisar de cadastro formal. Essa consulta fica **sempre disponível**, mesmo com o envio fechado. A forma de identificá-lo para isso será definida na fase de implementação.
+10a. **Carrinho de data especial (escala de um dia só)**: em situações especiais (ex: um evento), o administrador cria um carrinho com uma **data especial** (sempre Segunda a Sexta). Esse carrinho só tem turnos no dia da semana da data, só aparece para os publicadores e na tela da Escala **na escala do mês da data**, e mostra "Somente em dd/mm" no formulário, no histórico, na Escala e na imagem de compartilhamento (numa imagem só dela, fora da imagem do mês). Os publicadores se inscrevem nele pelo formulário normal, com a mesma janela, o mesmo limite de vaga (regra 1) e a mesma duplicidade — e **só até a própria data** (horário de Brasília): a partir do dia seguinte ele some do formulário e o envio é recusado, mesmo com a escala ainda em envio. O administrador não tem esse limite (regra 7). O grupo de cada pedido (normal ou a data especial) é o do carrinho **no momento do pedido** (ou do último mover) e fica gravado no pedido. **Ele não compromete a escala semanal**: para a regra 10, os carrinhos normais formam um grupo e cada data especial forma outro — um pedido no carrinho especial não ocupa o `(dia, turno)` da escala semanal, nem o contrário; dois carrinhos especiais da mesma data continuam conflitando entre si. No formulário, o turno só fica desabilitado se não sobrar carrinho livre do outro grupo; na etapa do carrinho, os do grupo ocupado aparecem desabilitados com "Você já tem pedido neste horário". O aviso do administrador segue o mesmo critério. Mudar a data para outro dia da semana remove os turnos dos outros dias, sem tocar nos pedidos existentes; apagar a data volta a ser um carrinho normal.
+11. **Histórico de solicitações**: o publicador deve conseguir consultar as solicitações que ele mesmo enviou, sem precisar de cadastro formal. Essa consulta fica **sempre disponível**, mesmo com o envio fechado. Ele é identificado pelo aparelho (um identificador anônimo salvo no navegador — `TECHNICAL_SPEC.md` §2.3): trocar de aparelho ou limpar os dados do navegador é começar como publicador novo. A tela mostra as escalas do mês corrente e a em envio (seção 5, passo 8).
 12. **Exclusão pelo publicador**: através da tela de histórico, o publicador pode excluir uma solicitação sua **somente enquanto a janela de envio estiver aberta e apenas se ela for da escala do mês-alvo (a escala em envio)** — solicitações de escalas que já saíram do envio não podem mais ser excluídas por ele. A exclusão **apaga o registro** — o sistema não guarda solicitações canceladas/excluídas, e o publicador pode voltar a pedir a mesma trinca depois. Fora da janela, a tela inicial não oferece o envio nem a exclusão e orienta o publicador a falar com o administrador. O bloqueio vale também no backend. Uma solicitação excluída libera a vaga que ocupava na trinca `(carrinho, dia da semana, turno)`.
 12a. **Sem aprovação — o administrador exclui**: toda solicitação existente já conta na escala; não há Pendente, Aprovada nem Rejeitada. O administrador tira alguém da escala **excluindo** a solicitação, a qualquer momento e em qualquer escala (regra 7). A exclusão é **definitiva** (apaga o registro, com confirmação na tela) e libera o publicador a pedir a mesma trinca de novo. Quando esta regra entrou (Fase 11), as solicitações que estavam Rejeitadas foram apagadas e as Pendentes passaram a contar na escala.
-12b. **Mover solicitação (administrador)**: o administrador pode mudar uma solicitação de vaga — outro carrinho, dia da semana e/ou turno **da mesma escala** —, a qualquer momento e em qualquer escala (regra 7). A solicitação continua a mesma (origem e data do pedido não mudam); o destino precisa ser um turno configurado para aquele carrinho naquele dia (regra 17); mover para uma vaga que ficaria com excesso **não é bloqueado**, só avisado (regras 1/3); se a vaga de origem ficar com 1 pessoa, a tela também avisa; o único bloqueio é a duplicidade (regra 10). O publicador vê a nova vaga no seu histórico; não há notificação (regra 14). O sistema nunca sugere quem mover nem para onde.
+12b. **Mover solicitação (administrador)**: o administrador pode mudar uma solicitação de vaga — outro carrinho, dia da semana e/ou turno **da mesma escala** —, a qualquer momento e em qualquer escala (regra 7). A solicitação continua a mesma (origem e data do pedido não mudam); o destino precisa ser um turno configurado para aquele carrinho naquele dia (regra 17), de carrinho ativo (regra 18) e, se for carrinho de data especial, da escala do mês da data (regra 10a); mover para uma vaga que ficaria com excesso **não é bloqueado**, só avisado (regras 1/3); se a vaga de origem ficar com 1 pessoa, a tela também avisa; o único bloqueio é a duplicidade (regra 10). O publicador vê a nova vaga no seu histórico; não há notificação (regra 14). O sistema nunca sugere quem mover nem para onde.
 13. **Critério de desempate exclusivo do administrador**: quando uma trinca passa do limite (regra 1), a escolha de quem fica (e de quem mover ou excluir) é inteiramente do administrador — o sistema não sugere nem aplica nenhum critério. Como apoio (não como critério imposto), o sistema mostra quantas solicitações cada publicador envolvido já tem na mesma escala (regra 16).
 14. **Sem notificações**: o sistema não envia avisos (e-mail, push, etc.) ao publicador sobre suas solicitações; a escala oficial é divulgada pelo administrador no grupo de WhatsApp.
 15. **Um único administrador**: não há necessidade de múltiplos administradores nem de controle de acesso por diferentes papéis administrativos.
 16. **Contagem de apoio ao desempate**: para cada publicador selecionado na tela da Escala (inclusive num grupo excedente), o sistema exibe o total de solicitações (somando todas as trincas) que ele já tem naquela mesma escala — para ajudar o administrador a decidir, sem determinar a decisão.
 17. **Turnos por carrinho e dia da semana**: cada carrinho tem, **para cada dia da semana**, seu próprio conjunto de turnos disponíveis, definido pelo administrador como um subconjunto da lista fixa de turnos do sistema (os horários de cada turno são os mesmos em qualquer carrinho e dia que o utilize). Um carrinho pode ter turnos diferentes de outro, e o mesmo carrinho pode ter turnos diferentes em cada dia (ex: Carrinho 01 com 08:00–10:00 na Segunda e só 10:00–12:00 na Terça). O publicador só pode escolher, para um carrinho e dia, um dos turnos configurados para aquela combinação; a adição manual pelo administrador segue a mesma restrição. Quando esta regra entrou (Fase 6), a configuração anterior de turnos por carrinho foi zerada e o administrador reconfigurou cada carrinho.
-18. **Remoção de turno de um carrinho / desativação de um carrinho**: quando o administrador remove um turno da configuração de um carrinho (em um ou mais dias da semana), ou desativa um carrinho, isso afeta apenas **novos** envios a partir dali (aquele turno/carrinho deixa de ser oferecido). As solicitações que já existiam com essa combinação **não são alteradas nem removidas** — continuam aparecendo normalmente no histórico do publicador e na escala.
+18. **Remoção de turno de um carrinho / desativação de um carrinho**: quando o administrador remove um turno da configuração de um carrinho (em um ou mais dias da semana), ou desativa um carrinho, isso afeta apenas **novas** solicitações a partir dali: aquele turno/carrinho deixa de ser oferecido e o sistema recusa pedir, adicionar ou mover para ele — **vale para o publicador e para o administrador**. As solicitações que já existiam com essa combinação **não são alteradas nem removidas** — continuam aparecendo normalmente no histórico do publicador e na escala, e o administrador pode movê-las para outra vaga ou excluí-las.
 19. **Dias da semana fixos**: o sistema só trabalha com **Segunda a Sexta-feira**. Não existe Sábado nem Domingo como opção em nenhum fluxo (publicador, adição manual do administrador, escala final).
 20. **Turnos fixos do sistema**: os turnos não são cadastrados nem editados pelo administrador — são sempre estes 6, fixos: **06:00–08:00, 08:00–10:00, 10:00–12:00, 14:00–16:00, 16:00–18:00, 18:00–20:00**. O papel do administrador é apenas escolher, por carrinho e dia da semana, quais desses 6 ficam disponíveis (regra 17).
 
@@ -206,14 +217,14 @@ EXISTE ──(admin exclui, a qualquer momento)──► (registro apagado)
 ## 9. Modelo de Dados (entidades sugeridas)
 
 **Publicador**
-- `id`
-- `nome`
+- `id` (GUID — é o próprio token anônimo do aparelho; na adição manual de um nome novo, gerado pelo servidor)
+- `nome` (até 200 caracteres)
 - `crianca_ou_idoso` (booleano, padrão falso; marcado pelo administrador — regra 1)
 
 **Carrinho**
 - `id`
 - `nome` (ex: "Carrinho 1")
-- `descricao` (texto livre opcional, exibido ao publicador abaixo do nome)
+- `descricao` (texto livre opcional, até 500 caracteres, exibido ao publicador abaixo do nome)
 - `ativo` (booleano, para poder desativar um carrinho sem apagar histórico)
 - `data_especial` (data opcional, Segunda a Sexta; preenchida = carrinho de um dia só — regra 10a)
 
@@ -244,14 +255,21 @@ EXISTE ──(admin exclui, a qualquer momento)──► (registro apagado)
 - `carrinho_id`
 - `dia_semana`
 - `turno_id`
-- `origem` (PUBLICADOR | ADMINISTRADOR) — indica se veio do fluxo normal de envio ou foi criada manualmente pelo administrador
-- `criado_em`
+- `data_especial` (cópia da data especial do carrinho no momento do pedido/mover; nula = escala semanal) — define o grupo do horário ocupado (regra 10a)
+- `origem` (PUBLICADOR | ADMINISTRADOR) — indica se veio do fluxo normal de envio ou foi criada manualmente pelo administrador; não muda ao mover
+- `criado_em` (não é exibido; usado para ordenar e desempatar homônimos)
 - Restrição de unicidade: `(publicador_id, escala_id, carrinho_id, dia_semana, turno_id)`
 
 **EscalaMensal (grade final)** (pode ser calculada sob demanda, sem precisar de tabela própria)
 - Para cada `(escala_id, carrinho_id, dia_semana, turno_id)`: lista das `Solicitacao` existentes (a meta é 2 registros, ou 3 com uma criança/idoso — regra 1).
 
-## 10. Roadmap Sugerido
+## 10. Roadmap Original (histórico)
+
+> Roadmap do planejamento inicial, mantido só como registro. Ele usa
+> termos que já saíram do sistema (ex: "mais de 2" como excesso, revisão
+> por grupo). As regras valem como estão nas seções 1–9; a numeração de
+> fases citada nas regras (ex: "Fase 6", "Fase 11") é a do `TASKS.md`, não
+> a deste roadmap.
 
 - **Fase 1 — Solicitação do publicador**: formulário (dia da semana — sempre Segunda a Sexta —, turno — um dos 6 turnos fixos — e carrinho, restrito aos que têm aquele turno configurado naquele dia) disponível apenas durante a janela de envio (abre no dia 15; fecha quando o administrador decidir), sempre direcionado à escala em envio, com bloqueio de solicitações duplicadas e tela de histórico próprio (sempre disponível, com opção de exclusão só durante a janela e para a escala do mês-alvo), sem cadastro formal.
 - **Fase 2 — Painel do administrador**: cadastro de carrinhos e configuração de quais dos 6 turnos fixos cada carrinho tem disponível em cada dia da semana; listagem/contagem de solicitações por escala, agrupamento por `(carrinho, dia, turno)` com sinalização visual de excesso (mais de 2, sem bloqueio automático desse limite) e contagem de apoio ao desempate por publicador; exclusão livre das solicitações excedentes (critério de desempate exclusivo do administrador); e adição manual de solicitações (com criação de publicador por nome livre) a qualquer escala.

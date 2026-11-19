@@ -10,6 +10,27 @@ uns nos outros.
 Convenção de ID: `F<fase>-<área>-<número>` (ex: `F1-BE-02`). `BE` = backend,
 `FE` = frontend, `INFRA` = docker/repo.
 
+> **Este arquivo é um registro cronológico.** Cada fase descreve o sistema
+> como ele era quando ela foi feita, e fases posteriores substituem as
+> anteriores. Não implemente nada a partir de uma fase antiga sem conferir
+> as mais novas e o `PLANNING.md` (que sempre vence). As principais
+> substituições:
+>
+> | Texto antigo | Substituído por |
+> |---|---|
+> | Status Pendente/Aprovada/Rejeitada/Cancelada, aprovar/rejeitar (F0–F2) | Sem status; o admin exclui (Fase 11) |
+> | Cancelar solicitação (F1-BE-05) | Excluir (`DELETE`, Fase 5) |
+> | Janela 15–25 / 15–27 (F0-BE-03, Fase 5) | Abre no dia 15, só o admin fecha (Fase 15) |
+> | Turnos por carrinho (F0–F5) | Turnos por carrinho **e dia** (Fase 6) |
+> | Ordens do wizard nome → carrinho → dia → turno (F1, F7) | Nome fora do wizard (Fase 12); dia → turno → carrinho (Fase 17) |
+> | Telas Revisão e Adicionar (F2) | Tudo na tela da Escala (Fase 13) |
+> | Limite de 2 só sinalizado, sem bloqueio (F2, F6) | Meta 2 ou 3 com criança/idoso (Fase 14); vaga cheia (`VAGA_CHEIA`) bloqueia só o publicador |
+> | "1 pessoa nesta vaga" no wizard (F17-FE-01) | "Com: Maria" — primeiro nome (issue #33) |
+> | Imagem por carrinho (Fase 16) | Uma imagem do mês dia → turno → carrinho (Fase 19) |
+>
+> As fases deste arquivo **não** são as do roadmap original do
+> `PLANNING.md` §10; quando uma regra cita "Fase N", é a daqui.
+
 ## Como paralelizar
 
 - **Uma tarefa = um agente = um conjunto de arquivos próprio.** Sempre que
@@ -687,6 +708,22 @@ limite de área do Safari do iPhone (~16 milhões de pixels).
 ### Verificação da Fase 19
 
 `npm test`, `npm run lint`, `npm run build`; exportar a imagem de um mês cheio no navegador e conferir que lê bem.
+
+---
+
+## Fase 20 — Carrinho inativo e data especial passada (pendente)
+
+Regras decididas na revisão de ambiguidades dos docs (PLANNING.md regras 10a e 18,
+TECHNICAL_SPEC.md §2.8/§2.8a); ainda não implementadas.
+
+| ID | Arquivos | Entrega |
+|----|----------|---------|
+| F20-BE-01 | `CriarSolicitacao/`, `RevisarEscala/AdicionarSolicitacaoManual/`, `MoverSolicitacao/` (+ testes) | Carrinho com `Ativo = false` é recusado (400) no envio do publicador, na adição manual e como destino do mover, mesmo com turnos configurados. Excluir e as solicitações existentes não mudam. |
+| F20-BE-02 | `ListarCarrinhosDisponiveis/`, `CriarSolicitacao/` (+ testes) | Carrinho de data especial com a data anterior a hoje (Brasília) não é listado e o envio do publicador é recusado (400); no próprio dia ainda vale. Admin sem esse limite. |
+
+### Verificação da Fase 20
+
+`dotnet test`.
 
 ---
 

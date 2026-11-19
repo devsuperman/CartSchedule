@@ -61,9 +61,14 @@ backend/
         Auth/
           AdminAuthOptions.cs        # usuário/senha (hash) via configuração
           JwtTokenService.cs
+      Infrastructure/RateLimiting/   # limites por IP (ver 2.9)
       Shared/
-        JanelaDeEnvio.cs             # mês-alvo pela data (dia 15) + se o admin fechou o envio (Escala.EnvioFechado)
-        EscalaHelpers.cs             # cálculo da escala do "mês seguinte"
+        JanelaDeEnvio.cs             # mês-alvo pela data (dia 15, horário de Brasília) + se o admin fechou o envio (Escala.EnvioFechado)
+        EscalaHelpers.cs             # obtém ou cria (lazy) a Escala de um mês de referência
+        LotacaoDaVaga.cs             # limite de 2 (vaga cheia) para o publicador, código VAGA_CHEIA
+        HorarioOcupado.cs            # filtro do "um lugar por horário" por grupo (normais × cada data especial), código HORARIO_OCUPADO
+        DataEspecial.cs              # dia útil da data, mês da data, "cabe na escala"
+        ValidationFilter.cs          # filtro de endpoint que roda o FluentValidation do Request
       Features/
         Publicadores/
           ConsultarJanela/           # GET  /api/janela
@@ -76,7 +81,7 @@ backend/
           Login/                    # POST /api/admin/login
           GerenciarCarrinhos/       # GET/POST/PUT /api/admin/carrinhos  (nome, descricao opcional, ativo, dataEspecial opcional Seg–Sex; mudar a data de dia remove os turnos dos outros dias)
           GerenciarTurnosDoCarrinho/# GET/PUT       /api/admin/carrinhos/{id}/turnos (disponibilidades dia×turno; carrinho especial só no dia da semana da data; turnos em si são fixos, ver 2.4)
-          RevisarEscala/
+          RevisarEscala/                 # nome de pasta histórico (a tela "Revisão" saiu na Fase 13); não renomear sem necessidade
             ExcluirSolicitacao/          # DELETE /api/admin/solicitacoes/{id}  (sem aprovação: o admin exclui; 204/404, sem janela)
             AdicionarSolicitacaoManual/  # POST /api/admin/escalas/{mes}/solicitacoes  ({nome, carrinhoId, diaSemana, turnoId, criancaOuIdoso?}; true marca a pessoa, nunca desmarca)
           ObterEscalaFinal/         # GET  /api/admin/escalas/{mes}/grade  (todas as vagas configuradas + células com pedidos; disponivel; por célula: carrinhoDescricao, carrinhoDataEspecial (carrinho especial só no mês da data); por pedido: solicitacaoId, origem, totalNaEscala, criancaOuIdoso; envio: {aberto} só na escala em envio, senão null)
@@ -96,7 +101,7 @@ Cada slice de `Features/` segue o mesmo padrão de arquivos:
 - Login simples com **usuário e senha** (não há múltiplos administradores — apenas uma conta).
 - Credenciais (usuário + hash da senha) definidas via **variáveis de ambiente** no deploy, não em código.
 - Senha armazenada com hash (`PasswordHasher` do ASP.NET Core ou BCrypt), nunca em texto puro.
-- `POST /api/admin/login` valida usuário/senha e retorna um **JWT** de curta duração.
+- `POST /api/admin/login` valida usuário/senha e retorna um **JWT** válido por **2 horas** (HMAC SHA256, chave em `Jwt:ChaveSecreta`), sem refresh token: expirou, faz login de novo. O frontend guarda o JWT em `sessionStorage` (some ao fechar a aba).
 - Todas as rotas de `Features/Administradores/*` exigem esse token (`[Authorize]` / `RequireAuthorization()` no Minimal API).
 - Rotas de `Features/Publicadores/*` continuam públicas (sem autenticação), conforme regra de negócio.
 
@@ -107,12 +112,12 @@ bloqueio de duplicidade e histórico):
 
 - No primeiro acesso, o frontend gera um **identificador anônimo de dispositivo** (`publicadorToken`, um GUID) e salva no `localStorage`. Antes de qualquer tela do publicador, a guarda `ExigeNome` leva à rota `/nome`, onde ele informa o nome (também salvo no `localStorage`). O nome vai ao backend junto com cada pedido (`POST /api/solicitacoes` cria/atualiza o `Publicador`) e, quando editado em `/nome` ("Olá, Fulano" no cabeçalho), por `PUT /api/publicador`.
 - Esse token é enviado em todo request do publicador (ex: header `X-Publicador-Token`).
-- No backend, a entidade `Publicador` é identificada por esse token (chave técnica), com o `nome` como um campo editável associado a ele.
+- No backend, a entidade `Publicador` é identificada por esse token: `Publicador.Id` **é** o GUID do header (não há coluna de token separada), com o `nome` como um campo editável associado a ele. O `Publicador` só passa a existir no banco no primeiro pedido (`POST /api/solicitacoes`); antes disso, `PUT /api/publicador` não cria nada. Cada `POST` sobrescreve o nome com o enviado pelo aparelho.
 - O bloqueio de duplicidade (regra 10) e o histórico (regra 11) usam esse `publicadorToken` para saber quais solicitações são "do mesmo publicador".
 - Ao usar a adição manual, o administrador escolhe entre os nomes de publicadores já vistos pelo sistema (autocomplete) ou digita um nome novo:
-  - Se o nome digitado **coincidir exatamente** com um `Publicador` já existente (havendo homônimos, o de pedido mais antigo, desempate pelo `Id`), a solicitação é associada a esse mesmo registro — inclusive aparecerá no histórico daquele publicador quando ele acessar pelo próprio celular.
+  - Se o nome digitado (com `Trim`) **coincidir exatamente** — comparação ordinal, sensível a maiúsculas e acentos — com um `Publicador` já existente (havendo homônimos, o de pedido mais antigo; quem não tem pedido fica por último; desempate pelo `Id`), a solicitação é associada a esse mesmo registro — inclusive aparecerá no histórico daquele publicador quando ele acessar pelo próprio celular.
   - Caso contrário (nome novo, ou grafia diferente de um nome existente), o backend cria um `Publicador` novo com um token gerado no servidor. Isso é uma consequência aceita da regra de negócio 9 (sem verificação/bloqueio de nomes duplicados) — pequenas diferenças de grafia podem gerar registros distintos para a mesma pessoa; a escala final não é afetada, pois é montada pelos nomes, não pelo token.
-- `Publicador.CriancaOuIdoso` (regra 1 do `PLANNING.md`) é só do administrador: marcado em "Editar pessoa" (`PUT /api/admin/publicadores/{id}`) ou na adição manual. O publicador não vê nem altera. O estado de cada vaga (vazia / incompleta / completa / excesso) é calculado **no frontend** a partir da grade (`routes/admin/components/gradeEscala.ts`, `estadoVaga`) — o backend não tem nenhuma regra de limite, só a de duplicidade.
+- `Publicador.CriancaOuIdoso` (regra 1 do `PLANNING.md`) é só do administrador: marcado em "Editar pessoa" (`PUT /api/admin/publicadores/{id}`) ou na adição manual. O publicador não vê nem altera. O estado de cada vaga (vazia / incompleta / completa / excesso) é calculado **no frontend** a partir da grade (`routes/admin/components/gradeEscala.ts`, `estadoVaga`). No backend, as únicas regras de lotação/horário são as que bloqueiam o **publicador** (`VAGA_CHEIA` com 2+ pessoas e `HORARIO_OCUPADO`, ambas em `CriarSolicitacao`); para o administrador, o backend só barra a duplicidade exata (índice único).
 
 ### 2.4 Turnos e dias da semana fixos (dados de seed)
 
@@ -169,7 +174,7 @@ A entidade `Escala` (mês de referência) é criada **sob demanda** (lazy) na pr
 
 ### 2.7 Validação
 
-- **FluentValidation** para validar os `Request` de cada slice (ex: nome obrigatório, carrinho/turno/dia válidos, turno disponível para o carrinho **no dia da semana** escolhido no momento do envio — vale também para a adição manual do admin).
+- **FluentValidation** para validar o formato dos `Request` de cada slice (ex: nome obrigatório até 200, dia 1–5, ids > 0). As regras que dependem do banco ficam no handler: turno disponível para o carrinho **no dia da semana** escolhido, carrinho ativo, carrinho especial na escala do mês da data — valem para o envio do publicador, a adição manual e o mover do admin.
 - Erros de validação retornam `400` com detalhes (`ProblemDetails`).
 
 ### 2.8 Remoção de turno de um carrinho / desativação de carrinho
@@ -177,10 +182,24 @@ A entidade `Escala` (mês de referência) é criada **sob demanda** (lazy) na pr
 Conforme regra de negócio 18 (`PLANNING.md`): remover uma disponibilidade
 (dia × turno) de `CarrinhoTurno` ou marcar `Carrinho.ativo = false` **não** altera nem
 remove `Solicitacao` já existentes — essas linhas continuam no banco
-normalmente, e o histórico/escala continuam exibindo-as. A validação
-de "turno disponível para o carrinho naquele dia" (2.7) só se aplica à **criação** de
-novas solicitações, não é reavaliada retroativamente sobre as
-existentes.
+normalmente, e o histórico/escala continuam exibindo-as. As validações
+de "turno disponível para o carrinho naquele dia" e de "carrinho ativo" (2.7) só se
+aplicam a **gravar** uma vaga — `CriarSolicitacao`, `AdicionarSolicitacaoManual` e o
+destino de `MoverSolicitacao` (400) —, não são reavaliadas retroativamente sobre as
+existentes. Excluir uma solicitação de carrinho inativo continua permitido.
+
+> **Pendente no código** (regra decidida, ainda não implementada): hoje os três
+> endpoints só verificam `CarrinhoTurno`, não `Carrinho.Ativo` — um carrinho inativo
+> que ainda tenha turnos configurados é aceito pela API (a UI já o esconde).
+
+### 2.8a Carrinho de data especial com a data já passada
+
+`ListarCarrinhosDisponiveis` não oferece, e `CriarSolicitacao` recusa (400), carrinho
+cuja `DataEspecial` seja anterior a hoje (horário de Brasília, `JanelaDeEnvio.Hoje`).
+No próprio dia ainda é aceito. Não vale para o administrador (regra 7).
+
+> **Pendente no código** (regra decidida, ainda não implementada): hoje só se
+> verifica o mês da data (`DataEspecial.CabeNaEscala`).
 
 ### 2.9 Proteção contra abuso (sem login do publicador)
 
@@ -206,8 +225,9 @@ bots e força bruta é invisível para quem usa o sistema normalmente:
 
 ### 2.10 CORS
 
-A API habilita CORS para a origem do frontend (`VITE_API_URL`/URL do
-container `web`), permitindo os métodos e headers usados pelo cliente
+A API habilita CORS só para a origem configurada em `Cors:FrontendOrigin`
+(env `Cors__FrontendOrigin`, padrão `http://localhost:3000`). `VITE_API_URL` é o
+inverso — o endereço da API embutido no bundle do frontend. Libera os métodos e headers usados pelo cliente
 (incluindo o header customizado `X-Publicador-Token` e
 `Authorization` para o admin).
 
@@ -233,11 +253,11 @@ frontend/
       administradores.ts
     routes/
       publicador/
-        InicioPublicador.tsx      # tela inicial: histórico de mês atual + próximo; botão "Solicitar Nova Escala" (janela aberta) ou aviso de envio fechado
+        InicioPublicador.tsx      # tela inicial: histórico do mês corrente + escala em envio (só esses dois); botão "Solicitar Nova Escala" (janela aberta) ou aviso de envio fechado
         SolicitarEscala.tsx       # decide entre JanelaFechada e o wizard, conforme useJanela()
         JanelaFechada.tsx         # tela exibida fora da janela de envio
         Nome.tsx                  # rota /nome: nome no primeiro acesso e edição ("Olá, Fulano")
-        wizard/                   # formulário em 3 etapas: dia da semana → turno → carrinho (nome + descrição + ocupação)
+        wizard/                   # formulário em 3 etapas: dia da semana → turno → carrinho (nome + descrição + ocupação); envia um pedido ao confirmar o carrinho e volta a "/"
         components/
           SolicitacaoCard.tsx     # card de uma solicitação (excluir, só com janela aberta e no mês-alvo; sem status nem data/hora)
           ErroJanela.tsx          # erro ao consultar /api/janela, com "tentar novamente"
@@ -251,7 +271,7 @@ frontend/
     hooks/
       usePublicadorToken.ts       # lê/gera o token; nome no localStorage, compartilhado entre telas (useSyncExternalStore)
       useJanela.ts
-      useAdminAuth.ts             # guarda o JWT (em memória ou sessionStorage) e protege rotas /admin
+      useAdminAuth.ts             # guarda o JWT em sessionStorage (em memória se indisponível) e protege rotas /admin
     components/                   # componentes reutilizáveis de UI
   index.html
   vite.config.ts
@@ -270,12 +290,12 @@ Tabelas espelhando o modelo de dados do `PLANNING.md` (seção 9):
 
 | Tabela | Colunas principais |
 |---|---|
-| `publicadores` | `id` (uuid/token), `nome`, `crianca_ou_idoso` (bool, padrão `false`) |
-| `carrinhos` | `id`, `nome`, `descricao` (opcional, até 500), `ativo` |
+| `publicadores` | `id` (uuid = token do aparelho), `nome` (até 200), `crianca_ou_idoso` (bool, padrão `false`) |
+| `carrinhos` | `id`, `nome`, `descricao` (opcional, até 500), `ativo`, `data_especial` (date, opcional) |
 | `turnos` | `id`, `hora_inicio`, `hora_fim` — **tabela com dado fixo (seed)**, sempre as mesmas 6 linhas, sem endpoint de criação/edição |
 | `carrinho_turnos` | `carrinho_id`, `dia_semana`, `turno_id` (PK composta) |
-| `escalas` | `id`, `mes_referencia` (ex: `2026-10-01`, primeiro dia do mês) |
-| `solicitacoes` | `id`, `publicador_id`, `escala_id`, `carrinho_id`, `dia_semana`, `turno_id`, `origem`, `criado_em` — sem `status`: toda solicitação existente conta na escala (Fase 11 removeu `status`/`decidido_em`) |
+| `escalas` | `id`, `mes_referencia` (ex: `2026-10-01`, primeiro dia do mês; na URL da API, `yyyy-MM`), `envio_fechado` (bool, padrão `false`) |
+| `solicitacoes` | `id`, `publicador_id`, `escala_id`, `carrinho_id`, `dia_semana`, `turno_id`, `data_especial` (cópia da do carrinho ao gravar/mover), `origem`, `criado_em` — sem `status`: toda solicitação existente conta na escala (Fase 11 removeu `status`/`decidido_em`) |
 
 Índices/constraints relevantes:
 - Único: `(publicador_id, escala_id, carrinho_id, dia_semana, turno_id)` em `solicitacoes` (regra 10 — bloqueio de duplicidade). O "um lugar por horário" `(publicador, escala, dia, turno)` não tem índice: só o envio do publicador barra (no código, sob o mesmo lock da vaga cheia); o admin pode, com aviso.
@@ -288,7 +308,12 @@ Migrations do EF Core cuidam da criação/evolução do schema — não há nece
 
 ### 5.1 `docker-compose.yml` (raiz do repositório)
 
-Três serviços:
+Três serviços. O arquivo real (`docker-compose.yml`) é a referência; o
+trecho abaixo é um resumo. Diferenças importantes em relação a ele: as
+variáveis sensíveis usam `${VAR:?mensagem}` (falha se faltar), a API recebe
+`Cors__FrontendOrigin`, e o `web` recebe `VITE_API_URL` e
+`VITE_WHATSAPP_GRUPO_URL` como **build args** (são embutidas no bundle).
+Produção usa `docker-compose.prod.yml` + Caddy (ver `deploy/README.md`).
 
 ```yaml
 services:
@@ -372,9 +397,12 @@ CartSchedule/
   README.md
 ```
 
-## 7. Roadmap Técnico
+## 7. Roadmap Técnico (histórico)
 
-Alinhado ao roadmap de negócio (`PLANNING.md`, seção 10):
+Roadmap inicial, mantido como registro e alinhado ao roadmap original do
+`PLANNING.md` (seção 10). Cita conceitos que já saíram (cancelamento,
+aprovar/rejeitar, listagem agrupada); o estado atual está nas seções 1–6
+e a sequência real de entregas no `TASKS.md` (Fases 0–19).
 
 - **Fase 1**: modelo de dados + migrations (incluindo o seed dos 6 turnos fixos); slices do Publicador (janela, carrinhos disponíveis, criar solicitação, histórico, cancelamento); frontend da área do Publicador; `docker-compose` funcional com os 3 serviços.
 - **Fase 2**: autenticação do administrador (login + JWT); slice de gestão de carrinhos e da associação carrinho-turno; slices de revisão de escala (listagem agrupada, exclusão pelo admin — antes da Fase 11, aprovar/rejeitar —, contagem de apoio ao desempate, adição manual); frontend da área do Administrador.
