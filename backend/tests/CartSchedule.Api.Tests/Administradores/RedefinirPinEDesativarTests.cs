@@ -15,10 +15,10 @@ public class RedefinirPinEDesativarTests(ApiFixture fixture) : ApiTestBase(fixtu
     private const string RotaAdmin = "/api/admin/publicadores";
 
     private static Task<HttpResponseMessage> RedefinirPinAsync(HttpClient admin, Guid id) =>
-        admin.PostAsync($"/api/admin/publicadores/{id}/pin", null);
+        admin.PostAsync($"{RotaAdmin}/{id}/pin", null);
 
     private static Task<HttpResponseMessage> EditarAsync(HttpClient admin, Guid id, object corpo) =>
-        admin.PutAsJsonAsync($"/api/admin/publicadores/{id}", corpo);
+        admin.PutAsJsonAsync($"{RotaAdmin}/{id}", corpo);
 
     private async Task<HttpClient> LogadoAsync(string usuario, string pin)
     {
@@ -157,6 +157,20 @@ public class RedefinirPinEDesativarTests(ApiFixture fixture) : ApiTestBase(fixtu
         await EditarAsync(admin, id, new { administrador = false });
 
         Assert.Equal(HttpStatusCode.Unauthorized, (await aparelho.GetAsync(RotaAdmin)).StatusCode);
+    }
+
+    [Fact]
+    public async Task DarAdministrador_NaoDesconecta_PapelNovoVemNoProximoLogin()
+    {
+        var admin = await AdminAsync();
+        var (id, pin) = await CriarContaAsync(admin, "Joao", "joao");
+        var aparelho = await LogadoAsync("joao", pin);
+
+        await EditarAsync(admin, id, new { administrador = true });
+
+        // Ainda autenticado (403, não 401) com o token de publicador.
+        Assert.Equal(HttpStatusCode.Forbidden, (await aparelho.GetAsync(RotaAdmin)).StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await (await LogadoAsync("joao", pin)).GetAsync(RotaAdmin)).StatusCode);
     }
 
     [Fact]

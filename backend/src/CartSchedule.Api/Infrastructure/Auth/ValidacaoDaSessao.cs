@@ -6,9 +6,11 @@ namespace CartSchedule.Api.Infrastructure.Auth;
 
 /// <summary>
 /// Conferência feita em todo request autenticado com token de publicador (ADR 0001): a pessoa
-/// ainda existe, está ativa, a <c>versaoSessao</c> do token é a atual e o papel do token bate
-/// com a marca de administrador. Assim, redefinir/trocar o PIN, desativar ou tirar o
-/// administrador desconectam na hora todos os aparelhos (401), sem lista de tokens revogados.
+/// ainda existe, está ativa, a <c>versaoSessao</c> do token é a atual e, se o token é de
+/// administrador, a pessoa ainda é administrador. Assim, redefinir/trocar o PIN, desativar ou
+/// tirar o administrador desconectam na hora todos os aparelhos (401), sem lista de tokens
+/// revogados. Dar administrador não desconecta: o token de publicador continua valendo e o papel
+/// novo vem no próximo login.
 /// O token do administrador de recuperação não tem publicador e não passa por aqui.
 /// </summary>
 internal static class ValidacaoDaSessao
@@ -36,11 +38,10 @@ internal static class ValidacaoDaSessao
             .Select(p => new { p.Ativo, p.VersaoSessao, p.Administrador })
             .SingleOrDefaultAsync(context.HttpContext.RequestAborted);
 
-        var papelAtual = atual?.Administrador == true ? Papeis.Administrador : Papeis.Publicador;
         if (atual is null
             || !atual.Ativo
             || atual.VersaoSessao != versaoDoToken
-            || !principal.IsInRole(papelAtual))
+            || (principal.IsInRole(Papeis.Administrador) && !atual.Administrador))
         {
             context.Fail("Sessão encerrada.");
         }

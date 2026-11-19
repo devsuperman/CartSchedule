@@ -81,8 +81,7 @@ public static class Endpoint
             Usuario = usuario,
             UsuarioNormalizado = UsuarioNormalizado.De(usuario),
         };
-        var pin = Pin.Gerar();
-        publicador.PinHash = passwordHasher.HashPassword(new object(), pin);
+        var pin = NovoPin(publicador, passwordHasher);
 
         if (await UsuarioEmUsoAsync(db, publicador.UsuarioNormalizado, publicador.Id, ct))
         {
@@ -144,8 +143,7 @@ public static class Endpoint
             // Registro antigo recebendo usuário: cria as credenciais completas.
             if (publicador.PinHash is null)
             {
-                pinGerado = Pin.Gerar();
-                publicador.PinHash = passwordHasher.HashPassword(new object(), pinGerado);
+                pinGerado = NovoPin(publicador, passwordHasher);
             }
         }
 
@@ -179,12 +177,19 @@ public static class Endpoint
                 extensions: new Dictionary<string, object?> { ["codigo"] = CodigoSemUsuario });
         }
 
-        var pin = Pin.Gerar();
-        publicador.PinHash = passwordHasher.HashPassword(new object(), pin);
+        var pin = NovoPin(publicador, passwordHasher);
         publicador.VersaoSessao++;
         await db.SaveChangesAsync(ct);
 
         return Results.Ok(new CredenciaisResponse(publicador.Id, publicador.Usuario, pin));
+    }
+
+    /// <summary>Gera um PIN, guarda só o hash e devolve o PIN em claro para a resposta.</summary>
+    private static string NovoPin(Publicador publicador, PasswordHasher<object> passwordHasher)
+    {
+        var pin = Pin.Gerar();
+        publicador.PinHash = passwordHasher.HashPassword(new object(), pin);
+        return pin;
     }
 
     private static Task<bool> UsuarioEmUsoAsync(AppDbContext db, string normalizado, Guid id, CancellationToken ct) =>

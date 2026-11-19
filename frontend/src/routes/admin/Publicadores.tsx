@@ -72,6 +72,7 @@ export default function Publicadores() {
 
   const visiveis = useMemo(() => {
     const termo = normalizar(busca);
+    // O servidor já filtra os desativados; aqui some na hora quem acabou de ser desativado.
     return (publicadores ?? []).filter(
       (p) =>
         (p.ativo || mostrarInativos) &&
