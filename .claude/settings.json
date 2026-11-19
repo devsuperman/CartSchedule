@@ -1,8 +1,4 @@
 {
-  "enabledPlugins": {
-    "frontend-design@claude-plugins-official": false,
-    "vercel@claude-plugins-official": false
-  },
   "hooks": {
     "SessionStart": [
       {
@@ -58,5 +54,6 @@
         ]
       }
     ]
-  }
+  },
+  "enabledPlugins": {}
 }
