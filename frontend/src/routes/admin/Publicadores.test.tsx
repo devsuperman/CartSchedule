@@ -354,4 +354,74 @@ describe("Publicadores", () => {
 
     expect(await confirmacao.findByText("Não encontrado.")).toBeInTheDocument();
   });
+
+  it("une um registro duplicado em outro: escolhe o destino, vê a prévia e confirma", async () => {
+    mockApiFetch.mockImplementation(async (path, opcoes) => {
+      if (path === "/api/admin/publicadores" && !opcoes?.method) return LISTA;
+      if (path === "/api/admin/publicadores/j/unir/a" && !opcoes?.method) {
+        return { pedidosMovidos: 3, pedidosDescartados: 1 };
+      }
+      if (path === "/api/admin/publicadores/j/unir/a" && opcoes?.method === "POST") {
+        return { pedidosMovidos: 3, pedidosDescartados: 1 };
+      }
+      throw new Error(`chamada inesperada: ${path}`);
+    });
+    const user = renderizar();
+
+    await user.click((await itemDe("José Lima")).getByRole("button", { name: "Editar José Lima" }));
+    await user.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Unir a outro registro" }));
+
+    const unir = within(screen.getByRole("dialog", { name: "Unir José Lima a outro registro" }));
+    expect(unir.queryByRole("radio", { name: /José Lima/ })).not.toBeInTheDocument();
+    expect(unir.getByRole("button", { name: "Unir" })).toBeDisabled();
+    await user.click(unir.getByRole("radio", { name: /Ana Paula/ }));
+
+    expect(await unir.findByText("3 pedidos passam para Ana Paula.")).toBeInTheDocument();
+    expect(unir.getByText(/1 pedido será descartado/)).toBeInTheDocument();
+    expect(unir.getByText(/José Lima será apagado/)).toBeInTheDocument();
+    expect(mockApiFetch).not.toHaveBeenCalledWith("/api/admin/publicadores/j/unir/a", { method: "POST" });
+    await user.click(unir.getByRole("button", { name: "Unir" }));
+
+    expect(mockApiFetch).toHaveBeenCalledWith("/api/admin/publicadores/j/unir/a", { method: "POST" });
+    expect(await screen.findByRole("status")).toHaveTextContent("José Lima foi unido a Ana Paula.");
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(screen.queryByText("José Lima")).not.toBeInTheDocument();
+    // A marca criança/idoso da origem passa para o destino.
+    expect((await itemDe("Ana Paula")).getByText("Criança ou idoso")).toBeInTheDocument();
+  });
+
+  it("na própria conta não oferece unir (apagaria a conta logada)", async () => {
+    mockApiFetch.mockImplementation(async (path, opcoes) => {
+      if (path === "/api/admin/publicadores" && !opcoes?.method) return [{ ...LISTA[0], ehVoce: true }, LISTA[1]];
+      throw new Error(`chamada inesperada: ${path}`);
+    });
+    const user = renderizar();
+
+    await user.click((await itemDe("Ana Paula")).getByRole("button", { name: "Editar Ana Paula" }));
+
+    expect(within(screen.getByRole("dialog")).queryByRole("button", { name: "Unir a outro registro" })).not.toBeInTheDocument();
+  });
+
+  it("erro ao unir aparece na confirmação e nada some da lista", async () => {
+    mockApiFetch.mockImplementation(async (path, opcoes) => {
+      if (path === "/api/admin/publicadores" && !opcoes?.method) return LISTA;
+      if (path === "/api/admin/publicadores/j/unir/a" && !opcoes?.method) {
+        return { pedidosMovidos: 0, pedidosDescartados: 0 };
+      }
+      throw new ApiError(404, "Não encontrado.");
+    });
+    const user = renderizar();
+
+    await user.click((await itemDe("José Lima")).getByRole("button", { name: "Editar José Lima" }));
+    await user.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Unir a outro registro" }));
+    const unir = within(screen.getByRole("dialog"));
+    await user.click(unir.getByRole("radio", { name: /Ana Paula/ }));
+    expect(await unir.findByText("Nenhum pedido para passar a Ana Paula.")).toBeInTheDocument();
+    await user.click(unir.getByRole("button", { name: "Unir" }));
+
+    expect(await unir.findByText("Não encontrado.")).toBeInTheDocument();
+    await user.click(unir.getByRole("button", { name: "Voltar" }));
+    await user.keyboard("{Escape}");
+    expect(screen.getByText("José Lima")).toBeInTheDocument();
+  });
 });

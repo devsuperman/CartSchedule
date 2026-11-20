@@ -6,6 +6,7 @@ using CartSchedule.Api.Features.Administradores.ObterEscalaFinal;
 using CartSchedule.Api.Features.Administradores.GerenciarPublicadores;
 using CartSchedule.Api.Features.Administradores.RevisarEscala.AdicionarSolicitacaoManual;
 using CartSchedule.Api.Features.Administradores.RevisarEscala.ExcluirSolicitacao;
+using CartSchedule.Api.Features.Administradores.UnirPublicadores;
 using CartSchedule.Api.Features.Autenticacao.Login;
 using CartSchedule.Api.Features.Publicadores.ExcluirSolicitacao;
 using CartSchedule.Api.Features.Publicadores.AtualizarNome;
@@ -88,6 +89,7 @@ app.MapExcluirSolicitacaoAdmin();
 app.MapAdicionarSolicitacaoManual();
 app.MapObterEscalaFinal();
 app.MapGerenciarPublicadores();
+app.MapUnirPublicadores();
 app.MapMoverSolicitacao();
 app.MapAlterarEnvioEscala();
 
