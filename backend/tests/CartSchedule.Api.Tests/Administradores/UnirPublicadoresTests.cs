@@ -144,4 +144,24 @@ public class UnirPublicadoresTests(ApiFixture fixture) : ApiTestBase(fixture)
         Assert.Equal(HttpStatusCode.Forbidden, (await publicador.PostAsync(RotaUnir(b, a), null)).StatusCode);
         Assert.Equal(2, (await PublicadoresAsync(admin)).Length);
     }
+
+    [Fact]
+    public async Task AdministradorUnindoAPropriaConta_Retorna409PropriaConta_EOutroSentidoFunciona()
+    {
+        var recuperacao = await AdminAsync();
+        var (eu, pin) = await CriarContaAsync(recuperacao, "Maria", "maria", administrador: true);
+        var (outro, _) = await CriarContaAsync(recuperacao, "Maria S.", "marias");
+        var admin = ClienteComToken(await JsonAsync(await LoginAsync(Fixture.Factory.CreateClient(), "maria", pin)));
+
+        var previa = await admin.GetAsync(RotaUnir(eu, outro));
+        var unir = await admin.PostAsync(RotaUnir(eu, outro), null);
+
+        Assert.Equal(HttpStatusCode.Conflict, previa.StatusCode);
+        Assert.Equal(HttpStatusCode.Conflict, unir.StatusCode);
+        Assert.Equal("PROPRIA_CONTA", (await JsonAsync(unir)).GetProperty("codigo").GetString());
+        Assert.Equal(2, (await PublicadoresAsync(recuperacao)).Length);
+
+        Assert.Equal(HttpStatusCode.OK, (await admin.PostAsync(RotaUnir(outro, eu), null)).StatusCode);
+        Assert.Equal(eu, Assert.Single(await PublicadoresAsync(recuperacao)).GetProperty("id").GetGuid());
+    }
 }

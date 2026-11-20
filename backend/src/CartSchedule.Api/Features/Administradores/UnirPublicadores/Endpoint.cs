@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using CartSchedule.Api.Domain;
 using CartSchedule.Api.Infrastructure;
 using Microsoft.EntityFrameworkCore;
@@ -11,9 +12,12 @@ namespace CartSchedule.Api.Features.Administradores.UnirPublicadores;
 /// <c>(escala, carrinho, dia, turno)</c> (duplicidade), passa a marca criança/idoso ao destino
 /// se a origem a tinha (nunca desmarca) e apaga a origem. Nome, usuário e PIN do destino ficam
 /// como estão. Não é limitado pela janela nem pela lotação (só sinalização na Escala).
+/// O administrador não une a própria conta a outra (409 PROPRIA_CONTA): ela seria apagada.
 /// </summary>
 public static class Endpoint
 {
+    public const string CodigoPropriaConta = "PROPRIA_CONTA";
+
     public static IEndpointRouteBuilder MapUnirPublicadores(this IEndpointRouteBuilder app)
     {
         var group = app.MapGroup("/api/admin/publicadores/{origemId:guid}/unir/{destinoId:guid}")
@@ -25,11 +29,12 @@ public static class Endpoint
         return app;
     }
 
-    private static async Task<IResult> PreviaAsync(Guid origemId, Guid destinoId, AppDbContext db, CancellationToken ct)
+    private static async Task<IResult> PreviaAsync(
+        Guid origemId, Guid destinoId, ClaimsPrincipal usuarioLogado, AppDbContext db, CancellationToken ct)
     {
-        if (origemId == destinoId)
+        if (Recusa(origemId, destinoId, usuarioLogado) is { } recusa)
         {
-            return MesmoPublicador();
+            return recusa;
         }
 
         var existem = await db.Publicadores.CountAsync(p => p.Id == origemId || p.Id == destinoId, ct);
@@ -42,11 +47,12 @@ public static class Endpoint
         return Results.Ok(new UnirPublicadoresResponse(movidos.Count, descartados.Count));
     }
 
-    private static async Task<IResult> UnirAsync(Guid origemId, Guid destinoId, AppDbContext db, CancellationToken ct)
+    private static async Task<IResult> UnirAsync(
+        Guid origemId, Guid destinoId, ClaimsPrincipal usuarioLogado, AppDbContext db, CancellationToken ct)
     {
-        if (origemId == destinoId)
+        if (Recusa(origemId, destinoId, usuarioLogado) is { } recusa)
         {
-            return MesmoPublicador();
+            return recusa;
         }
 
         await using var transacao = await db.Database.BeginTransactionAsync(ct);
@@ -70,13 +76,15 @@ public static class Endpoint
         db.Solicitacoes.RemoveRange(descartados);
         foreach (var pedido in movidos)
         {
-            pedido.Publicador = destino;
+            pedido.PublicadorId = destinoId;
         }
 
         destino.CriancaOuIdoso |= origem.CriancaOuIdoso;
-        db.Publicadores.Remove(origem);
-
         await db.SaveChangesAsync(ct);
+
+        // Apagada direto no banco, depois de os pedidos já terem saído dela: não depende de o EF
+        // ter desvinculado os pedidos rastreados antes de aplicar a exclusão em cascata.
+        await db.Publicadores.Where(p => p.Id == origemId).ExecuteDeleteAsync(ct);
         await transacao.CommitAsync(ct);
 
         return Results.Ok(new UnirPublicadoresResponse(movidos.Count, descartados.Count));
@@ -99,9 +107,25 @@ public static class Endpoint
         return (daOrigem.Except(descartados).ToList(), descartados);
     }
 
-    private static IResult MesmoPublicador() =>
-        Results.ValidationProblem(new Dictionary<string, string[]>
+    /// <summary>Origem igual ao destino (400) ou a própria conta do administrador logado (409).</summary>
+    private static IResult? Recusa(Guid origemId, Guid destinoId, ClaimsPrincipal usuarioLogado)
+    {
+        if (origemId == destinoId)
         {
-            ["destinoId"] = ["Escolha outro publicador: não dá para unir um registro com ele mesmo."],
-        });
+            return Results.ValidationProblem(new Dictionary<string, string[]>
+            {
+                ["destinoId"] = ["Escolha outro publicador: não dá para unir um registro com ele mesmo."],
+            });
+        }
+
+        if (usuarioLogado.FindFirstValue(ClaimTypes.NameIdentifier) == origemId.ToString())
+        {
+            return Results.Problem(
+                title: "Você não pode unir a sua própria conta a outra: ela seria apagada. Una a outra conta à sua.",
+                statusCode: StatusCodes.Status409Conflict,
+                extensions: new Dictionary<string, object?> { ["codigo"] = CodigoPropriaConta });
+        }
+
+        return null;
+    }
 }

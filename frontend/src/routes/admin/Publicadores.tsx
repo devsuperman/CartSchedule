@@ -43,6 +43,15 @@ function normalizar(texto: string): string {
   return texto.normalize("NFD").replace(/\p{M}/gu, "").toLowerCase().trim();
 }
 
+/** Busca por nome ou usuário; `termo` já normalizado (vazio = todos). */
+function combinaComBusca(publicador: Publicador, termo: string): boolean {
+  return (
+    !termo ||
+    normalizar(publicador.nome).includes(termo) ||
+    (publicador.usuario !== null && normalizar(publicador.usuario).includes(termo))
+  );
+}
+
 function primeiroNome(nome: string): string {
   return nome.trim().split(/\s+/)[0] ?? "";
 }
@@ -102,11 +111,7 @@ export default function Publicadores() {
   const visiveis = useMemo(() => {
     const termo = normalizar(busca);
     // O servidor já filtra os desativados; aqui some na hora quem acabou de ser desativado.
-    return (publicadores ?? []).filter(
-      (p) =>
-        (p.ativo || mostrarInativos) &&
-        (!termo || normalizar(p.nome).includes(termo) || (p.usuario !== null && normalizar(p.usuario).includes(termo))),
-    );
+    return (publicadores ?? []).filter((p) => (p.ativo || mostrarInativos) && combinaComBusca(p, termo));
   }, [publicadores, busca, mostrarInativos]);
 
   function aoSalvar(publicador: Publicador, credenciais: Credenciais | null) {
@@ -189,7 +194,10 @@ export default function Publicadores() {
               variant="outline"
               className="min-h-11 shrink-0"
               aria-label={`Editar ${p.nome}`}
-              onClick={() => setEdicao({ modo: "editar", publicador: p })}
+              onClick={() => {
+                setAviso(null);
+                setEdicao({ modo: "editar", publicador: p });
+              }}
             >
               Editar
             </Button>
@@ -422,12 +430,13 @@ function UnirPublicador({
   const [previa, setPrevia] = useState<ResultadoDaUniao | null>(null);
   const [enviando, setEnviando] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
+  const rota = destino && `/api/admin/publicadores/${origem.id}/unir/${destino.id}`;
 
   useEffect(() => {
-    if (!destino) return;
+    if (!rota) return;
     // Trocar de destino rápido dispara prévias sobrepostas: só a do destino atual vale.
     let atual = true;
-    apiFetch<ResultadoDaUniao>(`/api/admin/publicadores/${origem.id}/unir/${destino.id}`)
+    apiFetch<ResultadoDaUniao>(rota)
       .then((resultado) => atual && setPrevia(resultado))
       .catch(
         (err) => atual && setErro(err instanceof ApiError ? err.message : "Não foi possível calcular a prévia."),
@@ -435,16 +444,11 @@ function UnirPublicador({
     return () => {
       atual = false;
     };
-  }, [origem.id, destino]);
+  }, [rota]);
 
   const termo = normalizar(busca);
-  const visiveis = candidatos.filter(
-    (p) =>
-      p.id === destino?.id ||
-      !termo ||
-      normalizar(p.nome).includes(termo) ||
-      (p.usuario !== null && normalizar(p.usuario).includes(termo)),
-  );
+  // O escolhido continua visível mesmo que a busca mude depois.
+  const visiveis = candidatos.filter((p) => p.id === destino?.id || combinaComBusca(p, termo));
 
   function escolher(publicador: Publicador) {
     setDestino(publicador);
@@ -453,11 +457,11 @@ function UnirPublicador({
   }
 
   async function confirmar() {
-    if (!destino) return;
+    if (!destino || !rota) return;
     setEnviando(true);
     setErro(null);
     try {
-      await apiFetch<ResultadoDaUniao>(`/api/admin/publicadores/${origem.id}/unir/${destino.id}`, { method: "POST" });
+      await apiFetch<ResultadoDaUniao>(rota, { method: "POST" });
       onUnido(origem, destino);
     } catch (err) {
       setErro(err instanceof ApiError ? err.message : "Não foi possível unir.");
