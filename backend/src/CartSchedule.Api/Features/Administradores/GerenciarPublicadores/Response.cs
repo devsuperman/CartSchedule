@@ -2,7 +2,7 @@ namespace CartSchedule.Api.Features.Administradores.GerenciarPublicadores;
 
 /// <summary>
 /// Item da lista; o PIN nunca é exposto, só se a conta já tem um. <see cref="EhVoce"/> marca o
-/// administrador logado (a tela não oferece desativar nem tirar o próprio administrador).
+/// administrador logado (a tela não oferece excluir nem tirar o próprio administrador).
 /// </summary>
 public record PublicadorResponse(
     Guid Id,
@@ -10,7 +10,6 @@ public record PublicadorResponse(
     string? Usuario,
     bool CriancaOuIdoso,
     bool Administrador,
-    bool Ativo,
     bool TemPin,
     bool EhVoce);
 

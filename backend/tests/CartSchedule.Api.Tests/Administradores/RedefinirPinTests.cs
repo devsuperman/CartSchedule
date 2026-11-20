@@ -6,11 +6,11 @@ using CartSchedule.Api.Tests.Infraestrutura;
 namespace CartSchedule.Api.Tests.Administradores;
 
 /// <summary>
-/// Redefinir PIN e desativar/reativar (issue #46): ambos desconectam todos os aparelhos da
-/// pessoa — cada request autenticado confere que o publicador está ativo e que a versão de
-/// sessão do token é a atual.
+/// Redefinir PIN (issue #46) desconecta todos os aparelhos da pessoa — cada request autenticado
+/// confere que o publicador existe e que a versão de sessão do token é a atual. Desde a ADR 0002
+/// não há mais desativar: é o jeito de bloquear o acesso por um tempo.
 /// </summary>
-public class RedefinirPinEDesativarTests(ApiFixture fixture) : ApiTestBase(fixture)
+public class RedefinirPinTests(ApiFixture fixture) : ApiTestBase(fixture)
 {
     private const string RotaAdmin = "/api/admin/publicadores";
 
@@ -26,10 +26,6 @@ public class RedefinirPinEDesativarTests(ApiFixture fixture) : ApiTestBase(fixtu
         login.EnsureSuccessStatusCode();
         return ClienteComToken(await JsonAsync(login));
     }
-
-    private static async Task<string[]> NomesAsync(HttpClient admin, string query = "") =>
-        (await admin.GetFromJsonAsync<JsonElement>(RotaAdmin + query))
-        .EnumerateArray().Select(p => p.GetProperty("nome").GetString()!).ToArray();
 
     [Fact]
     public async Task RedefinirPin_DevolveNovoPin_QueEntra_EOAntigoNaoEntraMais()
@@ -107,44 +103,31 @@ public class RedefinirPinEDesativarTests(ApiFixture fixture) : ApiTestBase(fixtu
     }
 
     [Fact]
-    public async Task Desativar_TokensAnterioresRecebem401_ELoginRecusadoComPublicadorInativo()
-    {
-        var admin = await AdminAsync();
-        var (id, pin) = await CriarContaAsync(admin, "Maria", "maria", administrador: true);
-        var aparelho = await LogadoAsync("maria", pin);
-
-        Assert.Equal(HttpStatusCode.NoContent, (await EditarAsync(admin, id, new { ativo = false })).StatusCode);
-
-        Assert.Equal(HttpStatusCode.Unauthorized, (await aparelho.GetAsync(RotaAdmin)).StatusCode);
-        var login = await LoginAsync(Fixture.Factory.CreateClient(), "maria", pin);
-        Assert.Equal(HttpStatusCode.Forbidden, login.StatusCode);
-        Assert.Equal("PUBLICADOR_INATIVO", (await JsonAsync(login)).GetProperty("codigo").GetString());
-    }
-
-    [Fact]
-    public async Task Reativar_PermiteLogarDeNovoComOMesmoPin_MasTokensAntigosContinuamInvalidos()
-    {
-        var admin = await AdminAsync();
-        var (id, pin) = await CriarContaAsync(admin, "Maria", "maria", administrador: true);
-        var aparelhoAntigo = await LogadoAsync("maria", pin);
-        await EditarAsync(admin, id, new { ativo = false });
-
-        Assert.Equal(HttpStatusCode.NoContent, (await EditarAsync(admin, id, new { ativo = true })).StatusCode);
-
-        Assert.Equal(HttpStatusCode.Unauthorized, (await aparelhoAntigo.GetAsync(RotaAdmin)).StatusCode);
-        Assert.Equal(HttpStatusCode.OK, (await (await LogadoAsync("maria", pin)).GetAsync(RotaAdmin)).StatusCode);
-    }
-
-    [Fact]
     public async Task EditarOutrosCampos_NaoDesconectaOsAparelhos()
     {
         var admin = await AdminAsync();
         var (id, pin) = await CriarContaAsync(admin, "Maria", "maria", administrador: true);
         var aparelho = await LogadoAsync("maria", pin);
 
-        await EditarAsync(admin, id, new { nome = "Maria Souza", criancaOuIdoso = true, ativo = true });
+        await EditarAsync(admin, id, new { nome = "Maria Souza", criancaOuIdoso = true });
 
         Assert.Equal(HttpStatusCode.OK, (await aparelho.GetAsync(RotaAdmin)).StatusCode);
+    }
+
+    [Fact]
+    public async Task CampoAtivo_NaoExisteMais_EdicaoIgnoraELoginESessaoContinuam()
+    {
+        // ADR 0002: a marca ativo saiu; quem ainda mandar { ativo: false } não desativa ninguém.
+        var admin = await AdminAsync();
+        var (id, pin) = await CriarContaAsync(admin, "Maria", "maria", administrador: true);
+        var aparelho = await LogadoAsync("maria", pin);
+
+        Assert.Equal(HttpStatusCode.NoContent, (await EditarAsync(admin, id, new { ativo = false })).StatusCode);
+
+        Assert.Equal(HttpStatusCode.OK, (await aparelho.GetAsync(RotaAdmin)).StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await LoginAsync(Fixture.Factory.CreateClient(), "maria", pin)).StatusCode);
+        var item = Assert.Single((await admin.GetFromJsonAsync<JsonElement>(RotaAdmin)).EnumerateArray());
+        Assert.False(item.TryGetProperty("ativo", out _));
     }
 
     [Fact]
@@ -186,67 +169,18 @@ public class RedefinirPinEDesativarTests(ApiFixture fixture) : ApiTestBase(fixtu
     }
 
     [Fact]
-    public async Task Desativado_SomeDaListaPorPadrao_ApareceComIncluirInativos_EMantemOHistoricoNaEscala()
-    {
-        var admin = await AdminAsync();
-        var carrinhoId = await CriarCarrinhoAsync(admin);
-        await DefinirTurnosAsync(admin, carrinhoId, (Segunda, Turno0810));
-        (await AdicionarRegistroAntigoPorNomeAsync(admin, carrinhoId, Segunda, Turno0810, "Pedro")).EnsureSuccessStatusCode();
-        var pedroId = PedidosDaGrade(await GradeAsync(admin)).Single().GetProperty("publicadorId").GetGuid();
-        await CriarContaAsync(admin, "Ana", "ana");
-
-        await EditarAsync(admin, pedroId, new { ativo = false });
-
-        Assert.Equal(["Ana"], await NomesAsync(admin));
-        Assert.Equal(["Ana"], await NomesAsync(admin, "?incluirInativos=false"));
-        var todos = (await admin.GetFromJsonAsync<JsonElement>(RotaAdmin + "?incluirInativos=true")).EnumerateArray().ToArray();
-        Assert.Equal(["Ana", "Pedro"], todos.Select(p => p.GetProperty("nome").GetString()));
-        Assert.False(todos.Single(p => p.GetProperty("id").GetGuid() == pedroId).GetProperty("ativo").GetBoolean());
-        Assert.Equal(["Pedro"], await NomesAsync(admin, "?busca=ped&incluirInativos=true"));
-
-        var pedido = Assert.Single(PedidosDaGrade(await GradeAsync(admin)));
-        Assert.Equal(pedroId, pedido.GetProperty("publicadorId").GetGuid());
-    }
-    [Fact]
-    public async Task Desativado_PerdeASessao_NaoPedeNemExcluiNemVeOHistorico()
-    {
-        var admin = await AdminAsync();
-        var carrinhoId = await CriarCarrinhoAsync(admin);
-        await DefinirTurnosAsync(admin, carrinhoId, (Segunda, Turno0810), (Terca, Turno0810));
-        var aparelho = await PublicadorAsync("Ana");
-        var pedido = await JsonAsync(await SolicitarAsync(aparelho, carrinhoId, Segunda, Turno0810));
-
-        await EditarAsync(admin, await IdDoPublicadorAsync(aparelho), new { ativo = false });
-
-        var novo = await SolicitarAsync(aparelho, carrinhoId, Terca, Turno0810);
-        var exclusao = await aparelho.DeleteAsync($"/api/solicitacoes/{pedido.GetProperty("id").GetInt32()}");
-        var historico = await aparelho.GetAsync("/api/solicitacoes");
-
-        foreach (var resposta in new[] { novo, exclusao, historico })
-        {
-            Assert.Equal(HttpStatusCode.Unauthorized, resposta.StatusCode);
-        }
-
-        var item = Assert.Single(PedidosDaGrade(await GradeAsync(admin)));
-        Assert.Equal("Ana", item.GetProperty("publicadorNome").GetString());
-    }
-
-    [Fact]
-    public async Task Administrador_NaoDesativaNemTiraOProprioAdministrador_MasEditaOResto()
+    public async Task Administrador_NaoTiraOProprioAdministrador_MasEditaOResto()
     {
         var recuperacao = await AdminAsync();
         var (id, pin) = await CriarContaAsync(recuperacao, "Maria", "maria", administrador: true);
         var maria = await LogadoAsync("maria", pin);
 
-        foreach (var corpo in new object[] { new { ativo = false }, new { administrador = false } })
-        {
-            var resposta = await EditarAsync(maria, id, corpo);
-            Assert.Equal(HttpStatusCode.Conflict, resposta.StatusCode);
-            Assert.Equal("PROPRIA_CONTA", (await JsonAsync(resposta)).GetProperty("codigo").GetString());
-        }
+        var resposta = await EditarAsync(maria, id, new { administrador = false });
+        Assert.Equal(HttpStatusCode.Conflict, resposta.StatusCode);
+        Assert.Equal("PROPRIA_CONTA", (await JsonAsync(resposta)).GetProperty("codigo").GetString());
 
         Assert.Equal(HttpStatusCode.NoContent,
-            (await EditarAsync(maria, id, new { nome = "Maria Souza", administrador = true, ativo = true })).StatusCode);
+            (await EditarAsync(maria, id, new { nome = "Maria Souza", administrador = true })).StatusCode);
         Assert.Equal(HttpStatusCode.OK, (await maria.GetAsync(RotaAdmin)).StatusCode);
     }
 

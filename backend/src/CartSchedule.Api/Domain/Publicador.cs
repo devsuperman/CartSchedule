@@ -33,10 +33,8 @@ public class Publicador
     /// <summary>Pode entrar na área administrativa; continua podendo pedir vagas.</summary>
     public bool Administrador { get; set; }
 
-    public bool Ativo { get; set; } = true;
-
     /// <summary>
-    /// Vai no token; incrementar invalida as sessões abertas (redefinir/trocar PIN, desativar).
+    /// Vai no token; incrementar invalida as sessões abertas (redefinir/trocar PIN).
     /// </summary>
     public int VersaoSessao { get; set; }
 

@@ -96,22 +96,7 @@ public class AdicionarSolicitacaoManualTests(ApiFixture fixture) : ApiTestBase(f
 
         Assert.Equal(HttpStatusCode.BadRequest, resposta.StatusCode);
         Assert.Empty(PedidosDaGrade(await GradeAsync(admin)));
-        Assert.Empty((await admin.GetFromJsonAsync<JsonElement>("/api/admin/publicadores?incluirInativos=true")).EnumerateArray());
-    }
-
-    [Fact]
-    public async Task PublicadorDesativado_Retorna400()
-    {
-        var admin = await AdminAsync();
-        var carrinhoId = await CriarCarrinhoAsync(admin);
-        await DefinirTurnosAsync(admin, carrinhoId, (Segunda, Turno0810));
-        var (id, _) = await CriarContaAsync(admin, "Pedro", "pedro");
-        (await admin.PutAsJsonAsync($"/api/admin/publicadores/{id}", new { ativo = false })).EnsureSuccessStatusCode();
-
-        var resposta = await AdicionarParaAsync(admin, carrinhoId, Segunda, Turno0810, id);
-
-        Assert.Equal(HttpStatusCode.BadRequest, resposta.StatusCode);
-        Assert.Empty(PedidosDaGrade(await GradeAsync(admin)));
+        Assert.Empty((await admin.GetFromJsonAsync<JsonElement>("/api/admin/publicadores")).EnumerateArray());
     }
 
     [Fact]
@@ -127,7 +112,7 @@ public class AdicionarSolicitacaoManualTests(ApiFixture fixture) : ApiTestBase(f
             new { nome = "Caio", carrinhoId, diaSemana = Segunda, turnoId = Turno0810 });
 
         Assert.Equal(HttpStatusCode.BadRequest, resposta.StatusCode);
-        Assert.Empty((await admin.GetFromJsonAsync<JsonElement>("/api/admin/publicadores?incluirInativos=true")).EnumerateArray());
+        Assert.Empty((await admin.GetFromJsonAsync<JsonElement>("/api/admin/publicadores")).EnumerateArray());
     }
 
     [Fact]

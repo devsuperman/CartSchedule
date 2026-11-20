@@ -5,9 +5,8 @@ export interface Publicador {
   usuario: string | null;
   criancaOuIdoso: boolean;
   administrador: boolean;
-  ativo: boolean;
   temPin: boolean;
-  /** O administrador logado: a tela não oferece desativar nem tirar o próprio administrador. */
+  /** O administrador logado: a tela não oferece excluir, unir nem tirar o próprio administrador. */
   ehVoce: boolean;
 }
 

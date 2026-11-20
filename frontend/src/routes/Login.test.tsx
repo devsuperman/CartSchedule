@@ -93,16 +93,6 @@ describe("Login", () => {
     expect(obterSessao()).toBeNull();
   });
 
-  it("conta desativada mostra a mensagem do servidor", async () => {
-    mockApiFetch.mockRejectedValue(
-      new ApiError(403, "Seu acesso está desativado. Fale com o administrador.", { codigo: "PUBLICADOR_INATIVO" }),
-    );
-
-    await entrar();
-
-    expect(await screen.findByText("Seu acesso está desativado. Fale com o administrador.")).toBeInTheDocument();
-  });
-
   it("depois de muitas tentativas (429), pede para aguardar", async () => {
     mockApiFetch.mockRejectedValue(
       new ApiError(429, "Muitas tentativas. Aguarde um pouco e tente novamente.", { codigo: "MUITAS_REQUISICOES" }),

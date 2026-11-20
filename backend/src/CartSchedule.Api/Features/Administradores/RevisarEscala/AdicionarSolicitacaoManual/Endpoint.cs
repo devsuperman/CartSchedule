@@ -8,8 +8,8 @@ namespace CartSchedule.Api.Features.Administradores.RevisarEscala.AdicionarSolic
 
 /// <summary>
 /// POST /api/admin/escalas/{mes}/solicitacoes — adição manual de solicitação pelo
-/// administrador (PLANNING.md regra 9, TECHNICAL_SPEC.md §2.3) para um publicador existente e
-/// ativo (inexistente/desativado → 400; nome livre não cria publicador), origem
+/// administrador (PLANNING.md regra 9, TECHNICAL_SPEC.md §2.3) para um publicador existente
+/// (inexistente → 400; nome livre não cria publicador), origem
 /// Administrador; como toda solicitação, já conta na escala. O administrador não é limitado pela janela de envio (regra 7):
 /// {mes} pode ser qualquer escala, passada, atual ou futura.
 /// </summary>
@@ -59,13 +59,13 @@ public static class Endpoint
         }
 
         var publicador = await db.Publicadores
-            .SingleOrDefaultAsync(p => p.Id == request.PublicadorId && p.Ativo, ct);
+            .SingleOrDefaultAsync(p => p.Id == request.PublicadorId, ct);
 
         if (publicador is null)
         {
             return Results.ValidationProblem(new Dictionary<string, string[]>
             {
-                ["publicadorId"] = ["Publicador não encontrado ou desativado."],
+                ["publicadorId"] = ["Publicador não encontrado."],
             });
         }
 

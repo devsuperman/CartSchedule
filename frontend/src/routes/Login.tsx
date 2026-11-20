@@ -44,9 +44,8 @@ export default function Login() {
       navigate(destino, { replace: true });
     } catch (err) {
       const codigo = codigoDoErro(err);
-      // Muitas tentativas (429) e conta desativada trazem a própria mensagem do servidor.
-      const mensagemDoServidor = codigo === "MUITAS_REQUISICOES" || codigo === "PUBLICADOR_INATIVO";
-      setErro(mensagemDoServidor && err instanceof Error ? err.message : "Usuário ou PIN inválidos.");
+      // Muitas tentativas (429) trazem a própria mensagem do servidor.
+      setErro(codigo === "MUITAS_REQUISICOES" && err instanceof Error ? err.message : "Usuário ou PIN inválidos.");
     } finally {
       setEnviando(false);
     }

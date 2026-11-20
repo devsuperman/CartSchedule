@@ -99,9 +99,6 @@ namespace CartSchedule.Api.Infrastructure.Migrations
                     b.Property<bool>("Administrador")
                         .HasColumnType("boolean");
 
-                    b.Property<bool>("Ativo")
-                        .HasColumnType("boolean");
-
                     b.Property<bool>("CriancaOuIdoso")
                         .HasColumnType("boolean");
 

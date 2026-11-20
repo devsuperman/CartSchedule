@@ -44,10 +44,10 @@ const GRADE = {
 };
 
 function publicador(id: string, nome: string, usuario: string | null, criancaOuIdoso = false): Publicador {
-  return { id, nome, usuario, criancaOuIdoso, administrador: false, ativo: true, temPin: usuario !== null, ehVoce: false };
+  return { id, nome, usuario, criancaOuIdoso, administrador: false, temPin: usuario !== null, ehVoce: false };
 }
 
-// Ativos (GET /api/admin/publicadores); Bia já está em C1 Seg 08–10.
+// Contas (GET /api/admin/publicadores); Bia já está em C1 Seg 08–10.
 const PUBLICADORES = [
   publicador("bia", "Bia", "bia"),
   publicador("gil", "Gil Souza", "gilzinho"),

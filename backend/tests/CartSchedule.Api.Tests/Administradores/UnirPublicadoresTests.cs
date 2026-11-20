@@ -37,7 +37,7 @@ public class UnirPublicadoresTests(ApiFixture fixture) : ApiTestBase(fixture)
     }
 
     private static async Task<JsonElement[]> PublicadoresAsync(HttpClient admin) =>
-        (await admin.GetFromJsonAsync<JsonElement>($"{RotaAdmin}?incluirInativos=true")).EnumerateArray().ToArray();
+        (await admin.GetFromJsonAsync<JsonElement>($"{RotaAdmin}")).EnumerateArray().ToArray();
 
     [Fact]
     public async Task Previa_ContaPedidosMovidosEDescartados_SemAlterarNada()
