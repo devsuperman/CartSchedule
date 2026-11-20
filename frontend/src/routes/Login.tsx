@@ -1,7 +1,8 @@
 import { useState, type FormEvent } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { apiFetch, ApiError } from "../api/client";
-import { useAdminAuth } from "../hooks/useAdminAuth";
+import { ehAdministrativo, type Papel } from "../api/sessao";
+import { useSessao } from "../hooks/useSessao";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -10,20 +11,20 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 /** Contrato de POST /api/login (login único — ADR 0001). */
 interface LoginResponse {
   token: string;
-  papel: "publicador" | "administrador" | "recuperacao";
+  papel: Papel;
 }
 
 /**
- * Login único (/login): usuário + PIN. Serve aos publicadores marcados como administrador e ao
- * administrador de recuperação (cuja senha vai no mesmo campo). Os publicadores comuns ainda
- * não têm área logada: o restante do site segue anônimo até a virada (#49).
+ * Login único (/login), a única tela fora da guarda ExigeLogin: usuário + PIN para publicadores e
+ * administradores, e a senha do administrador de recuperação no mesmo campo. Depois de entrar,
+ * volta à página que pediu o login; sem ela, o publicador vai ao início e o administrador ao painel.
  */
 export default function Login() {
   const [usuario, setUsuario] = useState("");
   const [pin, setPin] = useState("");
   const [erro, setErro] = useState<string | null>(null);
   const [enviando, setEnviando] = useState(false);
-  const { login } = useAdminAuth();
+  const { entrar } = useSessao();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -37,12 +38,9 @@ export default function Login() {
         method: "POST",
         body: JSON.stringify({ usuario, pin }),
       });
-      if (resposta.papel === "publicador") {
-        setErro("Por enquanto só administradores entram por aqui.");
-        return;
-      }
-      login(resposta.token);
-      const destino = (location.state as { from?: Location })?.from?.pathname ?? "/admin";
+      entrar({ token: resposta.token, papel: resposta.papel });
+      const de = (location.state as { from?: Location } | null)?.from;
+      const destino = de ? `${de.pathname}${de.search ?? ""}` : ehAdministrativo(resposta.papel) ? "/admin" : "/";
       navigate(destino, { replace: true });
     } catch (err) {
       const codigo =

@@ -3,6 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { apiFetch, ApiError } from "../api/client";
+import { obterSessao } from "../api/sessao";
 import Login from "./Login";
 
 vi.mock("../api/client", async (importOriginal) => ({
@@ -17,7 +18,9 @@ async function entrar({ de, usuario = "maria", pin = "2580" }: { de?: string; us
     <MemoryRouter initialEntries={[{ pathname: "/login", state: de ? { from: { pathname: de } } : undefined }]}>
       <Routes>
         <Route path="/login" element={<Login />} />
+        <Route path="/" element={<p>Início do publicador</p>} />
         <Route path="/admin" element={<p>Painel</p>} />
+        <Route path="/solicitar" element={<p>Tela Solicitar</p>} />
         <Route path="/admin/publicadores" element={<p>Tela Publicadores</p>} />
       </Routes>
     </MemoryRouter>,
@@ -30,7 +33,6 @@ async function entrar({ de, usuario = "maria", pin = "2580" }: { de?: string; us
 
 beforeEach(() => {
   mockApiFetch.mockReset();
-  sessionStorage.clear();
 });
 
 describe("Login", () => {
@@ -52,6 +54,24 @@ describe("Login", () => {
     await entrar();
 
     expect(await screen.findByText("Painel")).toBeInTheDocument();
+    expect(obterSessao()).toEqual({ token: "jwt", papel: "administrador" });
+  });
+
+  it("publicador entra, fica com a sessão salva e vai ao início", async () => {
+    mockApiFetch.mockResolvedValue({ token: "jwt", papel: "publicador" });
+
+    await entrar();
+
+    expect(await screen.findByText("Início do publicador")).toBeInTheDocument();
+    expect(obterSessao()).toEqual({ token: "jwt", papel: "publicador" });
+  });
+
+  it("publicador volta para a página que pedia login", async () => {
+    mockApiFetch.mockResolvedValue({ token: "jwt", papel: "publicador" });
+
+    await entrar({ de: "/solicitar" });
+
+    expect(await screen.findByText("Tela Solicitar")).toBeInTheDocument();
   });
 
   it("volta para a página que pedia login", async () => {
@@ -70,15 +90,17 @@ describe("Login", () => {
     await entrar();
 
     expect(await screen.findByText("Usuário ou PIN inválidos.")).toBeInTheDocument();
+    expect(obterSessao()).toBeNull();
   });
 
-  it("publicador sem marca de administrador ainda não tem o que acessar", async () => {
-    mockApiFetch.mockResolvedValue({ token: "jwt", papel: "publicador" });
+  it("conta desativada mostra a mensagem do servidor", async () => {
+    mockApiFetch.mockRejectedValue(
+      new ApiError(403, "Seu acesso está desativado. Fale com o administrador.", { codigo: "PUBLICADOR_INATIVO" }),
+    );
 
     await entrar();
 
-    expect(await screen.findByText(/só administradores/i)).toBeInTheDocument();
-    expect(screen.queryByText("Painel")).not.toBeInTheDocument();
+    expect(await screen.findByText("Seu acesso está desativado. Fale com o administrador.")).toBeInTheDocument();
   });
 
   it("depois de muitas tentativas (429), pede para aguardar", async () => {

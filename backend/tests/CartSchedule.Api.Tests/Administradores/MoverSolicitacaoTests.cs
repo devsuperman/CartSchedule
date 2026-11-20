@@ -30,8 +30,8 @@ public class MoverSolicitacaoTests(ApiFixture fixture) : ApiTestBase(fixture)
         var carrinho2 = await CriarCarrinhoAsync(admin, "Carrinho 02");
         await DefinirTurnosAsync(admin, carrinho1, (Segunda, Turno0810));
         await DefinirTurnosAsync(admin, carrinho2, (Terca, Turno1012));
-        var publicador = Publicador();
-        var id = await IdAsync(await SolicitarAsync(publicador, carrinho1, Segunda, Turno0810, "Ana"));
+        var publicador = await PublicadorAsync();
+        var id = await IdAsync(await SolicitarAsync(publicador, carrinho1, Segunda, Turno0810));
 
         var resposta = await MoverAsync(admin, id, carrinho2, Terca, Turno1012);
 
@@ -85,7 +85,7 @@ public class MoverSolicitacaoTests(ApiFixture fixture) : ApiTestBase(fixture)
         var admin = await AdminAsync();
         var carrinhoId = await CriarCarrinhoAsync(admin);
         await DefinirTurnosAsync(admin, carrinhoId, (Segunda, Turno0810), (Segunda, Turno1012));
-        var publicador = Publicador();
+        var publicador = await PublicadorAsync();
         var id = await IdAsync(await SolicitarAsync(publicador, carrinhoId, Segunda, Turno0810));
         await SolicitarAsync(publicador, carrinhoId, Segunda, Turno1012);
 

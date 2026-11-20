@@ -1,38 +1,39 @@
+using System.Security.Claims;
 using CartSchedule.Api.Domain;
 using CartSchedule.Api.Domain.Enums;
 using CartSchedule.Api.Infrastructure;
+using CartSchedule.Api.Infrastructure.Auth;
 using CartSchedule.Api.Infrastructure.RateLimiting;
 using CartSchedule.Api.Shared;
 using Microsoft.EntityFrameworkCore;
 
 namespace CartSchedule.Api.Features.Publicadores.CriarSolicitacao;
 
+/// <summary>
+/// POST /api/solicitacoes — o publicador logado pede uma vaga (carrinho, dia, turno) da escala-alvo.
+/// O nome não vem no pedido: é o da conta, que só o administrador altera.
+/// </summary>
 public static class Endpoint
 {
     public static IEndpointRouteBuilder MapCriarSolicitacao(this IEndpointRouteBuilder app)
     {
         app.MapPost("/api/solicitacoes", HandleAsync)
             .AddEndpointFilter<ValidationFilter<Request>>()
+            .RequireAuthorization(Politicas.Publicador)
             .RequireRateLimiting(RateLimitingExtensions.PoliticaEscritaPublicador);
 
         return app;
     }
 
     private static async Task<IResult> HandleAsync(
-        HttpContext httpContext,
+        ClaimsPrincipal usuarioLogado,
         AppDbContext db,
         TimeProvider relogio,
         Request request,
         CancellationToken ct)
     {
-        if (!httpContext.Request.Headers.TryGetValue("X-Publicador-Token", out var tokenHeader)
-            || !Guid.TryParse(tokenHeader, out var publicadorId))
-        {
-            return Results.Problem(
-                title: "Token de publicador ausente ou inválido",
-                detail: "Envie o header X-Publicador-Token com um GUID válido.",
-                statusCode: StatusCodes.Status400BadRequest);
-        }
+        // O publicador vem do token (ValidacaoDaSessao já garantiu que a conta existe e está ativa).
+        var publicadorId = usuarioLogado.PublicadorId();
 
         var janela = await JanelaDeEnvio.CalcularParaHojeAsync(db, relogio, ct);
         if (!janela.Aberta)
@@ -66,21 +67,6 @@ public static class Endpoint
                 title: "Carrinho fora desta escala",
                 detail: "Esse carrinho só funciona numa data especial de outro mês.",
                 statusCode: StatusCodes.Status400BadRequest);
-        }
-
-        var publicador = await db.Publicadores.FirstOrDefaultAsync(p => p.Id == publicadorId, ct);
-        if (publicador is null)
-        {
-            publicador = new Publicador { Id = publicadorId, Nome = request.Nome };
-            db.Publicadores.Add(publicador);
-        }
-        else if (!publicador.Ativo)
-        {
-            return PublicadorInativo.Problema();
-        }
-        else
-        {
-            publicador.Nome = request.Nome;
         }
 
         var escala = await EscalaHelpers.ObterOuCriarAsync(db, janela.MesAlvo, ct);

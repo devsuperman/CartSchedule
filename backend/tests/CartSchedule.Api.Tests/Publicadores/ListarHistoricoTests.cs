@@ -15,7 +15,7 @@ public class ListarHistoricoTests(ApiFixture fixture) : ApiTestBase(fixture)
         criacao.EnsureSuccessStatusCode();
         var carrinhoId = (await JsonAsync(criacao)).GetProperty("id").GetInt32();
         await DefinirTurnosAsync(admin, carrinhoId, (Segunda, Turno0810));
-        var publicador = Publicador();
+        var publicador = await PublicadorAsync();
         (await SolicitarAsync(publicador, carrinhoId, Segunda, Turno0810)).EnsureSuccessStatusCode();
 
         var resposta = await publicador.GetAsync("/api/solicitacoes");
@@ -32,7 +32,7 @@ public class ListarHistoricoTests(ApiFixture fixture) : ApiTestBase(fixture)
         var admin = await AdminAsync();
         var carrinhoId = await CriarCarrinhoAsync(admin);
         await DefinirTurnosAsync(admin, carrinhoId, (Segunda, Turno0810));
-        var publicador = Publicador();
+        var publicador = await PublicadorAsync();
         (await SolicitarAsync(publicador, carrinhoId, Segunda, Turno0810)).EnsureSuccessStatusCode();
 
         var resposta = await publicador.GetAsync("/api/solicitacoes");

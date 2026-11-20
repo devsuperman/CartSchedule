@@ -1,49 +1,57 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { ADMIN_TOKEN_SESSION_KEY, apiFetch, ApiError, setAdminToken } from "./client";
+import { apiFetch, ApiError } from "./client";
+import { iniciarSessao, obterSessao, SESSAO_STORAGE_KEY } from "./sessao";
 
 function respostaHttp(status: number, corpo: unknown = null): Response {
   return new Response(corpo === null ? null : JSON.stringify(corpo), { status });
 }
 
-const replace = vi.fn();
-
 beforeEach(() => {
-  sessionStorage.setItem(ADMIN_TOKEN_SESSION_KEY, "token-antigo");
-  setAdminToken("token-antigo");
-  vi.stubGlobal("location", { ...window.location, replace });
+  iniciarSessao({ token: "token-antigo", papel: "publicador" });
 });
 
 afterEach(() => {
   vi.unstubAllGlobals();
-  replace.mockReset();
-  sessionStorage.clear();
-  setAdminToken(null);
 });
 
-describe("apiFetch — sessão do administrador", () => {
-  it.each([401, 403])("token recusado (%i) numa rota admin encerra a sessão e leva ao /login", async (status) => {
-    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(respostaHttp(status, { title: "Forbidden" })));
+describe("apiFetch — sessão", () => {
+  it("manda o token da sessão no Authorization, sem o token anônimo do aparelho", async () => {
+    const fetch = vi.fn().mockResolvedValue(respostaHttp(200, []));
+    vi.stubGlobal("fetch", fetch);
 
-    await expect(apiFetch("/api/admin/carrinhos")).rejects.toBeInstanceOf(ApiError);
+    await apiFetch("/api/solicitacoes");
 
-    expect(sessionStorage.getItem(ADMIN_TOKEN_SESSION_KEY)).toBeNull();
-    expect(replace).toHaveBeenCalledWith("/login");
+    const headers = fetch.mock.calls[0][1].headers as Headers;
+    expect(headers.get("Authorization")).toBe("Bearer token-antigo");
+    expect(headers.has("X-Publicador-Token")).toBe(false);
   });
 
-  it("erro de login (401) não redireciona: a tela mostra a mensagem", async () => {
+  it("guarda a sessão no localStorage, para durar entre aberturas do app", () => {
+    expect(JSON.parse(localStorage.getItem(SESSAO_STORAGE_KEY)!)).toEqual({ token: "token-antigo", papel: "publicador" });
+  });
+
+  it.each(["/api/solicitacoes", "/api/admin/carrinhos"])("token recusado (401) em %s encerra a sessão", async (rota) => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(respostaHttp(401)));
+
+    await expect(apiFetch(rota)).rejects.toBeInstanceOf(ApiError);
+
+    expect(obterSessao()).toBeNull();
+    expect(localStorage.getItem(SESSAO_STORAGE_KEY)).toBeNull();
+  });
+
+  it("erro de login (401) não mexe na sessão: a tela mostra a mensagem", async () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(respostaHttp(401, { codigo: "CREDENCIAIS_INVALIDAS" })));
 
     await expect(apiFetch("/api/login", { method: "POST", body: "{}" })).rejects.toBeInstanceOf(ApiError);
 
-    expect(replace).not.toHaveBeenCalled();
-    expect(sessionStorage.getItem(ADMIN_TOKEN_SESSION_KEY)).toBe("token-antigo");
+    expect(obterSessao()?.token).toBe("token-antigo");
   });
 
-  it("outros erros de rota admin (ex.: 409) mantêm a sessão", async () => {
-    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(respostaHttp(409, { codigo: "USUARIO_EM_USO" })));
+  it.each([403, 409])("outros erros (%i) mantêm a sessão", async (status) => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(respostaHttp(status, { codigo: "X" })));
 
     await expect(apiFetch("/api/admin/publicadores", { method: "POST", body: "{}" })).rejects.toBeInstanceOf(ApiError);
 
-    expect(replace).not.toHaveBeenCalled();
+    expect(obterSessao()?.token).toBe("token-antigo");
   });
 });

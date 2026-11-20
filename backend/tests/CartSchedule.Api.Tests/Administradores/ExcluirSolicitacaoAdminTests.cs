@@ -16,7 +16,7 @@ public class ExcluirSolicitacaoAdminTests(ApiFixture fixture) : ApiTestBase(fixt
         var admin = await AdminAsync();
         var carrinhoId = await CriarCarrinhoAsync(admin);
         await DefinirTurnosAsync(admin, carrinhoId, (Segunda, Turno0810));
-        await SolicitarAsync(Publicador(), carrinhoId, Segunda, Turno0810, "Ana");
+        await SolicitarAsync(await PublicadorAsync("Ana"), carrinhoId, Segunda, Turno0810);
         await AdicionarRegistroAntigoPorNomeAsync(admin, carrinhoId, Segunda, Turno0810, "Bia");
 
         var grade = await GradeAsync(admin);
@@ -34,7 +34,7 @@ public class ExcluirSolicitacaoAdminTests(ApiFixture fixture) : ApiTestBase(fixt
         await DefinirTurnosAsync(admin, carrinhoId, (Segunda, Turno0810));
         foreach (var nome in new[] { "Ana", "Bia" })
         {
-            await SolicitarAsync(Publicador(), carrinhoId, Segunda, Turno0810, nome);
+            await SolicitarAsync(await PublicadorAsync(nome), carrinhoId, Segunda, Turno0810);
         }
         // A 3ª pessoa só entra pelo admin: a vaga cheia barra o publicador.
         await AdicionarRegistroAntigoPorNomeAsync(admin, carrinhoId, Segunda, Turno0810, "Caio");
@@ -57,7 +57,7 @@ public class ExcluirSolicitacaoAdminTests(ApiFixture fixture) : ApiTestBase(fixt
         var admin = await AdminAsync();
         var carrinhoId = await CriarCarrinhoAsync(admin);
         await DefinirTurnosAsync(admin, carrinhoId, (Segunda, Turno0810));
-        var publicador = Publicador();
+        var publicador = await PublicadorAsync();
         var id = (await JsonAsync(await SolicitarAsync(publicador, carrinhoId, Segunda, Turno0810)))
             .GetProperty("id").GetInt32();
 
@@ -100,7 +100,7 @@ public class ExcluirSolicitacaoAdminTests(ApiFixture fixture) : ApiTestBase(fixt
         var admin = await AdminAsync();
         var carrinhoId = await CriarCarrinhoAsync(admin);
         await DefinirTurnosAsync(admin, carrinhoId, (Segunda, Turno0810));
-        var id = (await JsonAsync(await SolicitarAsync(Publicador(), carrinhoId, Segunda, Turno0810)))
+        var id = (await JsonAsync(await SolicitarAsync(await PublicadorAsync(), carrinhoId, Segunda, Turno0810)))
             .GetProperty("id").GetInt32();
 
         var resposta = await Fixture.Factory.CreateClient().DeleteAsync($"/api/admin/solicitacoes/{id}");

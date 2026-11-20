@@ -1,9 +1,9 @@
 namespace CartSchedule.Api.Shared;
 
 /// <summary>
-/// Publicador desativado pelo administrador (issue #46): não entra no login e, enquanto as rotas
-/// do publicador ainda usam o token anônimo do aparelho, também não pede, exclui nem renomeia.
-/// O histórico continua legível e os pedidos já feitos continuam na escala.
+/// Publicador desativado pelo administrador (issue #46): o login o recusa com este código e os
+/// tokens que ele já tinha deixam de valer (401, <c>ValidacaoDaSessao</c>). Os pedidos já feitos
+/// continuam na escala.
 /// </summary>
 public static class PublicadorInativo
 {

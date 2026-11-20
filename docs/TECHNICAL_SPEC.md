@@ -60,7 +60,9 @@ backend/
         Migrations/
         Auth/
           AdminAuthOptions.cs        # usuário/senha (hash) do administrador de recuperação via configuração
-          JwtTokenService.cs         # papéis publicador/administrador/recuperacao (Papeis)
+          JwtTokenService.cs         # papéis publicador/administrador/recuperacao (Papeis); validade pelo TimeProvider
+          ValidacaoDaSessao.cs       # a cada request: conta existe, ativa, versaoSessao atual
+          UsuarioLogado.cs           # política Politicas.Publicador e User.PublicadorId()
       Infrastructure/RateLimiting/   # limites por IP (ver 2.9)
       Shared/
         JanelaDeEnvio.cs             # mês-alvo pela data (dia 15, horário de Brasília) + se o admin fechou o envio (Escala.EnvioFechado)
@@ -75,11 +77,12 @@ backend/
           ConsultarJanela/           # GET  /api/janela
           ListarCarrinhosDisponiveis/# GET  /api/carrinhos  (id, nome, descricao, dataEspecial — carrinho de data especial só no mês da data —, disponibilidades dia×turno por carrinho, cada uma com ocupacao, cheia e nomes — primeiro nome de quem está na vaga, vazio se cheia — na escala-alvo)
           CriarSolicitacao/          # POST /api/solicitacoes  (409 HORARIO_OCUPADO se o publicador já tem pedido no mesmo dia e turno, em qualquer carrinho do mesmo grupo — normais × cada data especial, HorarioOcupado.NoHorario; 400 se o carrinho especial é de outro mês; 409 VAGA_CHEIA com 2 pessoas na vaga: contagem + insert numa transação com pg_advisory_xact_lock(escalaId); o admin não é bloqueado)
-          ListarHistorico/           # GET  /api/solicitacoes  (header X-Publicador-Token; carrinhoNome + carrinhoDescricao + carrinhoDataEspecial; sem data/hora do envio na resposta)
+          ListarHistorico/           # GET  /api/solicitacoes  (do publicador logado; carrinhoNome + carrinhoDescricao + carrinhoDataEspecial; sem data/hora do envio na resposta)
           ExcluirSolicitacao/        # DELETE /api/solicitacoes/{id}  (apaga o registro; não há status)
-          AtualizarNome/             # PUT    /api/publicador  (header X-Publicador-Token; 204; não cria o publicador se ainda não existe; sem janela)
+          ObterEu/                   # GET  /api/eu  ({id, nome, usuario, administrador} da conta logada — cabeçalho "Olá" e link "Administração")
         Autenticacao/
           Login/                    # POST /api/login  ({usuario, pin} → {token, papel}; administrador de recuperação ou publicador; 401 CREDENCIAIS_INVALIDAS; 403 PUBLICADOR_INATIVO)
+          RenovarSessao/            # POST /api/sessao/renovar  (token novo com a validade cheia e o papel atual da conta; recuperação → 403)
         Administradores/
           GerenciarCarrinhos/       # GET/POST/PUT /api/admin/carrinhos  (nome, descricao opcional, ativo, dataEspecial opcional Seg–Sex; mudar a data de dia remove os turnos dos outros dias)
           GerenciarTurnosDoCarrinho/# GET/PUT       /api/admin/carrinhos/{id}/turnos (disponibilidades dia×turno; carrinho especial só no dia da semana da data; turnos em si são fixos, ver 2.4)
@@ -107,19 +110,19 @@ Cada slice de `Features/` segue o mesmo padrão de arquivos:
 - **Login único** `POST /api/login` (`{ usuario, pin }` → `{ token, papel }`), tela `/login` no frontend (`/admin/login` redireciona para ela).
 - Primeiro confere o **administrador de recuperação**: usuário + hash da senha via **variáveis de ambiente** (`Admin:Usuario`/`Admin:SenhaHash`, hash do `PasswordHasher` do ASP.NET Core), nunca em código; a senha vai no campo `pin`. Senão, procura o **publicador** pelo usuário normalizado (sem maiúsculas e sem acentos, coluna `UsuarioNormalizado` com índice único) e confere o PIN (`PinHash`, mesmo hasher).
 - Usuário inexistente, PIN errado e conta sem PIN → mesma resposta `401` `codigo: "CREDENCIAIS_INVALIDAS"`; conta desativada → `403` `codigo: "PUBLICADOR_INATIVO"`. Sem bloqueio de conta: só o rate limit `login` por IP (2.9).
-- **JWT** HMAC SHA256 (chave em `Jwt:ChaveSecreta`), sem refresh token, com o papel em `ClaimTypes.Role` (`Papeis`): `recuperacao` e `administrador` valem **2 horas**; `publicador` vale 180 dias. Tokens de publicador levam o id e `versaoSessao`. A cada request autenticado, `Infrastructure/Auth/ValidacaoDaSessao` (evento `OnTokenValidated`) confere que o publicador existe, está ativo, que a `versaoSessao` do token é a atual e que, se o token é de administrador, a pessoa ainda é administrador; senão `401` (dar administrador não desconecta: o papel novo vem no próximo login). Redefinir o PIN e desativar incrementam `versaoSessao` — é assim que todos os aparelhos são desconectados (reativar não devolve as sessões antigas). O frontend guarda o JWT de administrador em `sessionStorage` (some ao fechar a aba).
+- **JWT** HMAC SHA256 (chave em `Jwt:ChaveSecreta`), sem refresh token, com o papel em `ClaimTypes.Role` (`Papeis`): `recuperacao` e `administrador` valem **2 horas**; `publicador` vale 180 dias. Tokens de publicador levam o id e `versaoSessao`. A cada request autenticado, `Infrastructure/Auth/ValidacaoDaSessao` (evento `OnTokenValidated`) confere que o publicador existe, está ativo, que a `versaoSessao` do token é a atual e que, se o token é de administrador, a pessoa ainda é administrador; senão `401` (dar administrador não desconecta: o papel novo vem no próximo login). Redefinir o PIN e desativar incrementam `versaoSessao` — é assim que todos os aparelhos são desconectados (reativar não devolve as sessões antigas). Emissão e validade usam o `TimeProvider` injetado (`LifetimeValidator`), para os testes controlarem a expiração com `Fixture.Relogio`.
+- **Renovação**: `POST /api/sessao/renovar` (autenticado) devolve `{ token, papel }` com a validade cheia (publicador 180 dias, administrador 2 h), com o papel atual da conta. O frontend chama uma vez ao abrir o app; o administrador de recuperação não renova (`403`).
+- **Frontend**: o token e o papel ficam no `localStorage` (`api/sessao.ts`, para durar os 180 dias) e vão em `Authorization: Bearer` (`api/client.ts`). Um `401` da API (fora do próprio login) encerra a sessão, e a guarda `ExigeLogin` leva ao `/login`, voltando à página pedida depois.
 - Todas as rotas de `Features/Administradores/*` exigem o token (`RequireAuthorization()`), e a política padrão exige o papel `administrador` ou `recuperacao`: o publicador comum recebe `403`.
-- Rotas de `Features/Publicadores/*` continuam públicas (sem autenticação), conforme regra de negócio. Enquanto usam o token anônimo, um publicador desativado recebe `403` `PUBLICADOR_INATIVO` (`Shared/PublicadorInativo`) ao pedir, excluir ou renomear; o histórico continua legível.
+- Rotas de `Features/Publicadores/*` (`/api/janela`, `/api/carrinhos`, `/api/solicitacoes` GET/POST/DELETE, `/api/eu`) exigem a política `Politicas.Publicador`: papel `publicador` ou `administrador` (o administrador também pede vagas). Sem token → `401`; o administrador de recuperação → `403` (não é publicador). O publicador do request vem do token (`User.PublicadorId()`); um desativado já cai no `401` da `ValidacaoDaSessao`.
 
-### 2.3 Identificação do Publicador (sem cadastro formal)
+### 2.3 Identificação do Publicador (conta com usuário + PIN)
 
-Resolve as regras 9, 10 e 11 do `PLANNING.md` (sem login, mas com
-bloqueio de duplicidade e histórico):
+Resolve as regras 9, 10 e 11 do `PLANNING.md` (ADR 0001):
 
-- No primeiro acesso, o frontend gera um **identificador anônimo de dispositivo** (`publicadorToken`, um GUID) e salva no `localStorage`. Antes de qualquer tela do publicador, a guarda `ExigeNome` leva à rota `/nome`, onde ele informa o nome (também salvo no `localStorage`). O nome vai ao backend junto com cada pedido (`POST /api/solicitacoes` cria/atualiza o `Publicador`) e, quando editado em `/nome` ("Olá, Fulano" no cabeçalho), por `PUT /api/publicador`.
-- Esse token é enviado em todo request do publicador (ex: header `X-Publicador-Token`).
-- No backend, a entidade `Publicador` é identificada por esse token: `Publicador.Id` **é** o GUID do header (não há coluna de token separada), com o `nome` como um campo editável associado a ele. O `Publicador` só passa a existir no banco no primeiro pedido (`POST /api/solicitacoes`); antes disso, `PUT /api/publicador` não cria nada. Cada `POST` sobrescreve o nome com o enviado pelo aparelho.
-- O bloqueio de duplicidade (regra 10) e o histórico (regra 11) usam esse `publicadorToken` para saber quais solicitações são "do mesmo publicador".
+- O `Publicador` é a conta, criada pelo administrador (`POST /api/admin/publicadores`). Todo o site exige login (2.2); o publicador de cada request vem do claim `NameIdentifier` do token. Não há mais token anônimo do aparelho nem header `X-Publicador-Token`; os registros antigos mantêm o id (que era o GUID do aparelho) e ganham usuário/PIN na tela Publicadores.
+- `POST /api/solicitacoes` recebe só `{ carrinhoId, diaSemana, turnoId }`: o nome é o da conta e só o administrador altera (`PUT /api/admin/publicadores/{id}`). Não existe mais `PUT /api/publicador` nem a tela `/nome`.
+- O bloqueio de duplicidade (regra 10) e o histórico (regra 11) usam o id da conta para saber quais solicitações são "do mesmo publicador".
 - Na adição manual (o "+" da vaga), o administrador escolhe um `Publicador` **existente e ativo** (busca no `GET /api/admin/publicadores`, por nome ou usuário, sem maiúsculas nem acentos) e o frontend envia o `publicadorId`. Nome livre não cria publicador, e a Escala não cria contas: quem não tem conta é cadastrado na tela Publicadores (`POST /api/admin/publicadores`).
 - `Publicador.CriancaOuIdoso` (regra 1 do `PLANNING.md`) é só do administrador: marcado em "Editar pessoa" (`PUT /api/admin/publicadores/{id}`) ou ao criar/editar a conta na tela Publicadores. O publicador não vê nem altera. O estado de cada vaga (vazia / incompleta / completa / excesso) é calculado **no frontend** a partir da grade (`routes/admin/components/gradeEscala.ts`, `estadoVaga`). No backend, as únicas regras de lotação/horário são as que bloqueiam o **publicador** (`VAGA_CHEIA` com 2+ pessoas e `HORARIO_OCUPADO`, ambas em `CriarSolicitacao`); para o administrador, o backend só barra a duplicidade exata (índice único).
 
@@ -205,15 +208,15 @@ No próprio dia ainda é aceito. Não vale para o administrador (regra 7).
 > **Pendente no código** (issue #41): hoje só se
 > verifica o mês da data (`DataEspecial.CabeNaEscala`).
 
-### 2.9 Proteção contra abuso (sem login do publicador)
+### 2.9 Proteção contra abuso
 
-As rotas do publicador são públicas por decisão de produto; a proteção contra
-bots e força bruta é invisível para quem usa o sistema normalmente:
+Sem bloqueio de conta (ADR 0001); a proteção contra bots e força bruta é
+invisível para quem usa o sistema normalmente:
 
 - **Rate limiting por IP** (nativo do ASP.NET, `Infrastructure/RateLimiting/`),
   com limites na seção `RateLimit` da configuração: teto geral de 300 req/min
   em `/api` (`/health` fica de fora), 30 criações/exclusões de solicitação por
-  minuto (`publicador-escrita`) e 5 tentativas de login do admin a cada 15
+  minuto (`publicador-escrita`) e 5 tentativas de login a cada 15
   minutos (`login`). Os limites são generosos porque muitos publicadores podem
   sair pelo mesmo IP (Wi-Fi do salão, CGNAT do celular).
 - Excedeu: **429** com `codigo: "MUITAS_REQUISICOES"` no ProblemDetails e header
@@ -224,16 +227,15 @@ bots e força bruta é invisível para quem usa o sistema normalmente:
   então o cliente não forja o IP. Mudou a cadeia de proxies? Revise o `ForwardLimit`.
 - nginx limita o corpo dos requests de `/api` a 16 KB; o Caddy envia HSTS,
   `X-Frame-Options: DENY`, `nosniff` e `Referrer-Policy`.
-- Solicitação falsa enviada por alguém que tem o link continua possível — é
-  aceito: o admin já revisa todas as solicitações.
+- Pedir em nome de outra pessoa exige o usuário e o PIN dela; o admin, de
+  qualquer forma, revisa todas as solicitações.
 
 ### 2.10 CORS
 
 A API habilita CORS só para a origem configurada em `Cors:FrontendOrigin`
 (env `Cors__FrontendOrigin`, padrão `http://localhost:3000`). `VITE_API_URL` é o
 inverso — o endereço da API embutido no bundle do frontend. Libera os métodos e headers usados pelo cliente
-(incluindo o header customizado `X-Publicador-Token` e
-`Authorization` para o admin).
+(`Content-Type` e `Authorization`, que leva o token de login).
 
 ## 3. Frontend — React
 
@@ -252,7 +254,9 @@ frontend/
     main.tsx
     App.tsx                      # roteamento
     api/
-      client.ts                  # wrapper HTTP (inclui X-Publicador-Token e Authorization quando aplicável)
+      client.ts                  # wrapper HTTP (Authorization: Bearer da sessão; 401 encerra a sessão)
+      sessao.ts                  # token + papel no localStorage, com assinatura (useSyncExternalStore)
+      renovacao.ts               # POST /api/sessao/renovar uma vez por abertura do app
       publicadores.ts
       administradores.ts
     routes/
@@ -260,23 +264,21 @@ frontend/
         InicioPublicador.tsx      # tela inicial: histórico do mês corrente + escala em envio (só esses dois); botão "Solicitar Nova Escala" (janela aberta) ou aviso de envio fechado
         SolicitarEscala.tsx       # decide entre JanelaFechada e o wizard, conforme useJanela()
         JanelaFechada.tsx         # tela exibida fora da janela de envio
-        Nome.tsx                  # rota /nome: nome no primeiro acesso e edição ("Olá, Fulano")
         wizard/                   # formulário em 3 etapas: dia da semana → turno → carrinho (nome + descrição + ocupação); envia um pedido ao confirmar o carrinho e volta a "/"
         components/
           SolicitacaoCard.tsx     # card de uma solicitação (excluir, só com janela aberta e no mês-alvo; sem status nem data/hora)
           ErroJanela.tsx          # erro ao consultar /api/janela, com "tentar novamente"
+      Login.tsx                   # /login (única rota pública): usuário + PIN; volta à página pedida
       admin/
-        Login.tsx
         GestaoCarrinhos.tsx       # cadastro/edição de carrinhos (nome, descrição, data especial) e associação com os 6 turnos fixos
         EscalaFinal.tsx           # gestão da escala por toque: vagas com ocupação; mover, adicionar (+), editar nome e excluir
         EscalaCompartilhar.tsx    # /admin/escalas/:mes/compartilhar: visão só leitura para o WhatsApp — uma imagem PNG do mês (grade por dia: turnos × carrinhos) + uma por data especial (html-to-image + Web Share API)
         RedirecionaParaEscala.tsx # /admin/revisao/:mes e /admin/adicionar/:mes (telas antigas) → /admin/escalas/:mes
         components/               # CelulaEscala, ModaisEscala, gradeEscala (tipos + atualização local), ModalEditarNome
     hooks/
-      usePublicadorToken.ts       # lê/gera o token; nome no localStorage, compartilhado entre telas (useSyncExternalStore)
+      useSessao.ts                # sessão atual + entrar/sair
       useJanela.ts
-      useAdminAuth.ts             # guarda o JWT em sessionStorage (em memória se indisponível) e protege rotas /admin
-    components/                   # componentes reutilizáveis de UI
+    components/                   # ExigeLogin (guarda de todas as rotas, `admin` para /admin/*), Layout (menu "Olá" com Sair, link Administração) e UI
   index.html
   vite.config.ts
   package.json
@@ -285,8 +287,9 @@ frontend/
 
 ### 3.3 Duas áreas da aplicação
 
-- **Área do Publicador** (`/`): fluxo mobile-first (a maioria acessa pelo celular) — nome (só no primeiro acesso), dia da semana, turno, carrinho, envio, histórico com exclusão. Sem login.
-- **Área do Administrador** (`/admin/*`): protegida por login (JWT armazenado no cliente); gestão de carrinhos (com associação aos turnos fixos) e a tela da Escala, onde toda a gestão do mês acontece (mover, adicionar, excluir, editar pessoa). Pensada para celular/tablet: seletor de dia no celular, grade Turno × Dia a partir de 768px; ações por toque numa barra fixa no rodapé.
+- **Login** (`/login`): a única tela pública; usuário + PIN (teclado numérico). Todas as outras rotas passam pela guarda `ExigeLogin`.
+- **Área do Publicador** (`/`): fluxo mobile-first (a maioria acessa pelo celular) — dia da semana, turno, carrinho, envio, histórico com exclusão. Publicador ou administrador; o administrador de recuperação vai direto à administração.
+- **Área do Administrador** (`/admin/*`): exige papel administrador ou recuperação (o publicador comum volta ao início); gestão de carrinhos (com associação aos turnos fixos) e a tela da Escala, onde toda a gestão do mês acontece (mover, adicionar, excluir, editar pessoa). Pensada para celular/tablet: seletor de dia no celular, grade Turno × Dia a partir de 768px; ações por toque numa barra fixa no rodapé.
 
 ## 4. Banco de Dados — PostgreSQL
 
@@ -294,7 +297,7 @@ Tabelas espelhando o modelo de dados do `PLANNING.md` (seção 9):
 
 | Tabela | Colunas principais |
 |---|---|
-| `publicadores` | `id` (uuid = token do aparelho), `nome` (até 200), `crianca_ou_idoso` (bool, padrão `false`) |
+| `publicadores` | `id` (uuid; nos registros antigos, o do token do aparelho), `nome` (até 200), `crianca_ou_idoso` (bool, padrão `false`), `usuario` + `usuario_normalizado` (índice único), `pin_hash`, `administrador`, `ativo`, `versao_sessao` |
 | `carrinhos` | `id`, `nome`, `descricao` (opcional, até 500), `ativo`, `data_especial` (date, opcional) |
 | `turnos` | `id`, `hora_inicio`, `hora_fim` — **tabela com dado fixo (seed)**, sempre as mesmas 6 linhas, sem endpoint de criação/edição |
 | `carrinho_turnos` | `carrinho_id`, `dia_semana`, `turno_id` (PK composta) |

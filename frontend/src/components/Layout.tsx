@@ -1,11 +1,10 @@
 import { useEffect, useRef, useState, type PropsWithChildren } from "react";
 import { Link, NavLink, useLocation, useNavigate } from "react-router-dom";
-import { MenuIcon, PencilIcon, XIcon } from "lucide-react";
-import { useAdminAuth } from "../hooks/useAdminAuth";
+import { ChevronDownIcon, MenuIcon, XIcon } from "lucide-react";
+import { apiFetch } from "../api/client";
+import { useSessao } from "../hooks/useSessao";
 import { useJanela } from "../hooks/useJanela";
 import { useTelaLarga } from "../hooks/useTelaLarga";
-import { usePublicadorToken } from "../hooks/usePublicadorToken";
-import type { OrigemNome } from "../routes/publicador/Nome";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -16,26 +15,112 @@ function navLinkClasses({ isActive }: { isActive: boolean }) {
   );
 }
 
-/** "Olá, {primeiro nome}" no canto do cabeçalho do publicador; tocar abre a edição do nome
- * (rota /nome), que depois volta para a tela atual. Some sem nome e na própria /nome. */
-function Saudacao() {
-  const { nome } = usePublicadorToken();
+/** Contrato de GET /api/eu. */
+interface Eu {
+  id: string;
+  nome: string;
+  usuario: string | null;
+  administrador: boolean;
+}
+
+/** Dados da conta logada para o cabeçalho; o administrador de recuperação não é publicador. */
+function useEu(): Eu | null {
+  const { sessao } = useSessao();
+  const [eu, setEu] = useState<Eu | null>(null);
+  const token = sessao?.papel === "recuperacao" ? null : sessao?.token;
+  const logado = Boolean(token);
+
+  useEffect(() => {
+    if (!logado) return;
+    let cancelado = false;
+    apiFetch<Eu>("/api/eu")
+      .then((dados) => {
+        if (!cancelado) setEu(dados);
+      })
+      .catch(() => {
+        // Sem a saudação o site continua funcionando; um 401 já encerrou a sessão (apiFetch).
+      });
+    return () => {
+      cancelado = true;
+      // Saiu: o próximo login (talvez de outra pessoa) não herda o nome.
+      setEu(null);
+    };
+  }, [logado]);
+
+  return logado ? eu : null;
+}
+
+/**
+ * Canto do cabeçalho do publicador: link "Administração" (só para administradores) e o menu
+ * "Olá, {primeiro nome}" com "Sair". Sem edição de nome: só o administrador altera.
+ */
+function MenuDoPublicador() {
+  const eu = useEu();
+  const { sair } = useSessao();
+  const navigate = useNavigate();
   const { pathname } = useLocation();
-  const primeiroNome = nome.trim().split(/\s+/)[0];
+  const [aberto, setAberto] = useState(false);
+  const botao = useRef<HTMLButtonElement>(null);
+  const primeiroNome = eu?.nome.trim().split(/\s+/)[0];
 
-  if (!primeiroNome || pathname === "/nome" || pathname === "/login") return null;
+  useEffect(() => {
+    if (!aberto) return;
+    function aoTeclar(evento: KeyboardEvent) {
+      if (evento.key === "Escape") {
+        setAberto(false);
+        botao.current?.focus();
+      }
+    }
+    document.addEventListener("keydown", aoTeclar);
+    return () => document.removeEventListener("keydown", aoTeclar);
+  }, [aberto]);
 
-  const origem: OrigemNome = { de: pathname };
+  if (!eu || !primeiroNome || pathname === "/login") return null;
+
+  function encerrar() {
+    setAberto(false);
+    sair();
+    navigate("/login", { replace: true });
+  }
+
   return (
-    <Link
-      to="/nome"
-      state={origem}
-      aria-label={`Olá, ${primeiroNome}. Alterar nome`}
-      className="mb-[0.55rem] ml-auto flex min-w-0 items-center gap-1.5 rounded-md px-2 py-1 text-[0.95rem] font-semibold text-secondary-foreground/90 underline decoration-secondary-foreground/40 underline-offset-4 hover:bg-secondary-foreground/10 hover:text-secondary-foreground focus-visible:ring-2 focus-visible:ring-accent"
-    >
-      <span className="truncate">Olá, {primeiroNome}</span>
-      <PencilIcon aria-hidden className="size-3.5 shrink-0" />
-    </Link>
+    <div className="relative mb-[0.55rem] ml-auto flex min-w-0 items-center gap-1">
+      {eu.administrador && (
+        <Link
+          to="/admin"
+          className="shrink-0 rounded-md px-2 py-1 text-[0.95rem] font-semibold text-secondary-foreground/90 underline decoration-secondary-foreground/40 underline-offset-4 hover:bg-secondary-foreground/10 hover:text-secondary-foreground focus-visible:ring-2 focus-visible:ring-accent"
+        >
+          Administração
+        </Link>
+      )}
+      <button
+        ref={botao}
+        type="button"
+        aria-expanded={aberto}
+        aria-controls="menu-publicador"
+        onClick={() => setAberto((atual) => !atual)}
+        className="flex min-w-0 items-center gap-1 rounded-md px-2 py-1 text-[0.95rem] font-semibold text-secondary-foreground/90 hover:bg-secondary-foreground/10 hover:text-secondary-foreground focus-visible:ring-2 focus-visible:ring-accent"
+      >
+        <span className="truncate">Olá, {primeiroNome}</span>
+        <ChevronDownIcon aria-hidden className="size-4 shrink-0" />
+      </button>
+      {aberto && (
+        <ul
+          id="menu-publicador"
+          className="absolute right-0 top-full z-20 mt-1 min-w-40 list-none rounded-md border border-border bg-card p-1 text-card-foreground shadow-md"
+        >
+          <li>
+            <button
+              type="button"
+              onClick={encerrar}
+              className="flex min-h-11 w-full items-center rounded-sm px-3 text-left text-[1rem] font-semibold hover:bg-muted focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent"
+            >
+              Sair
+            </button>
+          </li>
+        </ul>
+      )}
+    </div>
   );
 }
 
@@ -50,9 +135,9 @@ function Navegacao({ admin }: { admin: boolean }) {
   // "Escala TPL" também é um link para lá.
   if (!admin) {
     return (
-      // min-w-0: a saudação ocupa todo o espaço até o título e só corta ("…") se não couber.
+      // min-w-0: o menu "Olá" ocupa todo o espaço até o título e só corta ("…") se não couber.
       <div className="flex min-w-0 flex-1 items-end">
-        <Saudacao />
+        <MenuDoPublicador />
       </div>
     );
   }
@@ -67,7 +152,7 @@ function Navegacao({ admin }: { admin: boolean }) {
 function NavegacaoAdmin() {
   const telaLarga = useTelaLarga();
   const { janela } = useJanela();
-  const { logout } = useAdminAuth();
+  const { sessao, sair: encerrarSessao } = useSessao();
   const navigate = useNavigate();
   const mes = janela?.mesAlvo.slice(0, 7);
 
@@ -76,10 +161,12 @@ function NavegacaoAdmin() {
     { to: "/admin/carrinhos", rotulo: "Carrinhos" },
     { to: "/admin/publicadores", rotulo: "Publicadores" },
     ...(mes ? [{ to: `/admin/escalas/${mes}`, rotulo: "Escala" }] : []),
+    // O administrador também é publicador e pede vagas; o de recuperação não.
+    ...(sessao?.papel === "administrador" ? [{ to: "/", rotulo: "Meus pedidos", end: true }] : []),
   ];
 
   function sair() {
-    logout();
+    encerrarSessao();
     navigate("/login", { replace: true });
   }
 

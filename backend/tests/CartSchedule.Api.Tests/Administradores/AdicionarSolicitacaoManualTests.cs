@@ -182,13 +182,13 @@ public class AdicionarSolicitacaoManualTests(ApiFixture fixture) : ApiTestBase(f
         var admin = await AdminAsync();
         var carrinhoId = await CriarCarrinhoAsync(admin);
         await DefinirTurnosAsync(admin, carrinhoId, (Segunda, Turno0810));
-        var publicador = Publicador();
+        var publicador = await PublicadorAsync();
         await SolicitarAsync(publicador, carrinhoId, Segunda, Turno0810);
 
         await DefinirTurnosAsync(admin, carrinhoId);
 
         var historico = await publicador.GetFromJsonAsync<JsonElement>("/api/solicitacoes");
         Assert.Single(historico.EnumerateArray());
-        Assert.Equal(HttpStatusCode.BadRequest, (await SolicitarAsync(Publicador(), carrinhoId, Segunda, Turno0810)).StatusCode);
+        Assert.Equal(HttpStatusCode.BadRequest, (await SolicitarAsync(await PublicadorAsync(), carrinhoId, Segunda, Turno0810)).StatusCode);
     }
 }

@@ -1,7 +1,6 @@
 import { BrowserRouter, Link, Navigate, Route, Routes } from "react-router-dom";
 import { Layout } from "./components/Layout";
-import { RequireAdminAuth } from "./components/RequireAdminAuth";
-import { ExigeNome } from "./components/ExigeNome";
+import { ExigeLogin } from "./components/ExigeLogin";
 import { useJanela } from "./hooks/useJanela";
 import { formatarMes } from "./utils/formatacao";
 import { Card } from "@/components/ui/card";
@@ -13,7 +12,6 @@ import EscalaFinal from "./routes/admin/EscalaFinal";
 import EscalaCompartilhar from "./routes/admin/EscalaCompartilhar";
 import InicioPublicador from "./routes/publicador/InicioPublicador";
 import SolicitarEscala from "./routes/publicador/SolicitarEscala";
-import Nome from "./routes/publicador/Nome";
 
 function mesParam(mesAlvoIso: string): string {
   return mesAlvoIso.slice(0, 7);
@@ -78,21 +76,20 @@ export default function App() {
     <BrowserRouter>
       <Layout>
         <Routes>
-          <Route path="/nome" element={<Nome />} />
           <Route
             path="/"
             element={
-              <ExigeNome>
+              <ExigeLogin>
                 <InicioPublicador />
-              </ExigeNome>
+              </ExigeLogin>
             }
           />
           <Route
             path="/solicitar"
             element={
-              <ExigeNome>
+              <ExigeLogin>
                 <SolicitarEscala />
-              </ExigeNome>
+              </ExigeLogin>
             }
           />
           <Route path="/login" element={<Login />} />
@@ -100,25 +97,25 @@ export default function App() {
           <Route
             path="/admin"
             element={
-              <RequireAdminAuth>
+              <ExigeLogin admin>
                 <AdminHome />
-              </RequireAdminAuth>
+              </ExigeLogin>
             }
           />
           <Route
             path="/admin/carrinhos"
             element={
-              <RequireAdminAuth>
+              <ExigeLogin admin>
                 <GestaoCarrinhos />
-              </RequireAdminAuth>
+              </ExigeLogin>
             }
           />
           <Route
             path="/admin/publicadores"
             element={
-              <RequireAdminAuth>
+              <ExigeLogin admin>
                 <Publicadores />
-              </RequireAdminAuth>
+              </ExigeLogin>
             }
           />
           <Route path="/admin/revisao/:mes" element={<RedirecionaParaEscala />} />
@@ -126,17 +123,17 @@ export default function App() {
           <Route
             path="/admin/escalas/:mes"
             element={
-              <RequireAdminAuth>
+              <ExigeLogin admin>
                 <EscalaFinal />
-              </RequireAdminAuth>
+              </ExigeLogin>
             }
           />
           <Route
             path="/admin/escalas/:mes/compartilhar"
             element={
-              <RequireAdminAuth>
+              <ExigeLogin admin>
                 <EscalaCompartilhar />
-              </RequireAdminAuth>
+              </ExigeLogin>
             }
           />
           <Route path="*" element={<Navigate to="/" replace />} />

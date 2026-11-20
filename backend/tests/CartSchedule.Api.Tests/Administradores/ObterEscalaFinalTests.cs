@@ -61,9 +61,9 @@ public class ObterEscalaFinalTests(ApiFixture fixture) : ApiTestBase(fixture)
         var admin = await AdminAsync();
         var carrinhoId = await CriarCarrinhoAsync(admin);
         await DefinirTurnosAsync(admin, carrinhoId, (Segunda, Turno0810), (Terca, Turno0810));
-        var publicador = Publicador();
-        var id = (await JsonAsync(await SolicitarAsync(publicador, carrinhoId, Segunda, Turno0810, "Ana"))).GetProperty("id").GetInt32();
-        await SolicitarAsync(publicador, carrinhoId, Terca, Turno0810, "Ana");
+        var publicador = await PublicadorAsync();
+        var id = (await JsonAsync(await SolicitarAsync(publicador, carrinhoId, Segunda, Turno0810))).GetProperty("id").GetInt32();
+        await SolicitarAsync(publicador, carrinhoId, Terca, Turno0810);
         await AdicionarRegistroAntigoPorNomeAsync(admin, carrinhoId, Segunda, Turno0810, "Bia");
 
         var pedidos = PedidosDaGrade(await GradeAsync(admin));

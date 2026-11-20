@@ -1,4 +1,5 @@
 using CartSchedule.Api.Infrastructure;
+using CartSchedule.Api.Infrastructure.Auth;
 using CartSchedule.Api.Shared;
 using Microsoft.EntityFrameworkCore;
 
@@ -8,7 +9,7 @@ namespace CartSchedule.Api.Features.Publicadores.ListarCarrinhosDisponiveis;
 /// GET /api/carrinhos — lista os carrinhos ativos (nome, descrição) e as disponibilidades
 /// (dia da semana × turno) que cada um tem habilitadas, com a ocupação atual de cada vaga na
 /// escala-alvo. Carrinhos de data especial (PLANNING.md regra 10a) só aparecem quando a data
-/// cai no mês da escala-alvo. Rota pública, sem autenticação.
+/// cai no mês da escala-alvo. Exige login de publicador (ou administrador).
 /// Cada vaga não cheia traz o primeiro nome de quem já está nela (issue #33 — ajuda o
 /// publicador a formar a dupla); o nome completo, o id e a marca criança/idoso nunca saem
 /// daqui, e a vaga cheia não expõe nomes (PLANNING.md seção 5, passo 5).
@@ -67,7 +68,8 @@ public static class Endpoint
                 }).ToList()));
 
             return Results.Ok(resposta);
-        });
+        })
+        .RequireAuthorization(Politicas.Publicador);
 
         return app;
     }

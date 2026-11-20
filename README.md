@@ -28,18 +28,18 @@ commit, não com IA como ajuda pontual.
 
 ## Como funciona
 
-- **Publicador** (`/`): sem cadastro nem senha. Um token anônimo (GUID) é
-  gerado no navegador, salvo em `localStorage` e enviado no header
-  `X-Publicador-Token`. Escolhe nome, carrinho, dia e turno, e vê as
+- **Publicador** (`/`): entra em `/login` com o usuário e o PIN de 4 dígitos
+  que o administrador criou (fica logado 180 dias, renovados ao abrir o app).
+  Escolhe carrinho, dia e turno, e vê as
   próprias solicitações (sem status nem as rejeitadas — a escala oficial é divulgada pelo
   administrador no grupo de WhatsApp), ordenadas por dia da semana, turno e
   carrinho. Com a janela aberta, pode excluir pedidos seus da escala do
   mês-alvo.
-- **Administrador** (`/admin`): login único (usuário/senha via variáveis de
-  ambiente, JWT curto). Configura carrinhos e seus turnos por dia da semana, revisa as
-  solicitações agrupadas por `(carrinho, dia, turno)`, aprova/rejeita,
-  adiciona solicitações manualmente (nascem já aprovadas) e vê a escala
-  final (grade Carrinho × Dia × Turno).
+- **Administrador** (`/admin`): publicador marcado como administrador, pelo
+  mesmo `/login` (sessão de 2 h); as credenciais das variáveis de ambiente
+  ficam só como administrador de recuperação. Cria as contas dos publicadores,
+  configura carrinhos e seus turnos por dia da semana e gerencia a escala do
+  mês (mover, adicionar, excluir), sem etapa de aprovação.
 
 ### Regras que definem o sistema
 

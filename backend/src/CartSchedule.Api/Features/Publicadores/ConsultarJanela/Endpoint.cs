@@ -1,4 +1,5 @@
 using CartSchedule.Api.Infrastructure;
+using CartSchedule.Api.Infrastructure.Auth;
 using CartSchedule.Api.Shared;
 
 namespace CartSchedule.Api.Features.Publicadores.ConsultarJanela;
@@ -6,7 +7,7 @@ namespace CartSchedule.Api.Features.Publicadores.ConsultarJanela;
 /// <summary>
 /// GET /api/janela — consulta se a janela de envio do publicador está aberta e qual é
 /// o mês-alvo, calculado em tempo real a partir da data do servidor e de o administrador
-/// ter fechado o envio. Sem autenticação (PLANNING.md §4).
+/// ter fechado o envio. Exige login de publicador (ou administrador) — PLANNING.md §4.
 /// </summary>
 public static class Endpoint
 {
@@ -17,7 +18,8 @@ public static class Endpoint
             var status = await JanelaDeEnvio.CalcularParaHojeAsync(db, relogio, ct);
 
             return Results.Ok(new JanelaResponse(status.Aberta, status.MesAlvo));
-        });
+        })
+        .RequireAuthorization(Politicas.Publicador);
 
         return app;
     }
