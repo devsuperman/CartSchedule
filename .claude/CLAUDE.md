@@ -47,7 +47,7 @@ frontend/src/
   api/                     # client.ts + wrappers por área
   routes/publicador/       # InicioPublicador (histórico + botões), SolicitarEscala, wizard/, JanelaFechada
   routes/Login.tsx         # login único (/login, a única rota pública): usuário + PIN; /admin/login redireciona
-  routes/admin/            # GestaoCarrinhos, Publicadores (contas: criar, editar, redefinir PIN — mostrado uma vez —, desativar/reativar com "Mostrar desativados", unir duplicados com prévia, excluir com prévia — apaga a conta e todos os pedidos, ADR 0002), EscalaFinal (gestão da escala: mover/adicionar/excluir), EscalaCompartilhar (imagem só leitura do mês, dia → turno → carrinho, + uma por data especial)
+  routes/admin/            # GestaoCarrinhos, Publicadores (contas: criar, editar, redefinir PIN — mostrado uma vez, também o bloqueio temporário —, unir duplicados com prévia, excluir com prévia — apaga a conta e todos os pedidos, ADR 0002), EscalaFinal (gestão da escala: mover/adicionar/excluir), EscalaCompartilhar (imagem só leitura do mês, dia → turno → carrinho, + uma por data especial)
   api/sessao.ts            # token + papel no localStorage; 401 da API encerra a sessão
   components/ExigeLogin.tsx # guarda de todas as rotas (admin → /admin/*); renova o token ao abrir o app
   components/TrocarPin.tsx  # diálogo "Trocar PIN" do menu "Olá" (Layout.tsx)
@@ -137,8 +137,8 @@ todas são intencionais, confirmadas no `PLANNING.md`:
    Recusas por janela fechada vêm com `codigo: "JANELA_FECHADA"` no
    ProblemDetails — o frontend decide por esse código, nunca por "qualquer 400".
 9. **Adição manual do admin**: entra na escala como qualquer outra. O "+" escolhe
-   um publicador **existente e ativo** (busca por nome/usuário; a API recebe
-   `publicadorId`, inexistente/inativo → 400) — nome livre não cria ninguém, e a
+   um publicador **existente** (busca por nome/usuário; a API recebe
+   `publicadorId`, inexistente → 400) — nome livre não cria ninguém, e a
    Escala não cria contas: só a tela Publicadores cria.
 9a. **Carrinho** tem `Nome`, `Descricao` (opcional, exibida ao publicador
     abaixo do nome no wizard) e `Ativo`; o admin pode editar nome e
@@ -163,7 +163,9 @@ todas são intencionais, confirmadas no `PLANNING.md`:
 11a. **Excluir publicador** (ADR 0002): `DELETE /api/admin/publicadores/{id}` apaga a conta
     e **todos os pedidos dela, de todas as escalas**, sem desfazer; a tela mostra antes a
     prévia (`GET .../{id}/exclusao`: pedidos e escalas). Nunca na própria conta
-    (409 `PROPRIA_CONTA`); outro administrador pode. Nunca trocar por "pessoa excluída"/soft delete.
+    (409 `PROPRIA_CONTA`); outro administrador pode. Nunca trocar por "pessoa excluída"/soft delete
+    nem reintroduzir a marca ativo do publicador (Desativar/Reativar, `incluirInativos`,
+    `PUBLICADOR_INATIVO`): bloqueio temporário é Redefinir PIN.
 12. **Sem notificações** (e-mail/push) de nenhum tipo.
 13. **Contagem de apoio ao desempate**: ao selecionar uma pessoa na tela da
     Escala, mostrar quantas solicitações (todas as trincas) ela já tem na

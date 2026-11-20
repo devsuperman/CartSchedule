@@ -38,7 +38,7 @@ public class ExcluirPublicadorTests(ApiFixture fixture) : ApiTestBase(fixture)
     }
 
     private static async Task<Guid[]> IdsDosPublicadoresAsync(HttpClient admin) =>
-        (await admin.GetFromJsonAsync<JsonElement>($"{RotaAdmin}?incluirInativos=true")).EnumerateArray()
+        (await admin.GetFromJsonAsync<JsonElement>($"{RotaAdmin}")).EnumerateArray()
             .Select(p => p.GetProperty("id").GetGuid())
             .ToArray();
 

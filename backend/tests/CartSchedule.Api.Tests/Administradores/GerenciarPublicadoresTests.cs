@@ -53,7 +53,7 @@ public class GerenciarPublicadoresTests(ApiFixture fixture) : ApiTestBase(fixtur
         Assert.Equal("Maria", item.GetProperty("usuario").GetString());
         Assert.True(item.GetProperty("criancaOuIdoso").GetBoolean());
         Assert.True(item.GetProperty("administrador").GetBoolean());
-        Assert.True(item.GetProperty("ativo").GetBoolean());
+        Assert.False(item.TryGetProperty("ativo", out _));
         Assert.True(item.GetProperty("temPin").GetBoolean());
         Assert.False(item.TryGetProperty("pin", out _));
     }

@@ -55,7 +55,7 @@ export function iniciarSessao(sessao: Sessao): void {
   definir(sessao);
 }
 
-/** "Sair", ou token recusado pela API (expirado, PIN redefinido, conta desativada). */
+/** "Sair", ou token recusado pela API (expirado, PIN redefinido, conta excluída). */
 export function encerrarSessao(): void {
   if (sessaoAtual) definir(null);
 }

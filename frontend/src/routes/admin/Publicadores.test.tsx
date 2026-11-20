@@ -12,8 +12,8 @@ vi.mock("../../api/client", async (importOriginal) => ({
 const mockApiFetch = vi.mocked(apiFetch);
 
 const LISTA = [
-  { id: "a", nome: "Ana Paula", usuario: "aninha", criancaOuIdoso: false, administrador: true, ativo: true, temPin: true, ehVoce: false },
-  { id: "j", nome: "José Lima", usuario: null, criancaOuIdoso: true, administrador: false, ativo: true, temPin: false, ehVoce: false },
+  { id: "a", nome: "Ana Paula", usuario: "aninha", criancaOuIdoso: false, administrador: true, temPin: true, ehVoce: false },
+  { id: "j", nome: "José Lima", usuario: null, criancaOuIdoso: true, administrador: false, temPin: false, ehVoce: false },
 ];
 
 beforeEach(() => {
@@ -217,14 +217,14 @@ describe("Publicadores", () => {
     const nome = within(screen.getByRole("dialog")).getByLabelText("Nome");
     await user.clear(nome);
     await user.type(nome, "Ana P. Souza");
-    await user.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Desativar" }));
+    await user.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Redefinir PIN" }));
     await user.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Voltar" }));
 
     expect(within(screen.getByRole("dialog")).getByLabelText("Nome")).toHaveValue("Ana P. Souza");
     expect(mockApiFetch).toHaveBeenCalledTimes(1);
   });
 
-  it("na própria conta não oferece desativar nem tirar o administrador", async () => {
+  it("na própria conta não oferece excluir, unir nem tirar o administrador", async () => {
     mockApiFetch.mockImplementation(async (path, opcoes) => {
       if (path === "/api/admin/publicadores" && !opcoes?.method) return [{ ...LISTA[0], ehVoce: true }, LISTA[1]];
       throw new Error(`chamada inesperada: ${path}`);
@@ -234,56 +234,10 @@ describe("Publicadores", () => {
     await user.click((await itemDe("Ana Paula")).getByRole("button", { name: "Editar Ana Paula" }));
 
     const dialogo = within(screen.getByRole("dialog"));
-    expect(dialogo.queryByRole("button", { name: "Desativar" })).not.toBeInTheDocument();
+    expect(dialogo.queryByRole("button", { name: "Excluir" })).not.toBeInTheDocument();
+    expect(dialogo.queryByRole("button", { name: "Unir a outro registro" })).not.toBeInTheDocument();
     expect(dialogo.getByRole("checkbox", { name: /Administrador/ })).toBeDisabled();
     expect(dialogo.getByRole("button", { name: "Redefinir PIN" })).toBeInTheDocument();
-  });
-
-  it("um erro ao carregar some quando a próxima busca dá certo", async () => {
-    let primeira = true;
-    mockApiFetch.mockImplementation(async (path, opcoes) => {
-      if (path === "/api/admin/publicadores" && !opcoes?.method && primeira) {
-        primeira = false;
-        throw new ApiError(500, "Falha ao carregar.");
-      }
-      if (path === "/api/admin/publicadores?incluirInativos=true") return LISTA;
-      throw new Error(`chamada inesperada: ${path}`);
-    });
-    const user = renderizar();
-    expect(await screen.findByText("Falha ao carregar.")).toBeInTheDocument();
-
-    await user.click(screen.getByRole("checkbox", { name: "Mostrar desativados" }));
-
-    expect(await screen.findByText("Ana Paula")).toBeInTheDocument();
-    expect(screen.queryByText("Falha ao carregar.")).not.toBeInTheDocument();
-  });
-
-  it("só a última busca vale quando o filtro é alternado rápido", async () => {
-    let liberarSemInativos: (lista: unknown) => void = () => {};
-    let chamadasSemInativos = 0;
-    const desativado = { id: "p", nome: "Pedro", usuario: "pedro", criancaOuIdoso: false, administrador: false, ativo: false, temPin: true, ehVoce: false };
-    mockApiFetch.mockImplementation((path, opcoes) => {
-      if (path === "/api/admin/publicadores" && !opcoes?.method) {
-        chamadasSemInativos += 1;
-        // A primeira (montagem) responde na hora; a segunda (desmarcar) fica pendurada.
-        if (chamadasSemInativos === 1) return Promise.resolve(LISTA);
-        return new Promise((resolve) => (liberarSemInativos = resolve));
-      }
-      if (path === "/api/admin/publicadores?incluirInativos=true") return Promise.resolve([...LISTA, desativado]);
-      return Promise.reject(new Error(`chamada inesperada: ${path}`));
-    });
-    const user = renderizar();
-    await screen.findByText("Ana Paula");
-    const filtro = screen.getByRole("checkbox", { name: "Mostrar desativados" });
-
-    await user.click(filtro); // marca
-    await user.click(filtro); // desmarca: busca pendurada
-    await user.click(filtro); // marca de novo
-    expect(await screen.findByText("Pedro")).toBeInTheDocument();
-    liberarSemInativos(LISTA);
-    await new Promise((r) => setTimeout(r, 0));
-
-    expect(screen.getByText("Pedro")).toBeInTheDocument();
   });
 
   it("registro sem usuário não oferece redefinir PIN", async () => {
@@ -293,54 +247,24 @@ describe("Publicadores", () => {
 
     const dialogo = within(screen.getByRole("dialog"));
     expect(dialogo.queryByRole("button", { name: "Redefinir PIN" })).not.toBeInTheDocument();
-    expect(dialogo.getByRole("button", { name: "Desativar" })).toBeInTheDocument();
+    expect(dialogo.getByRole("button", { name: "Excluir" })).toBeInTheDocument();
   });
 
-  it("desativa com confirmação e a pessoa some da lista", async () => {
-    mockApiFetch.mockImplementation(async (path, opcoes) => {
-      if (path === "/api/admin/publicadores" && !opcoes?.method) return LISTA;
-      if (path === "/api/admin/publicadores/a" && opcoes?.method === "PUT") return undefined;
-      throw new Error(`chamada inesperada: ${path}`);
-    });
+  it("lista todos, sem desativar, reativar nem filtro de desativados (ADR 0002)", async () => {
     const user = renderizar();
+
+    expect(await screen.findByText("Ana Paula")).toBeInTheDocument();
+    expect(screen.getByText("José Lima")).toBeInTheDocument();
+    expect(mockApiFetch).toHaveBeenCalledWith("/api/admin/publicadores");
+    expect(screen.queryByRole("checkbox", { name: "Mostrar desativados" })).not.toBeInTheDocument();
+    expect(screen.queryByText("Desativado")).not.toBeInTheDocument();
 
     await user.click((await itemDe("Ana Paula")).getByRole("button", { name: "Editar Ana Paula" }));
-    await user.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Desativar" }));
-    const confirmacao = within(screen.getByRole("dialog", { name: "Desativar Ana Paula?" }));
-    expect(confirmacao.getByText(/pedidos já feitos continuam na escala/i)).toBeInTheDocument();
-    await user.click(confirmacao.getByRole("button", { name: "Desativar" }));
-
-    expect(corpoDa("/api/admin/publicadores/a", "PUT")).toEqual({ ativo: false });
-    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
-    expect(screen.queryByText("Ana Paula")).not.toBeInTheDocument();
-    expect(screen.getByText("José Lima")).toBeInTheDocument();
+    const dialogo = within(screen.getByRole("dialog"));
+    expect(dialogo.queryByRole("button", { name: "Desativar" })).not.toBeInTheDocument();
+    expect(dialogo.queryByRole("button", { name: "Reativar" })).not.toBeInTheDocument();
   });
-
-  it("mostrar desativados busca com incluirInativos e permite reativar", async () => {
-    const desativado = { id: "p", nome: "Pedro", usuario: "pedro", criancaOuIdoso: false, administrador: false, ativo: false, temPin: true, ehVoce: false };
-    mockApiFetch.mockImplementation(async (path, opcoes) => {
-      if (path === "/api/admin/publicadores" && !opcoes?.method) return LISTA;
-      if (path === "/api/admin/publicadores?incluirInativos=true" && !opcoes?.method) return [...LISTA, desativado];
-      if (path === "/api/admin/publicadores/p" && opcoes?.method === "PUT") return undefined;
-      throw new Error(`chamada inesperada: ${path}`);
-    });
-    const user = renderizar();
-    await screen.findByText("Ana Paula");
-    expect(screen.queryByText("Pedro")).not.toBeInTheDocument();
-
-    await user.click(screen.getByRole("checkbox", { name: "Mostrar desativados" }));
-
-    const pedro = await itemDe("Pedro");
-    expect(pedro.getByText("Desativado")).toBeInTheDocument();
-    await user.click(pedro.getByRole("button", { name: "Editar Pedro" }));
-    await user.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Reativar" }));
-    await user.click(within(screen.getByRole("dialog", { name: "Reativar Pedro?" })).getByRole("button", { name: "Reativar" }));
-
-    expect(corpoDa("/api/admin/publicadores/p", "PUT")).toEqual({ ativo: true });
-    expect((await itemDe("Pedro")).queryByText("Desativado")).not.toBeInTheDocument();
-  });
-
-  it("erro ao desativar aparece na confirmação", async () => {
+  it("erro ao redefinir o PIN aparece na confirmação", async () => {
     mockApiFetch.mockImplementation(async (path, opcoes) => {
       if (path === "/api/admin/publicadores" && !opcoes?.method) return LISTA;
       throw new ApiError(404, "Não encontrado.");
@@ -348,9 +272,9 @@ describe("Publicadores", () => {
     const user = renderizar();
 
     await user.click((await itemDe("Ana Paula")).getByRole("button", { name: "Editar Ana Paula" }));
-    await user.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Desativar" }));
+    await user.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Redefinir PIN" }));
     const confirmacao = within(screen.getByRole("dialog"));
-    await user.click(confirmacao.getByRole("button", { name: "Desativar" }));
+    await user.click(confirmacao.getByRole("button", { name: "Redefinir PIN" }));
 
     expect(await confirmacao.findByText("Não encontrado.")).toBeInTheDocument();
   });

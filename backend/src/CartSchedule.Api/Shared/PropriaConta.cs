@@ -4,8 +4,8 @@ using CartSchedule.Api.Infrastructure.Auth;
 namespace CartSchedule.Api.Shared;
 
 /// <summary>
-/// O que o administrador não faz na própria conta, porque ficaria sem acesso (desativar, tirar o
-/// administrador, unir a outra, excluir): 409 com este código.
+/// O que o administrador não faz na própria conta, porque ficaria sem acesso (tirar o administrador,
+/// unir a outra, excluir): 409 com este código.
 /// </summary>
 public static class PropriaConta
 {

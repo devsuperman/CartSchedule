@@ -71,11 +71,6 @@ public static class Endpoint
                 extensions: new Dictionary<string, object?> { ["codigo"] = CodigoCredenciaisInvalidas });
         }
 
-        if (!publicador.Ativo)
-        {
-            return PublicadorInativo.Problema();
-        }
-
         return Results.Ok(SessaoDoPublicador.Emitir(publicador, jwtTokenService));
     }
 }

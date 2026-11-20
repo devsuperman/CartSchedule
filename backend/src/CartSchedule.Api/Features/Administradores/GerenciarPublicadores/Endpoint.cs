@@ -16,11 +16,11 @@ namespace CartSchedule.Api.Features.Administradores.GerenciarPublicadores;
 /// valem em todos os pedidos da pessoa. Nomes repetidos são permitidos; usuários não
 /// (comparados sem maiúsculas e sem acentos → 409 USUARIO_EM_USO). Registros antigos, sem
 /// usuário, recebem usuário pela edição e, junto, o PIN — mantendo id e histórico.
-/// Redefinir o PIN (gera outro, mostrado uma vez) e desativar desconectam todos os aparelhos da
-/// pessoa: incrementam <c>VersaoSessao</c>, conferida em todo request (Auth/ValidacaoDaSessao).
-/// Desativado some da lista por padrão (<c>incluirInativos</c> para vê-lo) e mantém o histórico.
-/// Um administrador não desativa nem tira o próprio administrador (409 PROPRIA_CONTA): ficaria
-/// sem acesso e só o administrador de recuperação desfaria.
+/// Redefinir o PIN (gera outro, mostrado uma vez) desconecta todos os aparelhos da pessoa:
+/// incrementa <c>VersaoSessao</c>, conferida em todo request (Auth/ValidacaoDaSessao). É também
+/// o jeito de bloquear o acesso por um tempo (ADR 0002); quem saiu é excluído.
+/// Um administrador não tira o próprio administrador (409 PROPRIA_CONTA): ficaria sem acesso e
+/// só o administrador de recuperação desfaria.
 /// </summary>
 public static class Endpoint
 {
@@ -45,17 +45,16 @@ public static class Endpoint
     }
 
     private static async Task<IResult> ListarAsync(
-        string? busca, bool? incluirInativos, ClaimsPrincipal usuarioLogado, AppDbContext db, CancellationToken ct)
+        string? busca, ClaimsPrincipal usuarioLogado, AppDbContext db, CancellationToken ct)
     {
         var euId = usuarioLogado.PublicadorIdOuNulo();
         // Poucas centenas de pessoas no máximo: a busca sem acentos é feita em memória, com a
         // mesma normalização do usuário.
         var publicadores = await db.Publicadores
             .AsNoTracking()
-            .Where(p => p.Ativo || incluirInativos == true)
             .OrderBy(p => p.Nome)
             .Select(p => new PublicadorResponse(
-                p.Id, p.Nome, p.Usuario, p.CriancaOuIdoso, p.Administrador, p.Ativo, p.PinHash != null, p.Id == euId))
+                p.Id, p.Nome, p.Usuario, p.CriancaOuIdoso, p.Administrador, p.PinHash != null, p.Id == euId))
             .ToListAsync(ct);
 
         if (!string.IsNullOrWhiteSpace(busca))
@@ -118,10 +117,10 @@ public static class Endpoint
             return Results.NotFound();
         }
 
-        if (PropriaConta.Eh(usuarioLogado, id) && (request.Ativo == false || request.Administrador == false))
+        if (PropriaConta.Eh(usuarioLogado, id) && request.Administrador == false)
         {
             return PropriaConta.Problema(
-                "Você não pode desativar nem tirar o administrador da sua própria conta. Peça a outro administrador.");
+                "Você não pode tirar o administrador da sua própria conta. Peça a outro administrador.");
         }
 
         if (request.Nome is not null)
@@ -131,10 +130,6 @@ public static class Endpoint
 
         publicador.CriancaOuIdoso = request.CriancaOuIdoso ?? publicador.CriancaOuIdoso;
         publicador.Administrador = request.Administrador ?? publicador.Administrador;
-
-        // Desativar desconecta os aparelhos; reativar não devolve as sessões antigas.
-        var desativou = request.Ativo == false && publicador.Ativo;
-        publicador.Ativo = request.Ativo ?? publicador.Ativo;
 
         string? pinGerado = null;
         if (request.Usuario is not null)
@@ -156,11 +151,6 @@ public static class Endpoint
         if (!await SalvarAsync(db, ct))
         {
             return UsuarioEmUso();
-        }
-
-        if (desativou)
-        {
-            await DesconectarAparelhosAsync(db, id, ct);
         }
 
         return pinGerado is null

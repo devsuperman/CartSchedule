@@ -3,8 +3,8 @@ using CartSchedule.Api.Domain.Enums;
 namespace CartSchedule.Api.Features.Administradores.RevisarEscala.AdicionarSolicitacaoManual;
 
 /// <summary>
-/// Corpo da adição manual de solicitação pelo administrador: um publicador já cadastrado e
-/// ativo (ADR 0001). Nome livre não cria mais publicador — conta nova é criada antes, em
+/// Corpo da adição manual de solicitação pelo administrador: um publicador já cadastrado
+/// (ADR 0001). Nome livre não cria mais publicador — conta nova é criada antes, em
 /// <c>POST /api/admin/publicadores</c>.
 /// </summary>
 public class Request

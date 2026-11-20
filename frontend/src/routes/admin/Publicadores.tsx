@@ -54,8 +54,8 @@ function rotuloPedidos(n: number, verboSingular: string, verboPlural: string): s
  * começa como o primeiro nome) e editar nome, usuário, criança/idoso e administrador. Registros
  * antigos aparecem "Sem usuário"; dar um usuário a eles cria o acesso. Depois de criar ou
  * redefinir o PIN, ele aparece uma única vez, com "Copiar mensagem" pronta para o WhatsApp.
- * Redefinir PIN e desativar (com confirmação) desconectam todos os aparelhos da pessoa;
- * desativados somem da lista, a menos que "Mostrar desativados" esteja marcado.
+ * Redefinir PIN (com confirmação) desconecta todos os aparelhos da pessoa — é também o jeito de
+ * bloquear o acesso por um tempo (ADR 0002); a lista mostra todos.
  * "Unir a outro registro" (issue #47) junta dois registros da mesma pessoa: os pedidos passam ao
  * registro escolhido, os que ele já tem na mesma vaga são descartados e o registro editado é
  * apagado — com prévia das contagens antes de confirmar.
@@ -68,34 +68,18 @@ export default function Publicadores() {
   const [busca, setBusca] = useState("");
   const [edicao, setEdicao] = useState<Edicao | null>(null);
   const [acesso, setAcesso] = useState<{ nome: string; credenciais: Credenciais } | null>(null);
-  const [mostrarInativos, setMostrarInativos] = useState(false);
   const [aviso, setAviso] = useState<string | null>(null);
 
   useEffect(() => {
-    // Alternar "Mostrar desativados" rápido dispara buscas sobrepostas: só a última vale.
-    let atual = true;
-    apiFetch<Publicador[]>(
-      mostrarInativos ? "/api/admin/publicadores?incluirInativos=true" : "/api/admin/publicadores",
-    )
-      .then((lista) => {
-        if (!atual) return;
-        setPublicadores(lista);
-        setErro(null);
-      })
-      .catch(
-        (err) =>
-          atual && setErro(err instanceof ApiError ? err.message : "Não foi possível carregar os publicadores."),
-      );
-    return () => {
-      atual = false;
-    };
-  }, [mostrarInativos]);
+    apiFetch<Publicador[]>("/api/admin/publicadores")
+      .then(setPublicadores)
+      .catch((err) => setErro(err instanceof ApiError ? err.message : "Não foi possível carregar os publicadores."));
+  }, []);
 
   const visiveis = useMemo(() => {
     const termo = normalizar(busca);
-    // O servidor já filtra os desativados; aqui some na hora quem acabou de ser desativado.
-    return (publicadores ?? []).filter((p) => (p.ativo || mostrarInativos) && combinaComBusca(p, termo));
-  }, [publicadores, busca, mostrarInativos]);
+    return (publicadores ?? []).filter((p) => combinaComBusca(p, termo));
+  }, [publicadores, busca]);
 
   function aoSalvar(publicador: Publicador, credenciais: Credenciais | null) {
     setPublicadores((atuais) => {
@@ -141,10 +125,6 @@ export default function Publicadores() {
         value={busca}
         onChange={(e) => setBusca(e.target.value)}
       />
-      <Label className="min-h-11 self-start font-normal">
-        <Checkbox checked={mostrarInativos} onCheckedChange={(valor) => setMostrarInativos(valor === true)} />
-        Mostrar desativados
-      </Label>
 
       <p role="status" className={cn("text-[0.95rem] font-semibold text-success", !aviso && "sr-only")}>
         {aviso}
@@ -170,9 +150,8 @@ export default function Publicadores() {
               <span className="text-[0.95rem] text-muted-foreground">
                 {p.usuario ?? <em>Sem usuário</em>}
               </span>
-              {(p.administrador || p.criancaOuIdoso || !p.ativo) && (
+              {(p.administrador || p.criancaOuIdoso) && (
                 <div className="flex flex-wrap gap-1.5">
-                  {!p.ativo && <Badge variant="outline">Desativado</Badge>}
                   {p.administrador && <Badge>Administrador</Badge>}
                   {p.criancaOuIdoso && <Badge variant="secondary">Criança ou idoso</Badge>}
                 </div>
@@ -214,8 +193,6 @@ export default function Publicadores() {
   );
 }
 
-type AcaoDeAcesso = "pin" | "desativar" | "reativar";
-
 /** O que o administrador digitou no formulário; fica aqui para não se perder ao abrir uma confirmação. */
 interface Rascunho {
   nome: string;
@@ -237,8 +214,8 @@ function rascunhoInicial(original: Publicador | null): Rascunho {
 }
 
 /**
- * Formulário de criar/editar; na edição, também redefinir PIN, desativar/reativar, unir a outro
- * registro e excluir (cada um com confirmação).
+ * Formulário de criar/editar; na edição, também redefinir PIN, unir a outro registro e excluir
+ * (cada um com confirmação).
  */
 function EdicaoPublicador({
   edicao,
@@ -253,7 +230,7 @@ function EdicaoPublicador({
   onUnido: (origem: Publicador, destino: Publicador) => void;
   onExcluido: (publicador: Publicador) => void;
 }) {
-  const [confirmando, setConfirmando] = useState<AcaoDeAcesso | null>(null);
+  const [confirmando, setConfirmando] = useState(false);
   const [unindo, setUnindo] = useState(false);
   const [excluindo, setExcluindo] = useState(false);
   const [rascunho, setRascunho] = useState(() =>
@@ -283,10 +260,9 @@ function EdicaoPublicador({
 
   if (edicao.modo === "editar" && confirmando) {
     return (
-      <ConfirmarAcao
+      <ConfirmarRedefinirPin
         publicador={edicao.publicador}
-        acao={confirmando}
-        onVoltar={() => setConfirmando(null)}
+        onVoltar={() => setConfirmando(false)}
         onFeito={onSalvo}
       />
     );
@@ -303,7 +279,7 @@ function EdicaoPublicador({
       {edicao.modo === "editar" && (
         <div className="flex flex-wrap gap-2 border-t border-border pt-4">
           {edicao.publicador.usuario !== null && (
-            <Button type="button" variant="outline" onClick={() => setConfirmando("pin")}>
+            <Button type="button" variant="outline" onClick={() => setConfirmando(true)}>
               Redefinir PIN
             </Button>
           )}
@@ -311,15 +287,6 @@ function EdicaoPublicador({
           {!edicao.publicador.ehVoce && (
             <Button type="button" variant="outline" onClick={() => setUnindo(true)}>
               Unir a outro registro
-            </Button>
-          )}
-          {edicao.publicador.ehVoce ? null : edicao.publicador.ativo ? (
-            <Button type="button" variant="destructive" onClick={() => setConfirmando("desativar")}>
-              Desativar
-            </Button>
-          ) : (
-            <Button type="button" variant="outline" onClick={() => setConfirmando("reativar")}>
-              Reativar
             </Button>
           )}
           {/* Excluir apaga a conta: não na própria, que ficaria sem acesso. */}
@@ -334,58 +301,26 @@ function EdicaoPublicador({
   );
 }
 
-const TEXTOS_DA_ACAO: Record<AcaoDeAcesso, { titulo: (nome: string) => string; descricao: string; botao: string }> = {
-  pin: {
-    titulo: (nome) => `Redefinir o PIN de ${nome}?`,
-    descricao:
-      "Um PIN novo será gerado e mostrado uma única vez. Isso desconecta a pessoa de todos os aparelhos: ela precisará entrar com o PIN novo.",
-    botao: "Redefinir PIN",
-  },
-  desativar: {
-    titulo: (nome) => `Desativar ${nome}?`,
-    descricao:
-      "A pessoa não consegue mais entrar e é desconectada de todos os aparelhos. Os pedidos já feitos continuam na escala.",
-    botao: "Desativar",
-  },
-  reativar: {
-    titulo: (nome) => `Reativar ${nome}?`,
-    descricao: "A pessoa volta a poder entrar com o mesmo usuário e PIN.",
-    botao: "Reativar",
-  },
-};
-
-function ConfirmarAcao({
+function ConfirmarRedefinirPin({
   publicador,
-  acao,
   onVoltar,
   onFeito,
 }: {
   publicador: Publicador;
-  acao: AcaoDeAcesso;
   onVoltar: () => void;
   onFeito: (publicador: Publicador, credenciais: Credenciais | null) => void;
 }) {
   const [enviando, setEnviando] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
-  const textos = TEXTOS_DA_ACAO[acao];
 
   async function confirmar() {
     setEnviando(true);
     setErro(null);
     try {
-      if (acao === "pin") {
-        const credenciais = await apiFetch<Credenciais>(`/api/admin/publicadores/${publicador.id}/pin`, {
-          method: "POST",
-        });
-        onFeito({ ...publicador, temPin: true }, credenciais);
-      } else {
-        const ativo = acao === "reativar";
-        await apiFetch<void>(`/api/admin/publicadores/${publicador.id}`, {
-          method: "PUT",
-          body: JSON.stringify({ ativo }),
-        });
-        onFeito({ ...publicador, ativo }, null);
-      }
+      const credenciais = await apiFetch<Credenciais>(`/api/admin/publicadores/${publicador.id}/pin`, {
+        method: "POST",
+      });
+      onFeito({ ...publicador, temPin: true }, credenciais);
     } catch (err) {
       setErro(err instanceof ApiError ? err.message : "Não foi possível concluir.");
       setEnviando(false);
@@ -395,8 +330,11 @@ function ConfirmarAcao({
   return (
     <div className="grid gap-4">
       <DialogHeader>
-        <DialogTitle>{textos.titulo(publicador.nome)}</DialogTitle>
-        <DialogDescription>{textos.descricao}</DialogDescription>
+        <DialogTitle>Redefinir o PIN de {publicador.nome}?</DialogTitle>
+        <DialogDescription>
+          Um PIN novo será gerado e mostrado uma única vez. Isso desconecta a pessoa de todos os aparelhos: ela
+          precisará entrar com o PIN novo.
+        </DialogDescription>
       </DialogHeader>
       {erro && (
         <Alert variant="destructive">
@@ -407,13 +345,8 @@ function ConfirmarAcao({
         <Button type="button" variant="outline" onClick={onVoltar} disabled={enviando}>
           Voltar
         </Button>
-        <Button
-          type="button"
-          variant={acao === "desativar" ? "destructive" : "default"}
-          onClick={confirmar}
-          disabled={enviando}
-        >
-          {enviando ? "Aguarde…" : textos.botao}
+        <Button type="button" onClick={confirmar} disabled={enviando}>
+          {enviando ? "Aguarde…" : "Redefinir PIN"}
         </Button>
       </DialogFooter>
     </div>
@@ -680,7 +613,6 @@ function FormularioPublicador({
           usuario: usuarioLimpo || null,
           criancaOuIdoso,
           administrador,
-          ativo: original?.ativo ?? true,
           temPin: (original?.temPin ?? false) || credenciais !== null,
           ehVoce: original?.ehVoce ?? false,
         },

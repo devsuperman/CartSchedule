@@ -251,7 +251,7 @@ interface SolicitacaoCriada {
 
 /**
  * Adição manual numa vaga (regra 9): POST /api/admin/escalas/{mes}/solicitacoes com um
- * publicador existente e ativo, escolhido pela busca (nome ou usuário, sem maiúsculas nem
+ * publicador existente, escolhido pela busca (nome ou usuário, sem maiúsculas nem
  * acentos). Nome livre não cria ninguém, e a Escala não cria contas: quem não tem conta é
  * cadastrado na tela Publicadores. Quem já está na vaga aparece desabilitado; excesso e outro
  * carrinho no mesmo horário só avisam.
