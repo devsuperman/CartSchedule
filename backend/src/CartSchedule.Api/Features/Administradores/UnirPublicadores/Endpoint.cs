@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using CartSchedule.Api.Domain;
+using CartSchedule.Api.Domain.Enums;
 using CartSchedule.Api.Infrastructure;
 using Microsoft.EntityFrameworkCore;
 
@@ -96,14 +97,13 @@ public static class Endpoint
     {
         var daOrigem = await db.Solicitacoes.Where(s => s.PublicadorId == origemId).ToListAsync(ct);
         var vagasDoDestino = (await db.Solicitacoes
+                .AsNoTracking()
                 .Where(s => s.PublicadorId == destinoId)
-                .Select(s => new { s.EscalaId, s.CarrinhoId, s.DiaSemana, s.TurnoId })
                 .ToListAsync(ct))
+            .Select(Vaga.De)
             .ToHashSet();
 
-        var descartados = daOrigem
-            .Where(s => vagasDoDestino.Contains(new { s.EscalaId, s.CarrinhoId, s.DiaSemana, s.TurnoId }))
-            .ToList();
+        var descartados = daOrigem.Where(s => vagasDoDestino.Contains(Vaga.De(s))).ToList();
         return (daOrigem.Except(descartados).ToList(), descartados);
     }
 
@@ -118,7 +118,7 @@ public static class Endpoint
             });
         }
 
-        if (usuarioLogado.FindFirstValue(ClaimTypes.NameIdentifier) == origemId.ToString())
+        if (IdDoLogado(usuarioLogado) == origemId)
         {
             return Results.Problem(
                 title: "Você não pode unir a sua própria conta a outra: ela seria apagada. Una a outra conta à sua.",
@@ -127,5 +127,15 @@ public static class Endpoint
         }
 
         return null;
+    }
+
+    /// <summary>Id do publicador logado; null para o administrador de recuperação.</summary>
+    private static Guid? IdDoLogado(ClaimsPrincipal usuario) =>
+        Guid.TryParse(usuario.FindFirstValue(ClaimTypes.NameIdentifier), out var id) ? id : null;
+
+    /// <summary>A chave da duplicidade (PLANNING.md regra 4): a mesma vaga na mesma escala.</summary>
+    private readonly record struct Vaga(int EscalaId, int CarrinhoId, DiaSemana DiaSemana, int TurnoId)
+    {
+        public static Vaga De(Solicitacao s) => new(s.EscalaId, s.CarrinhoId, s.DiaSemana, s.TurnoId);
     }
 }

@@ -64,8 +64,9 @@ interface ResultadoDaUniao {
   pedidosDescartados: number;
 }
 
-function pedidos(n: number): string {
-  return n === 1 ? "1 pedido" : `${n} pedidos`;
+/** "1 pedido passa" / "3 pedidos passam": a contagem com o verbo concordando. */
+function rotuloPedidos(n: number, verboSingular: string, verboPlural: string): string {
+  return n === 1 ? `1 pedido ${verboSingular}` : `${n} pedidos ${verboPlural}`;
 }
 
 /**
@@ -261,23 +262,24 @@ function EdicaoPublicador({
   onSalvo: (publicador: Publicador, credenciais: Credenciais | null) => void;
   onUnido: (origem: Publicador, destino: Publicador) => void;
 }) {
-  const [confirmando, setConfirmando] = useState<AcaoDeAcesso | "unir" | null>(null);
+  const [confirmando, setConfirmando] = useState<AcaoDeAcesso | null>(null);
+  const [unindo, setUnindo] = useState(false);
   const [rascunho, setRascunho] = useState(() =>
     rascunhoInicial(edicao.modo === "editar" ? edicao.publicador : null),
   );
 
-  if (edicao.modo === "editar" && confirmando === "unir") {
+  if (edicao.modo === "editar" && unindo) {
     return (
       <UnirPublicador
         origem={edicao.publicador}
         candidatos={todos.filter((p) => p.id !== edicao.publicador.id)}
-        onVoltar={() => setConfirmando(null)}
+        onVoltar={() => setUnindo(false)}
         onUnido={onUnido}
       />
     );
   }
 
-  if (edicao.modo === "editar" && confirmando && confirmando !== "unir") {
+  if (edicao.modo === "editar" && confirmando) {
     return (
       <ConfirmarAcao
         publicador={edicao.publicador}
@@ -305,7 +307,7 @@ function EdicaoPublicador({
           )}
           {/* Unir apaga o registro editado: não na própria conta, que ficaria sem acesso. */}
           {!edicao.publicador.ehVoce && (
-            <Button type="button" variant="outline" onClick={() => setConfirmando("unir")}>
+            <Button type="button" variant="outline" onClick={() => setUnindo(true)}>
               Unir a outro registro
             </Button>
           )}
@@ -511,13 +513,12 @@ function UnirPublicador({
           <p>
             {previa.pedidosMovidos === 0
               ? `Nenhum pedido para passar a ${destino.nome}.`
-              : `${pedidos(previa.pedidosMovidos)} ${previa.pedidosMovidos === 1 ? "passa" : "passam"} para ${destino.nome}.`}
+              : `${rotuloPedidos(previa.pedidosMovidos, "passa", "passam")} para ${destino.nome}.`}
           </p>
           {previa.pedidosDescartados > 0 && (
             <p>
-              {pedidos(previa.pedidosDescartados)}{" "}
-              {previa.pedidosDescartados === 1 ? "será descartado" : "serão descartados"}: {destino.nome} já tem a
-              mesma vaga.
+              {rotuloPedidos(previa.pedidosDescartados, "será descartado", "serão descartados")}: {destino.nome}{" "}
+              já tem a mesma vaga.
             </p>
           )}
           <p>
