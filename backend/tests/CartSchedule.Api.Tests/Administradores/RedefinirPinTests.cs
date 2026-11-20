@@ -8,7 +8,7 @@ namespace CartSchedule.Api.Tests.Administradores;
 /// <summary>
 /// Redefinir PIN (issue #46) desconecta todos os aparelhos da pessoa — cada request autenticado
 /// confere que o publicador existe e que a versão de sessão do token é a atual. Desde a ADR 0002
-/// não há mais desativar: é o jeito de bloquear o acesso por um tempo.
+/// não há mais desativar: redefinir o PIN é o jeito de bloquear o acesso por um tempo.
 /// </summary>
 public class RedefinirPinTests(ApiFixture fixture) : ApiTestBase(fixture)
 {
