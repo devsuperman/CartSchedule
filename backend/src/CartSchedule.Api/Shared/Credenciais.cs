@@ -28,7 +28,7 @@ public static class UsuarioNormalizado
 }
 
 /// <summary>
-/// PIN do publicador (GLOSSARY.md): exatamente 4 dígitos. O sistema gera com gerador
+/// Senha do publicador (GLOSSARY.md; no código, `Pin`): exatamente 4 dígitos. O sistema gera com gerador
 /// criptográfico e nunca gera um PIN óbvio (todos iguais ou sequência como 1234/4321).
 /// </summary>
 public static class Pin
@@ -37,7 +37,7 @@ public static class Pin
     public static bool TemFormatoValido(string? pin) =>
         pin is { Length: 4 } && pin.All(char.IsAsciiDigit);
 
-    public const string MensagemDeFormato = "O PIN precisa ter exatamente 4 dígitos.";
+    public const string MensagemDeFormato = "A senha precisa ter exatamente 4 dígitos.";
 
     /// <summary>Todos iguais ou sequência crescente/decrescente. Só para PIN com formato válido.</summary>
     public static bool EhFraco(string pin)

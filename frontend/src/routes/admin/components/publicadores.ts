@@ -1,4 +1,4 @@
-/** Item de GET /api/admin/publicadores. O PIN nunca vem, só se a conta já tem um. */
+/** Item de GET /api/admin/publicadores. A senha nunca vem, só se a conta já tem uma. */
 export interface Publicador {
   id: string;
   nome: string;

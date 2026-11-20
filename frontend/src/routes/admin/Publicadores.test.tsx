@@ -65,7 +65,7 @@ describe("Publicadores", () => {
     expect(screen.queryByText("José Lima")).not.toBeInTheDocument();
   });
 
-  it("cria com usuário = primeiro nome e mostra o PIN uma vez, com copiar mensagem", async () => {
+  it("cria com usuário = primeiro nome e mostra a senha uma vez, com copiar mensagem", async () => {
     mockApiFetch.mockImplementation(async (path, opcoes) => {
       if (path === "/api/admin/publicadores" && !opcoes?.method) return LISTA;
       if (path === "/api/admin/publicadores" && opcoes?.method === "POST") {
@@ -96,7 +96,7 @@ describe("Publicadores", () => {
     const copiada = await navigator.clipboard.readText();
     expect(copiada).toContain(window.location.origin);
     expect(copiada).toContain("Usuário: Maria");
-    expect(copiada).toContain("PIN: 2580");
+    expect(copiada).toContain("Senha: 2580");
     expect(pin.getByRole("button", { name: "Mensagem copiada" })).toBeInTheDocument();
 
     await user.click(pin.getByRole("button", { name: "Pronto" }));
@@ -147,7 +147,7 @@ describe("Publicadores", () => {
     expect(ana.queryByText("Administrador")).not.toBeInTheDocument();
   });
 
-  it("dar usuário a um registro antigo cria o acesso e mostra o PIN", async () => {
+  it("dar usuário a um registro antigo cria o acesso e mostra a senha", async () => {
     mockApiFetch.mockImplementation(async (path, opcoes) => {
       if (path === "/api/admin/publicadores" && !opcoes?.method) return LISTA;
       if (path === "/api/admin/publicadores/j" && opcoes?.method === "PUT") {
@@ -185,7 +185,7 @@ describe("Publicadores", () => {
     expect(corpoDa("/api/admin/publicadores/j", "PUT")).not.toHaveProperty("usuario");
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
-  it("redefine o PIN com confirmação e mostra o novo PIN uma vez", async () => {
+  it("redefine a senha com confirmação e mostra a nova senha uma vez", async () => {
     mockApiFetch.mockImplementation(async (path, opcoes) => {
       if (path === "/api/admin/publicadores" && !opcoes?.method) return LISTA;
       if (path === "/api/admin/publicadores/a/pin" && opcoes?.method === "POST") {
@@ -196,18 +196,18 @@ describe("Publicadores", () => {
     const user = renderizar();
 
     await user.click((await itemDe("Ana Paula")).getByRole("button", { name: "Editar Ana Paula" }));
-    await user.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Redefinir PIN" }));
+    await user.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Redefinir senha" }));
 
-    const confirmacao = within(screen.getByRole("dialog", { name: "Redefinir o PIN de Ana Paula?" }));
+    const confirmacao = within(screen.getByRole("dialog", { name: "Redefinir a senha de Ana Paula?" }));
     expect(confirmacao.getByText(/desconecta.*todos os aparelhos/i)).toBeInTheDocument();
     expect(mockApiFetch).not.toHaveBeenCalledWith("/api/admin/publicadores/a/pin", expect.anything());
-    await user.click(confirmacao.getByRole("button", { name: "Redefinir PIN" }));
+    await user.click(confirmacao.getByRole("button", { name: "Redefinir senha" }));
 
     expect(mockApiFetch).toHaveBeenCalledWith("/api/admin/publicadores/a/pin", { method: "POST" });
     const pin = within(await screen.findByRole("dialog", { name: "Acesso de Ana Paula" }));
     expect(pin.getByText("8042")).toBeInTheDocument();
     await user.click(pin.getByRole("button", { name: "Copiar mensagem" }));
-    expect(await navigator.clipboard.readText()).toContain("PIN: 8042");
+    expect(await navigator.clipboard.readText()).toContain("Senha: 8042");
   });
 
   it("voltar da confirmação mantém o que já foi digitado, sem chamar a API", async () => {
@@ -217,7 +217,7 @@ describe("Publicadores", () => {
     const nome = within(screen.getByRole("dialog")).getByLabelText("Nome");
     await user.clear(nome);
     await user.type(nome, "Ana P. Souza");
-    await user.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Redefinir PIN" }));
+    await user.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Redefinir senha" }));
     await user.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Voltar" }));
 
     expect(within(screen.getByRole("dialog")).getByLabelText("Nome")).toHaveValue("Ana P. Souza");
@@ -237,16 +237,16 @@ describe("Publicadores", () => {
     expect(dialogo.queryByRole("button", { name: "Excluir" })).not.toBeInTheDocument();
     expect(dialogo.queryByRole("button", { name: "Unir a outro registro" })).not.toBeInTheDocument();
     expect(dialogo.getByRole("checkbox", { name: /Administrador/ })).toBeDisabled();
-    expect(dialogo.getByRole("button", { name: "Redefinir PIN" })).toBeInTheDocument();
+    expect(dialogo.getByRole("button", { name: "Redefinir senha" })).toBeInTheDocument();
   });
 
-  it("registro sem usuário não oferece redefinir PIN", async () => {
+  it("registro sem usuário não oferece redefinir senha", async () => {
     const user = renderizar();
 
     await user.click((await itemDe("José Lima")).getByRole("button", { name: "Editar José Lima" }));
 
     const dialogo = within(screen.getByRole("dialog"));
-    expect(dialogo.queryByRole("button", { name: "Redefinir PIN" })).not.toBeInTheDocument();
+    expect(dialogo.queryByRole("button", { name: "Redefinir senha" })).not.toBeInTheDocument();
     expect(dialogo.getByRole("button", { name: "Excluir" })).toBeInTheDocument();
   });
 
@@ -264,7 +264,7 @@ describe("Publicadores", () => {
     expect(dialogo.queryByRole("button", { name: "Desativar" })).not.toBeInTheDocument();
     expect(dialogo.queryByRole("button", { name: "Reativar" })).not.toBeInTheDocument();
   });
-  it("erro ao redefinir o PIN aparece na confirmação", async () => {
+  it("erro ao redefinir a senha aparece na confirmação", async () => {
     mockApiFetch.mockImplementation(async (path, opcoes) => {
       if (path === "/api/admin/publicadores" && !opcoes?.method) return LISTA;
       throw new ApiError(404, "Não encontrado.");
@@ -272,9 +272,9 @@ describe("Publicadores", () => {
     const user = renderizar();
 
     await user.click((await itemDe("Ana Paula")).getByRole("button", { name: "Editar Ana Paula" }));
-    await user.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Redefinir PIN" }));
+    await user.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Redefinir senha" }));
     const confirmacao = within(screen.getByRole("dialog"));
-    await user.click(confirmacao.getByRole("button", { name: "Redefinir PIN" }));
+    await user.click(confirmacao.getByRole("button", { name: "Redefinir senha" }));
 
     expect(await confirmacao.findByText("Não encontrado.")).toBeInTheDocument();
   });

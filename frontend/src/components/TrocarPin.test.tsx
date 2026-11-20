@@ -37,15 +37,15 @@ async function abrirDialogo() {
   );
   const user = userEvent.setup();
   await user.click(await screen.findByRole("button", { name: /Olá, Maria/ }));
-  await user.click(screen.getByRole("button", { name: "Trocar PIN" }));
+  await user.click(screen.getByRole("button", { name: "Trocar senha" }));
   return user;
 }
 
 async function preencher(user: ReturnType<typeof userEvent.setup>, atual: string, novo: string, confirmacao = novo) {
-  await user.type(screen.getByLabelText("PIN atual"), atual);
-  await user.type(screen.getByLabelText("PIN novo"), novo);
-  await user.type(screen.getByLabelText("Confirme o PIN novo"), confirmacao);
-  await user.click(screen.getByRole("button", { name: "Trocar PIN" }));
+  await user.type(screen.getByLabelText("Senha atual"), atual);
+  await user.type(screen.getByLabelText("Nova senha"), novo);
+  await user.type(screen.getByLabelText("Confirme a nova senha"), confirmacao);
+  await user.click(screen.getByRole("button", { name: "Trocar senha" }));
 }
 
 function chamadasDaTroca() {
@@ -58,17 +58,17 @@ function erroDaApi(status: number, mensagem: string, codigo: string) {
   };
 }
 
-describe("Trocar PIN (menu Olá)", () => {
-  it("o menu abre o diálogo com PIN atual, PIN novo e confirmação", async () => {
+describe("Trocar senha (menu Olá)", () => {
+  it("o menu abre o diálogo com senha atual, nova senha e confirmação", async () => {
     await abrirDialogo();
 
-    expect(screen.getByRole("dialog", { name: "Trocar PIN" })).toBeInTheDocument();
-    for (const rotulo of ["PIN atual", "PIN novo", "Confirme o PIN novo"]) {
+    expect(screen.getByRole("dialog", { name: "Trocar senha" })).toBeInTheDocument();
+    for (const rotulo of ["Senha atual", "Nova senha", "Confirme a nova senha"]) {
       expect(screen.getByLabelText(rotulo)).toHaveAttribute("inputmode", "numeric");
     }
   });
 
-  it("troca o PIN, guarda o token novo e avisa que os outros aparelhos saíram", async () => {
+  it("troca a senha, guarda o token novo e avisa que os outros aparelhos saíram", async () => {
     const user = await abrirDialogo();
 
     await preencher(user, "1357", "2580");
@@ -77,6 +77,7 @@ describe("Trocar PIN (menu Olá)", () => {
       method: "PUT",
       body: JSON.stringify({ pinAtual: "1357", pinNovo: "2580" }),
     });
+    expect(await screen.findByRole("dialog", { name: "Senha trocada" })).toBeInTheDocument();
     expect(await screen.findByText(/outros aparelhos foram desconectados/)).toBeInTheDocument();
     expect(obterSessao()).toEqual({ token: "token-novo", papel: "publicador" });
 
@@ -89,32 +90,32 @@ describe("Trocar PIN (menu Olá)", () => {
 
     await preencher(user, "1357", "2580", "2581");
 
-    expect(screen.getByRole("alert")).toHaveTextContent("A confirmação não é igual ao PIN novo.");
+    expect(screen.getByRole("alert")).toHaveTextContent("A confirmação não é igual à nova senha.");
     expect(chamadasDaTroca()).toHaveLength(0);
   });
 
-  it("PIN novo sem 4 dígitos não chama a API", async () => {
+  it("nova senha sem 4 dígitos não chama a API", async () => {
     const user = await abrirDialogo();
 
     await preencher(user, "1357", "258");
 
-    expect(screen.getByRole("alert")).toHaveTextContent("exatamente 4 dígitos");
+    expect(screen.getByRole("alert")).toHaveTextContent("A nova senha precisa ter exatamente 4 dígitos.");
     expect(chamadasDaTroca()).toHaveLength(0);
   });
 
-  it("PIN atual errado mostra o erro e mantém a sessão", async () => {
-    mockarApi(erroDaApi(400, "O PIN atual não confere.", "PIN_ATUAL_INVALIDO"));
+  it("senha atual errada mostra o erro e mantém a sessão", async () => {
+    mockarApi(erroDaApi(400, "A senha atual não confere.", "PIN_ATUAL_INVALIDO"));
     const user = await abrirDialogo();
 
     await preencher(user, "9999", "2580");
 
-    expect(await screen.findByRole("alert")).toHaveTextContent("O PIN atual não confere.");
+    expect(await screen.findByRole("alert")).toHaveTextContent("A senha atual não confere.");
     expect(obterSessao()?.token).toBe("token-antigo");
-    expect(screen.getByRole("dialog", { name: "Trocar PIN" })).toBeInTheDocument();
+    expect(screen.getByRole("dialog", { name: "Trocar senha" })).toBeInTheDocument();
   });
 
-  it("PIN fraco pede outro", async () => {
-    mockarApi(erroDaApi(400, "Esse PIN é fácil de adivinhar.", "PIN_FRACO"));
+  it("senha fraca pede outra", async () => {
+    mockarApi(erroDaApi(400, "Essa senha é fácil de adivinhar.", "PIN_FRACO"));
     const user = await abrirDialogo();
 
     await preencher(user, "1357", "1234");
@@ -137,7 +138,7 @@ describe("Trocar PIN (menu Olá)", () => {
 
     await preencher(user, "1357", "2580");
 
-    expect(await screen.findByRole("alert")).toHaveTextContent("Não foi possível trocar o PIN. Tente de novo.");
+    expect(await screen.findByRole("alert")).toHaveTextContent("Não foi possível trocar a senha. Tente de novo.");
   });
 
   it("Cancelar fecha sem trocar", async () => {

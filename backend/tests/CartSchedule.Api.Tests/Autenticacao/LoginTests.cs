@@ -85,7 +85,9 @@ public class LoginTests(ApiFixture fixture) : ApiTestBase(fixture)
             var resposta = await LoginAsync(Anonimo(), usuario, segredo);
 
             Assert.Equal(HttpStatusCode.Unauthorized, resposta.StatusCode);
-            Assert.Equal("CREDENCIAIS_INVALIDAS", (await JsonAsync(resposta)).GetProperty("codigo").GetString());
+            var corpo = await JsonAsync(resposta);
+            Assert.Equal("CREDENCIAIS_INVALIDAS", corpo.GetProperty("codigo").GetString());
+            Assert.Equal("Usuário ou senha inválidos.", corpo.GetProperty("title").GetString());
         }
     }
 
