@@ -23,7 +23,7 @@ const FORMATO_PIN = /^[0-9]{4}$/;
 const CODIGOS_COM_MENSAGEM_DO_SERVIDOR = new Set(["PIN_ATUAL_INVALIDO", "PIN_FRACO", "MUITAS_REQUISICOES"]);
 
 /**
- * "Trocar PIN" do menu "Olá" (issue #50): PIN atual + o novo duas vezes. A API devolve um token
+ * "Trocar senha" do menu "Olá" (issue #50): senha atual + a nova duas vezes. A API devolve um token
  * novo — este aparelho continua logado e os outros aparelhos da pessoa são desconectados.
  */
 export function TrocarPin({ aberto, onFechar }: { aberto: boolean; onFechar: () => void }) {
@@ -46,11 +46,11 @@ function FormularioTrocarPin({ onFechar }: { onFechar: () => void }) {
     event.preventDefault();
     setErro(null);
     if (!FORMATO_PIN.test(pinNovo)) {
-      setErro("O PIN novo precisa ter exatamente 4 dígitos.");
+      setErro("A nova senha precisa ter exatamente 4 dígitos.");
       return;
     }
     if (pinNovo !== confirmacao) {
-      setErro("A confirmação não é igual ao PIN novo.");
+      setErro("A confirmação não é igual à nova senha.");
       return;
     }
 
@@ -67,7 +67,7 @@ function FormularioTrocarPin({ onFechar }: { onFechar: () => void }) {
       setErro(
         codigo && CODIGOS_COM_MENSAGEM_DO_SERVIDOR.has(codigo) && err instanceof Error
           ? err.message
-          : "Não foi possível trocar o PIN. Tente de novo.",
+          : "Não foi possível trocar a senha. Tente de novo.",
       );
     } finally {
       setEnviando(false);
@@ -78,9 +78,9 @@ function FormularioTrocarPin({ onFechar }: { onFechar: () => void }) {
     return (
       <div className="grid gap-4">
         <DialogHeader>
-          <DialogTitle>PIN trocado</DialogTitle>
+          <DialogTitle>Senha trocada</DialogTitle>
           <DialogDescription>
-            Use o PIN novo para entrar. Seus outros aparelhos foram desconectados.
+            Use a nova senha para entrar. Seus outros aparelhos foram desconectados.
           </DialogDescription>
         </DialogHeader>
         <DialogFooter>
@@ -95,14 +95,14 @@ function FormularioTrocarPin({ onFechar }: { onFechar: () => void }) {
   return (
     <form onSubmit={handleSubmit} className="grid gap-4">
       <DialogHeader>
-        <DialogTitle>Trocar PIN</DialogTitle>
+        <DialogTitle>Trocar senha</DialogTitle>
         <DialogDescription>
-          O PIN novo tem 4 dígitos. Ao trocar, seus outros aparelhos são desconectados.
+          A nova senha tem 4 dígitos. Ao trocar, seus outros aparelhos são desconectados.
         </DialogDescription>
       </DialogHeader>
-      <CampoPin rotulo="PIN atual" valor={pinAtual} onMudar={setPinAtual} autoComplete="current-password" autoFocus />
-      <CampoPin rotulo="PIN novo" valor={pinNovo} onMudar={setPinNovo} autoComplete="new-password" />
-      <CampoPin rotulo="Confirme o PIN novo" valor={confirmacao} onMudar={setConfirmacao} autoComplete="new-password" />
+      <CampoPin rotulo="Senha atual" valor={pinAtual} onMudar={setPinAtual} autoComplete="current-password" autoFocus />
+      <CampoPin rotulo="Nova senha" valor={pinNovo} onMudar={setPinNovo} autoComplete="new-password" />
+      <CampoPin rotulo="Confirme a nova senha" valor={confirmacao} onMudar={setConfirmacao} autoComplete="new-password" />
       {erro && (
         <Alert variant="destructive">
           <AlertDescription>{erro}</AlertDescription>
@@ -113,7 +113,7 @@ function FormularioTrocarPin({ onFechar }: { onFechar: () => void }) {
           Cancelar
         </Button>
         <Button type="submit" disabled={enviando}>
-          {enviando ? "Trocando…" : "Trocar PIN"}
+          {enviando ? "Trocando…" : "Trocar senha"}
         </Button>
       </DialogFooter>
     </form>

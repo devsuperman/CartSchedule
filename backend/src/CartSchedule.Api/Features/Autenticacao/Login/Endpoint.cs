@@ -66,7 +66,7 @@ public static class Endpoint
         if (publicador?.PinHash is null || !pinConfere)
         {
             return Results.Problem(
-                title: "Usuário ou PIN inválidos.",
+                title: "Usuário ou senha inválidos.",
                 statusCode: StatusCodes.Status401Unauthorized,
                 extensions: new Dictionary<string, object?> { ["codigo"] = CodigoCredenciaisInvalidas });
         }

@@ -37,7 +37,7 @@ public static class Pin
     public static bool TemFormatoValido(string? pin) =>
         pin is { Length: 4 } && pin.All(char.IsAsciiDigit);
 
-    public const string MensagemDeFormato = "O PIN precisa ter exatamente 4 dígitos.";
+    public const string MensagemDeFormato = "A senha precisa ter exatamente 4 dígitos.";
 
     /// <summary>Todos iguais ou sequência crescente/decrescente. Só para PIN com formato válido.</summary>
     public static bool EhFraco(string pin)

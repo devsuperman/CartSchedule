@@ -53,13 +53,13 @@ public static class Endpoint
             || passwordHasher.VerifyHashedPassword(new object(), publicador.PinHash, request.PinAtual)
                 == PasswordVerificationResult.Failed)
         {
-            return Problema("O PIN atual não confere.", CodigoPinAtualInvalido);
+            return Problema("A senha atual não confere.", CodigoPinAtualInvalido);
         }
 
         if (Pin.EhFraco(request.PinNovo))
         {
             return Problema(
-                "Esse PIN é fácil de adivinhar. Evite números todos iguais ou em sequência (como 1234).",
+                "Essa senha é fácil de adivinhar. Evite números todos iguais ou em sequência (como 1234).",
                 CodigoPinFraco);
         }
 

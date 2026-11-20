@@ -26,7 +26,7 @@ export function codigoDoErro(err: unknown): string | undefined {
 
 /**
  * Chamada à API com o token da sessão em `Authorization: Bearer`. Um 401 fora do próprio login
- * (token expirado, PIN redefinido, conta excluída) encerra a sessão: a guarda ExigeLogin leva
+ * (token expirado, senha redefinida, conta excluída) encerra a sessão: a guarda ExigeLogin leva
  * ao /login, lembrando a página em que a pessoa estava.
  */
 export async function apiFetch<T>(path: string, options: RequestInit = {}): Promise<T> {

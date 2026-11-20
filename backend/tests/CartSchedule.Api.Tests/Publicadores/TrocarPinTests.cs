@@ -1,6 +1,5 @@
 using System.Net;
 using System.Net.Http.Json;
-using System.Text.Json;
 using CartSchedule.Api.Tests.Infraestrutura;
 
 namespace CartSchedule.Api.Tests.Publicadores;
@@ -29,11 +28,6 @@ public class TrocarPinTests(ApiFixture fixture) : ApiTestBase(fixture)
 
     private static Task<HttpResponseMessage> TrocarAsync(HttpClient cliente, string pinAtual, string pinNovo) =>
         cliente.PutAsJsonAsync(Rota, new { pinAtual, pinNovo });
-
-    private static async Task<string?> CodigoAsync(HttpResponseMessage resposta) =>
-        (await resposta.Content.ReadFromJsonAsync<JsonElement>()).TryGetProperty("codigo", out var codigo)
-            ? codigo.GetString()
-            : null;
 
     [Fact]
     public async Task Trocar_DevolveTokenNovo_ENovoPinEntra_EAntigoNao()
@@ -86,7 +80,9 @@ public class TrocarPinTests(ApiFixture fixture) : ApiTestBase(fixture)
         var resposta = await TrocarAsync(cliente, errado, "2580");
 
         Assert.Equal(HttpStatusCode.BadRequest, resposta.StatusCode);
-        Assert.Equal("PIN_ATUAL_INVALIDO", await CodigoAsync(resposta));
+        var corpo = await JsonAsync(resposta);
+        Assert.Equal("PIN_ATUAL_INVALIDO", corpo.GetProperty("codigo").GetString());
+        Assert.Equal("A senha atual não confere.", corpo.GetProperty("title").GetString());
         Assert.Equal(HttpStatusCode.OK, (await cliente.GetAsync("/api/eu")).StatusCode);
         Assert.Equal(HttpStatusCode.OK, (await LoginAsync(Fixture.Factory.CreateClient(), "maria", pin)).StatusCode);
     }
@@ -105,7 +101,11 @@ public class TrocarPinTests(ApiFixture fixture) : ApiTestBase(fixture)
         var resposta = await TrocarAsync(cliente, pin, pinNovo);
 
         Assert.Equal(HttpStatusCode.BadRequest, resposta.StatusCode);
-        Assert.Equal("PIN_FRACO", await CodigoAsync(resposta));
+        var corpo = await JsonAsync(resposta);
+        Assert.Equal("PIN_FRACO", corpo.GetProperty("codigo").GetString());
+        Assert.Equal(
+            "Essa senha é fácil de adivinhar. Evite números todos iguais ou em sequência (como 1234).",
+            corpo.GetProperty("title").GetString());
         Assert.Equal(HttpStatusCode.OK, (await LoginAsync(Fixture.Factory.CreateClient(), "maria", pin)).StatusCode);
     }
 
@@ -123,6 +123,9 @@ public class TrocarPinTests(ApiFixture fixture) : ApiTestBase(fixture)
         var resposta = await TrocarAsync(cliente, pin, pinNovo);
 
         Assert.Equal(HttpStatusCode.BadRequest, resposta.StatusCode);
+        var mensagens = (await JsonAsync(resposta)).GetProperty("errors").EnumerateObject()
+            .SelectMany(campo => campo.Value.EnumerateArray().Select(m => m.GetString()));
+        Assert.Contains("A senha precisa ter exatamente 4 dígitos.", mensagens);
         Assert.Equal(HttpStatusCode.OK, (await LoginAsync(Fixture.Factory.CreateClient(), "maria", pin)).StatusCode);
     }
 

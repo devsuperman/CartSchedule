@@ -47,7 +47,7 @@ function AdminHome() {
             <Card className="h-full gap-1 transition-colors hover:border-primary">
               <strong className="text-[1.1rem] font-bold text-primary">Publicadores</strong>
               <span className="text-[0.95rem] font-normal text-muted-foreground">
-                Crie contas, dê usuário e PIN e marque administradores.
+                Crie contas, dê usuário e senha e marque administradores.
               </span>
             </Card>
           </Link>

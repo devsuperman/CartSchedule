@@ -27,7 +27,7 @@ async function entrar({ de, usuario = "maria", pin = "2580" }: { de?: string; us
   );
   const user = userEvent.setup();
   await user.type(screen.getByLabelText("Usuário"), usuario);
-  await user.type(screen.getByLabelText("PIN"), pin);
+  await user.type(screen.getByLabelText("Senha"), pin);
   await user.click(screen.getByRole("button", { name: "Entrar" }));
 }
 
@@ -36,12 +36,12 @@ beforeEach(() => {
 });
 
 describe("Login", () => {
-  it("pede usuário e PIN (teclado numérico) e envia ao login único", async () => {
+  it("pede usuário e senha (teclado numérico) e envia ao login único", async () => {
     mockApiFetch.mockRejectedValue(new ApiError(401, "x", { codigo: "CREDENCIAIS_INVALIDAS" }));
 
     await entrar();
 
-    expect(screen.getByLabelText("PIN")).toHaveAttribute("inputmode", "numeric");
+    expect(screen.getByLabelText("Senha")).toHaveAttribute("inputmode", "numeric");
     expect(mockApiFetch).toHaveBeenCalledWith("/api/login", {
       method: "POST",
       body: JSON.stringify({ usuario: "maria", pin: "2580" }),
@@ -82,14 +82,14 @@ describe("Login", () => {
     expect(await screen.findByText("Tela Publicadores")).toBeInTheDocument();
   });
 
-  it("usuário ou PIN errados mostra a mensagem sem dizer qual dos dois", async () => {
+  it("usuário ou senha errados mostra a mensagem sem dizer qual dos dois", async () => {
     mockApiFetch.mockRejectedValue(
-      new ApiError(401, "Usuário ou PIN inválidos.", { codigo: "CREDENCIAIS_INVALIDAS" }),
+      new ApiError(401, "Usuário ou senha inválidos.", { codigo: "CREDENCIAIS_INVALIDAS" }),
     );
 
     await entrar();
 
-    expect(await screen.findByText("Usuário ou PIN inválidos.")).toBeInTheDocument();
+    expect(await screen.findByText("Usuário ou senha inválidos.")).toBeInTheDocument();
     expect(obterSessao()).toBeNull();
   });
 

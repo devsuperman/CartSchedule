@@ -10,7 +10,7 @@ export function reiniciarRenovacaoParaTestes(): void {
 
 /**
  * Ao abrir o app, troca o token por um com a validade cheia (POST /api/sessao/renovar): quem usa
- * o site pelo menos uma vez a cada 180 dias nunca precisa digitar o PIN de novo. O administrador
+ * o site pelo menos uma vez a cada 180 dias nunca precisa digitar a senha de novo. O administrador
  * de recuperação não é publicador e não renova. Um 401 aqui já encerra a sessão (apiFetch).
  */
 export function renovarUmaVez(papel: Papel): void {

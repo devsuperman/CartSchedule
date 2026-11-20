@@ -19,7 +19,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 
-/** Resposta de criar (ou de dar usuário a um registro antigo): o único momento em que o PIN aparece. */
+/** Resposta de criar (ou de dar usuário a um registro antigo): o único momento em que a senha aparece. */
 interface Credenciais {
   id: string;
   usuario: string;
@@ -53,8 +53,8 @@ function rotuloPedidos(n: number, verboSingular: string, verboPlural: string): s
  * Tela "Publicadores" (/admin/publicadores — ADR 0001): lista com busca, criar conta (o usuário
  * começa como o primeiro nome) e editar nome, usuário, criança/idoso e administrador. Registros
  * antigos aparecem "Sem usuário"; dar um usuário a eles cria o acesso. Depois de criar ou
- * redefinir o PIN, ele aparece uma única vez, com "Copiar mensagem" pronta para o WhatsApp.
- * Redefinir PIN (com confirmação) desconecta todos os aparelhos da pessoa — é também o jeito de
+ * redefinir a senha, ela aparece uma única vez, com "Copiar mensagem" pronta para o WhatsApp.
+ * Redefinir senha (com confirmação) desconecta todos os aparelhos da pessoa — é também o jeito de
  * bloquear o acesso por um tempo (ADR 0002); a lista mostra todos.
  * "Unir a outro registro" (issue #47) junta dois registros da mesma pessoa: os pedidos passam ao
  * registro escolhido, os que ele já tem na mesma vaga são descartados e o registro editado é
@@ -214,7 +214,7 @@ function rascunhoInicial(original: Publicador | null): Rascunho {
 }
 
 /**
- * Formulário de criar/editar; na edição, também redefinir PIN, unir a outro registro e excluir
+ * Formulário de criar/editar; na edição, também redefinir a senha, unir a outro registro e excluir
  * (cada um com confirmação).
  */
 function EdicaoPublicador({
@@ -280,7 +280,7 @@ function EdicaoPublicador({
         <div className="flex flex-wrap gap-2 border-t border-border pt-4">
           {edicao.publicador.usuario !== null && (
             <Button type="button" variant="outline" onClick={() => setConfirmando(true)}>
-              Redefinir PIN
+              Redefinir senha
             </Button>
           )}
           {/* Unir apaga o registro editado: não na própria conta, que ficaria sem acesso. */}
@@ -330,10 +330,10 @@ function ConfirmarRedefinirPin({
   return (
     <div className="grid gap-4">
       <DialogHeader>
-        <DialogTitle>Redefinir o PIN de {publicador.nome}?</DialogTitle>
+        <DialogTitle>Redefinir a senha de {publicador.nome}?</DialogTitle>
         <DialogDescription>
-          Um PIN novo será gerado e mostrado uma única vez. Isso desconecta a pessoa de todos os aparelhos: ela
-          precisará entrar com o PIN novo.
+          Uma senha nova será gerada e mostrada uma única vez. Isso desconecta a pessoa de todos os aparelhos: ela
+          precisará entrar com a senha nova.
         </DialogDescription>
       </DialogHeader>
       {erro && (
@@ -346,7 +346,7 @@ function ConfirmarRedefinirPin({
           Voltar
         </Button>
         <Button type="button" onClick={confirmar} disabled={enviando}>
-          {enviando ? "Aguarde…" : "Redefinir PIN"}
+          {enviando ? "Aguarde…" : "Redefinir senha"}
         </Button>
       </DialogFooter>
     </div>
@@ -463,7 +463,7 @@ function UnirPublicador({
             </p>
           )}
           <p>
-            {origem.nome} será apagado. Nome, usuário e PIN de {destino.nome} continuam os mesmos
+            {origem.nome} será apagado. Nome, usuário e senha de {destino.nome} continuam os mesmos
             {origem.usuario !== null && ` — o usuário ${origem.usuario} deixa de entrar`}.
           </p>
         </div>
@@ -632,7 +632,7 @@ function FormularioPublicador({
         <DialogDescription>
           {original
             ? "Nome e criança/idoso valem para todos os pedidos desta pessoa."
-            : "O PIN é gerado pelo sistema e aparece uma única vez."}
+            : "A senha é gerada pelo sistema e aparece uma única vez."}
         </DialogDescription>
       </DialogHeader>
       <Label className="flex flex-col items-start gap-1.5">
@@ -654,7 +654,7 @@ function FormularioPublicador({
         </Label>
         <span id="usuario-dica" className="text-[0.9rem] text-muted-foreground">
           {original && original.usuario === null
-            ? "Ainda sem usuário: preencha para criar o acesso (o PIN é gerado)."
+            ? "Ainda sem usuário: preencha para criar o acesso (a senha é gerada)."
             : "Uma palavra, sem espaços. Maiúsculas e acentos não contam."}
         </span>
       </div>
@@ -693,13 +693,13 @@ function FormularioPublicador({
   );
 }
 
-/** Mensagem pronta para o WhatsApp: link do site, usuário e PIN. */
+/** Mensagem pronta para o WhatsApp: link do site, usuário e senha. */
 function mensagemDeAcesso(nome: string, { usuario, pin }: Credenciais): string {
   return [
     `Olá, ${primeiroNome(nome)}! Este é o seu acesso à Escala TPL:`,
     window.location.origin,
     `Usuário: ${usuario}`,
-    `PIN: ${pin}`,
+    `Senha: ${pin}`,
   ].join("\n");
 }
 
@@ -737,17 +737,17 @@ function DialogoAcesso({
           <div className="grid gap-4">
             <DialogHeader>
               <DialogTitle>Acesso de {acesso.nome}</DialogTitle>
-              <DialogDescription>Envie agora: o PIN não será mostrado de novo.</DialogDescription>
+              <DialogDescription>Envie agora: a senha não será mostrada de novo.</DialogDescription>
             </DialogHeader>
             <dl className="grid grid-cols-[auto_1fr] items-baseline gap-x-4 gap-y-2">
               <dt className="text-muted-foreground">Usuário</dt>
               <dd className="text-[1.1rem] font-bold">{acesso.credenciais.usuario}</dd>
-              <dt className="text-muted-foreground">PIN</dt>
+              <dt className="text-muted-foreground">Senha</dt>
               <dd className="font-mono text-[1.6rem] font-bold tracking-[0.3em]">{acesso.credenciais.pin}</dd>
             </dl>
             {copiado === "falhou" && (
               <Alert variant="destructive">
-                <AlertDescription>Não foi possível copiar. Anote o usuário e o PIN acima.</AlertDescription>
+                <AlertDescription>Não foi possível copiar. Anote o usuário e a senha acima.</AlertDescription>
               </Alert>
             )}
             <DialogFooter>

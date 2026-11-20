@@ -3,7 +3,7 @@
 Sistema web para organizar o uso de carrinhos de trabalho ao longo do mês.
 Na interface o sistema se chama **"Escala TPL"** — "CartSchedule" é só o
 nome interno (repo, namespaces, pastas); não renomear o código.
-Publicadores (com conta: usuário + PIN) solicitam `(carrinho, dia da semana, turno)` em que querem
+Publicadores (com conta: usuário + senha) solicitam `(carrinho, dia da semana, turno)` em que querem
 trabalhar; todo pedido aceito já entra na escala (vaga cheia é recusada ao
 publicador) e um administrador ajusta/exclui os excedentes (meta de 2
 pessoas por combinação, ou 3 com uma criança/idoso).
@@ -36,7 +36,7 @@ verdade.
 backend/src/CartSchedule.Api/
   Domain/                 # entidades + Enums/
   Infrastructure/          # AppDbContext, Migrations, Auth
-  Shared/                  # JanelaDeEnvio.cs, EscalaHelpers.cs, LotacaoDaVaga.cs, HorarioOcupado.cs, DataEspecial.cs, Credenciais.cs (usuário normalizado, PIN: formato, fraco, gerar), Sessao.cs (token + papel de login/renovação/troca de PIN), PropriaConta.cs (409 PROPRIA_CONTA: o que o admin não faz na própria conta)
+  Shared/                  # JanelaDeEnvio.cs, EscalaHelpers.cs, LotacaoDaVaga.cs, HorarioOcupado.cs, DataEspecial.cs, Credenciais.cs (usuário normalizado, senha: formato, fraco, gerar), Sessao.cs (token + papel de login/renovação/troca de senha), PropriaConta.cs (409 PROPRIA_CONTA: o que o admin não faz na própria conta)
   Features/
     Autenticacao/          # Login/ (POST /api/login, login único), RenovarSessao/ (POST /api/sessao/renovar)
     Publicadores/<Slice>/  # Endpoint.cs, Request.cs, Response.cs, Validator.cs
@@ -46,11 +46,11 @@ backend/src/CartSchedule.Api/
 frontend/src/
   api/                     # client.ts + wrappers por área
   routes/publicador/       # InicioPublicador (histórico + botões), SolicitarEscala, wizard/, JanelaFechada
-  routes/Login.tsx         # login único (/login, a única rota pública): usuário + PIN; /admin/login redireciona
-  routes/admin/            # GestaoCarrinhos, Publicadores (contas: criar, editar, redefinir PIN — mostrado uma vez, também o bloqueio temporário —, unir duplicados com prévia, excluir com prévia — apaga a conta e todos os pedidos, ADR 0002), EscalaFinal (gestão da escala: mover/adicionar/excluir), EscalaCompartilhar (imagem só leitura do mês, dia → turno → carrinho, + uma por data especial)
+  routes/Login.tsx         # login único (/login, a única rota pública): usuário + senha; /admin/login redireciona
+  routes/admin/            # GestaoCarrinhos, Publicadores (contas: criar, editar, redefinir senha — mostrada uma vez, também o bloqueio temporário —, unir duplicados com prévia, excluir com prévia — apaga a conta e todos os pedidos, ADR 0002), EscalaFinal (gestão da escala: mover/adicionar/excluir), EscalaCompartilhar (imagem só leitura do mês, dia → turno → carrinho, + uma por data especial)
   api/sessao.ts            # token + papel no localStorage; 401 da API encerra a sessão
   components/ExigeLogin.tsx # guarda de todas as rotas (admin → /admin/*); renova o token ao abrir o app
-  components/TrocarPin.tsx  # diálogo "Trocar PIN" do menu "Olá" (Layout.tsx)
+  components/TrocarPin.tsx  # diálogo "Trocar senha" do menu "Olá" (Layout.tsx)
   hooks/                   # useSessao, useJanela
   constants/                # turnos.ts, diasSemana.ts (espelham enums do backend)
 ```
@@ -102,7 +102,7 @@ todas são intencionais, confirmadas no `PLANNING.md`:
    `Solicitacao.DataEspecial` gravado no pedido): pedir o especial não ocupa o horário da
    escala semanal, nem o contrário. O publicador só pede até a própria data (admin sem limite).
 5. **Todo o site atrás do login (ADR 0001).** Cada publicador tem conta
-   criada pelo admin (usuário único sem maiúsculas/acentos + PIN de 4 dígitos)
+   criada pelo admin (usuário único sem maiúsculas/acentos + senha de 4 dígitos)
    e entra em `/login`; a guarda `ExigeLogin` cobre todas as outras rotas
    (sem login → `/login`, voltando à página pedida). Token em `localStorage`,
    enviado como `Authorization: Bearer`; publicador fica logado **180 dias**,
@@ -112,8 +112,10 @@ todas são intencionais, confirmadas no `PLANNING.md`:
    existem** token anônimo, `X-Publicador-Token`, `/nome` nem `PUT /api/publicador` — não
    reintroduzir. O nome é o da conta: o pedido não leva nome e **só o admin edita**
    (`PUT /api/admin/publicadores/{id}`); "Olá, {primeiro nome}" (`GET /api/eu`) é um menu com
-   "Trocar PIN" (`PUT /api/eu/pin`: PIN atual + novo, `PIN_FRACO` para óbvios, devolve token
+   "Trocar senha" (`PUT /api/eu/pin`: senha atual + nova, `PIN_FRACO` para óbvios, devolve token
    novo e desconecta os outros aparelhos) e "Sair", sem edição de nome. Nomes repetidos são permitidos.
+   Na interface e nas mensagens da API o termo é sempre **senha** (nunca "PIN"); `Pin`/`pin`
+   fica só nos identificadores de código, rotas, JSON e códigos de erro (`PIN_FRACO`).
 6. **Janela de envio: abre sozinha no dia 15, só o admin fecha**, sem
    job/cron: calculada a cada request (`JanelaDeEnvio`). Escala-alvo = a
    aberta no último dia 15 (dia ≥ 15 → mês seguinte; dia 1–14 → mês
@@ -154,7 +156,7 @@ todas são intencionais, confirmadas no `PLANNING.md`:
     remove `Solicitacao` já existentes — só afeta novas gravações a partir dali, do
     publicador **e do admin** (pedir, adicionar ou mover para carrinho inativo é recusado).
 11. **Administradores** são publicadores marcados como administrador (vários,
-    todos com os mesmos poderes), entrando por `POST /api/login` com usuário + PIN
+    todos com os mesmos poderes), entrando por `POST /api/login` com usuário + senha
     (JWT de 2 h) e vendo o link "Administração" no cabeçalho; também pedem vagas.
     As credenciais das variáveis de ambiente ficam só como **administrador de
     recuperação** (ADR 0001): só a área administrativa, nunca pede vagas (403). O
@@ -165,7 +167,7 @@ todas são intencionais, confirmadas no `PLANNING.md`:
     prévia (`GET .../{id}/exclusao`: pedidos e escalas). Nunca na própria conta
     (409 `PROPRIA_CONTA`); outro administrador pode. Nunca trocar por "pessoa excluída"/soft delete
     nem reintroduzir a marca ativo do publicador (Desativar/Reativar, `incluirInativos`,
-    `PUBLICADOR_INATIVO`): bloqueio temporário é Redefinir PIN.
+    `PUBLICADOR_INATIVO`): bloqueio temporário é Redefinir senha.
 12. **Sem notificações** (e-mail/push) de nenhum tipo.
 13. **Contagem de apoio ao desempate**: ao selecionar uma pessoa na tela da
     Escala, mostrar quantas solicitações (todas as trincas) ela já tem na

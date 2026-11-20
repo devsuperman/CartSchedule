@@ -15,7 +15,7 @@ interface LoginResponse {
 }
 
 /**
- * Login único (/login), a única tela fora da guarda ExigeLogin: usuário + PIN para publicadores e
+ * Login único (/login), a única tela fora da guarda ExigeLogin: usuário + senha para publicadores e
  * administradores, e a senha do administrador de recuperação no mesmo campo. Depois de entrar,
  * volta à página que pediu o login; sem ela, o publicador vai ao início e o administrador ao painel.
  */
@@ -45,7 +45,7 @@ export default function Login() {
     } catch (err) {
       const codigo = codigoDoErro(err);
       // Muitas tentativas (429) trazem a própria mensagem do servidor.
-      setErro(codigo === "MUITAS_REQUISICOES" && err instanceof Error ? err.message : "Usuário ou PIN inválidos.");
+      setErro(codigo === "MUITAS_REQUISICOES" && err instanceof Error ? err.message : "Usuário ou senha inválidos.");
     } finally {
       setEnviando(false);
     }
@@ -70,7 +70,7 @@ export default function Login() {
         />
       </Label>
       <Label className="flex flex-col items-start gap-1.5">
-        PIN
+        Senha
         <Input
           type="password"
           inputMode="numeric"

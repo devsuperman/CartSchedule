@@ -53,7 +53,7 @@ function useEu(): Eu | null {
 
 /**
  * Canto do cabeçalho do publicador: link "Administração" (só para administradores) e o menu
- * "Olá, {primeiro nome}" com "Trocar PIN" e "Sair". Sem edição de nome: só o administrador altera.
+ * "Olá, {primeiro nome}" com "Trocar senha" e "Sair". Sem edição de nome: só o administrador altera.
  */
 function MenuDoPublicador() {
   const eu = useEu();
@@ -120,7 +120,7 @@ function MenuDoPublicador() {
               }}
               className="flex min-h-11 w-full items-center rounded-sm px-3 text-left text-[1rem] font-semibold hover:bg-muted focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent"
             >
-              Trocar PIN
+              Trocar senha
             </button>
           </li>
           <li>
