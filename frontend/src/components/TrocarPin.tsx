@@ -65,7 +65,9 @@ function FormularioTrocarPin({ onFechar }: { onFechar: () => void }) {
     } catch (err) {
       const codigo =
         err instanceof ApiError ? (err.details as { codigo?: string } | null | undefined)?.codigo : undefined;
-      setErro((codigo && MENSAGENS[codigo]) ?? "Não foi possível trocar o PIN. Tente de novo.");
+      // Muitas tentativas (429, rate limit "login") traz a própria mensagem do servidor.
+      const doServidor = codigo === "MUITAS_REQUISICOES" && err instanceof Error ? err.message : undefined;
+      setErro((codigo && MENSAGENS[codigo]) ?? doServidor ?? "Não foi possível trocar o PIN. Tente de novo.");
     } finally {
       setEnviando(false);
     }

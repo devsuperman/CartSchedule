@@ -122,6 +122,17 @@ describe("Trocar PIN (menu Olá)", () => {
     expect(await screen.findByRole("alert")).toHaveTextContent("fácil de adivinhar");
   });
 
+  it("muitas tentativas mostra a mensagem do servidor", async () => {
+    mockarApi(async () => {
+      throw new ApiError(429, "Muitas tentativas. Aguarde um pouco.", { codigo: "MUITAS_REQUISICOES" });
+    });
+    const user = await abrirDialogo();
+
+    await preencher(user, "1357", "2580");
+
+    expect(await screen.findByRole("alert")).toHaveTextContent("Muitas tentativas. Aguarde um pouco.");
+  });
+
   it("Cancelar fecha sem trocar", async () => {
     const user = await abrirDialogo();
 
