@@ -29,10 +29,10 @@ public class UnirPublicadoresTests(ApiFixture fixture) : ApiTestBase(fixture)
         (await DefinirTurnosAsync(admin, carrinhoId, (Segunda, Turno0810), (Segunda, Turno1012), (Terca, Turno0810)))
             .EnsureSuccessStatusCode();
 
-        (await AdicionarRegistroAntigoAsync(admin, carrinhoId, Segunda, Turno0810, "Maria Souza")).EnsureSuccessStatusCode();
-        (await AdicionarRegistroAntigoAsync(admin, carrinhoId, Segunda, Turno0810, "Maria S.")).EnsureSuccessStatusCode();
-        (await AdicionarRegistroAntigoAsync(admin, carrinhoId, Segunda, Turno1012, "Maria S.")).EnsureSuccessStatusCode();
-        (await AdicionarRegistroAntigoAsync(admin, carrinhoId, Terca, Turno0810, "Maria S.")).EnsureSuccessStatusCode();
+        (await AdicionarRegistroAntigoPorNomeAsync(admin, carrinhoId, Segunda, Turno0810, "Maria Souza")).EnsureSuccessStatusCode();
+        (await AdicionarRegistroAntigoPorNomeAsync(admin, carrinhoId, Segunda, Turno0810, "Maria S.")).EnsureSuccessStatusCode();
+        (await AdicionarRegistroAntigoPorNomeAsync(admin, carrinhoId, Segunda, Turno1012, "Maria S.")).EnsureSuccessStatusCode();
+        (await AdicionarRegistroAntigoPorNomeAsync(admin, carrinhoId, Terca, Turno0810, "Maria S.")).EnsureSuccessStatusCode();
         return (admin, a, b, carrinhoId);
     }
 

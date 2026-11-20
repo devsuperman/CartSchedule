@@ -98,20 +98,22 @@ public abstract class ApiTestBase(ApiFixture fixture) : IAsyncLifetime
 
     /// <summary>
     /// Atalho de teste, não uma regra da API (que só recebe o id): adiciona à vaga o registro
-    /// antigo (sem usuário/PIN) com esse nome, gravado direto no banco no primeiro uso do nome
-    /// no teste e reusado nos seguintes. Para os testes que só precisam de "alguém" na vaga.
+    /// antigo (sem usuário/PIN) com esse nome exato — o primeiro uso do nome no teste o cria
+    /// direto no banco (<see cref="CriarRegistroAntigoAsync"/>) e os seguintes o reusam. Para os
+    /// testes que só precisam de "alguém" na vaga.
     /// </summary>
-    protected async Task<HttpResponseMessage> AdicionarRegistroAntigoAsync(
+    protected async Task<HttpResponseMessage> AdicionarRegistroAntigoPorNomeAsync(
         HttpClient admin, int carrinhoId, int dia, int turno, string nome, string mes = MesAlvo)
     {
-        Guid publicadorId;
+        Guid? existente;
         using (var scope = Fixture.Factory.Services.CreateScope())
         {
-            var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-            publicadorId = await db.Publicadores.Where(p => p.Nome == nome).OrderBy(p => p.Id)
-                .Select(p => (Guid?)p.Id).FirstOrDefaultAsync() ?? await RegistroAntigoAsync(nome);
+            existente = await scope.ServiceProvider.GetRequiredService<AppDbContext>().Publicadores
+                .Where(p => p.Nome == nome).OrderBy(p => p.Id)
+                .Select(p => (Guid?)p.Id).FirstOrDefaultAsync();
         }
 
+        var publicadorId = existente ?? await CriarRegistroAntigoAsync(nome);
         return await AdicionarParaAsync(admin, carrinhoId, dia, turno, publicadorId, mes);
     }
 
@@ -126,7 +128,7 @@ public abstract class ApiTestBase(ApiFixture fixture) : IAsyncLifetime
     /// Publicador sem usuário/PIN, como os registros antigos (do token anônimo do aparelho ou da
     /// antiga adição manual por nome), gravado direto no banco.
     /// </summary>
-    protected async Task<Guid> RegistroAntigoAsync(string nome, bool criancaOuIdoso = false)
+    protected async Task<Guid> CriarRegistroAntigoAsync(string nome, bool criancaOuIdoso = false)
     {
         using var scope = Fixture.Factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();

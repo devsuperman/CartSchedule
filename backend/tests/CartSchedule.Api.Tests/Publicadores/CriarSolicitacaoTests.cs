@@ -135,7 +135,7 @@ public class CriarSolicitacaoTests(ApiFixture fixture) : ApiTestBase(fixture)
         var admin = await AdminAsync();
         await SolicitarAsync(Publicador(), primeiro, Segunda, Turno0810, "Ana");
 
-        var resposta = await AdicionarRegistroAntigoAsync(admin, segundo, Segunda, Turno0810, "Ana");
+        var resposta = await AdicionarRegistroAntigoPorNomeAsync(admin, segundo, Segunda, Turno0810, "Ana");
 
         Assert.Equal(HttpStatusCode.Created, resposta.StatusCode);
     }
@@ -163,7 +163,7 @@ public class CriarSolicitacaoTests(ApiFixture fixture) : ApiTestBase(fixture)
         await SolicitarAsync(Publicador(), carrinhoId, Segunda, Turno0810, "Ana");
         await SolicitarAsync(Publicador(), carrinhoId, Segunda, Turno0810, "Bia");
 
-        var resposta = await AdicionarRegistroAntigoAsync(admin, carrinhoId, Segunda, Turno0810, "Caio");
+        var resposta = await AdicionarRegistroAntigoPorNomeAsync(admin, carrinhoId, Segunda, Turno0810, "Caio");
 
         Assert.Equal(HttpStatusCode.Created, resposta.StatusCode);
     }

@@ -14,7 +14,7 @@ public class AdicionarSolicitacaoManualTests(ApiFixture fixture) : ApiTestBase(f
         var carrinhoId = await CriarCarrinhoAsync(admin);
         await DefinirTurnosAsync(admin, carrinhoId, (Segunda, Turno0810));
 
-        var resposta = await AdicionarRegistroAntigoAsync(admin, carrinhoId, Segunda, Turno0810, "Caio");
+        var resposta = await AdicionarRegistroAntigoPorNomeAsync(admin, carrinhoId, Segunda, Turno0810, "Caio");
 
         Assert.Equal(HttpStatusCode.Created, resposta.StatusCode);
         Assert.False((await JsonAsync(resposta)).TryGetProperty("status", out _));
@@ -30,7 +30,7 @@ public class AdicionarSolicitacaoManualTests(ApiFixture fixture) : ApiTestBase(f
         var carrinhoId = await CriarCarrinhoAsync(admin);
         await DefinirTurnosAsync(admin, carrinhoId, (Segunda, Turno0810), (Terca, Turno1012));
 
-        var resposta = await AdicionarRegistroAntigoAsync(admin, carrinhoId, Terca, Turno0810, "Caio");
+        var resposta = await AdicionarRegistroAntigoPorNomeAsync(admin, carrinhoId, Terca, Turno0810, "Caio");
 
         Assert.Equal(HttpStatusCode.BadRequest, resposta.StatusCode);
     }
@@ -44,7 +44,7 @@ public class AdicionarSolicitacaoManualTests(ApiFixture fixture) : ApiTestBase(f
 
         foreach (var nome in new[] { "Ana", "Bia", "Caio" })
         {
-            var resposta = await AdicionarRegistroAntigoAsync(admin, carrinhoId, Segunda, Turno0810, nome);
+            var resposta = await AdicionarRegistroAntigoPorNomeAsync(admin, carrinhoId, Segunda, Turno0810, nome);
             Assert.Equal(HttpStatusCode.Created, resposta.StatusCode);
         }
     }
@@ -59,7 +59,7 @@ public class AdicionarSolicitacaoManualTests(ApiFixture fixture) : ApiTestBase(f
 
         foreach (var (nome, marca) in new[] { ("Ana", false), ("Bia", false), ("Vô Zé", true), ("Caio", false) })
         {
-            var id = await RegistroAntigoAsync(nome, marca);
+            var id = await CriarRegistroAntigoAsync(nome, marca);
             var resposta = await AdicionarParaAsync(admin, carrinhoId, Segunda, Turno0810, id);
             Assert.Equal(HttpStatusCode.Created, resposta.StatusCode);
         }
@@ -170,7 +170,7 @@ public class AdicionarSolicitacaoManualTests(ApiFixture fixture) : ApiTestBase(f
         await DefinirTurnosAsync(admin, carrinhoId, (Segunda, Turno0810));
         Fixture.Relogio.Agora = new DateTimeOffset(2026, 9, 5, 15, 0, 0, TimeSpan.Zero);
 
-        var resposta = await AdicionarRegistroAntigoAsync(admin, carrinhoId, Segunda, Turno0810, "Caio", mes: "2026-07");
+        var resposta = await AdicionarRegistroAntigoPorNomeAsync(admin, carrinhoId, Segunda, Turno0810, "Caio", mes: "2026-07");
 
         Assert.Equal(HttpStatusCode.Created, resposta.StatusCode);
     }

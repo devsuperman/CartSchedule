@@ -17,7 +17,7 @@ public class ExcluirSolicitacaoAdminTests(ApiFixture fixture) : ApiTestBase(fixt
         var carrinhoId = await CriarCarrinhoAsync(admin);
         await DefinirTurnosAsync(admin, carrinhoId, (Segunda, Turno0810));
         await SolicitarAsync(Publicador(), carrinhoId, Segunda, Turno0810, "Ana");
-        await AdicionarRegistroAntigoAsync(admin, carrinhoId, Segunda, Turno0810, "Bia");
+        await AdicionarRegistroAntigoPorNomeAsync(admin, carrinhoId, Segunda, Turno0810, "Bia");
 
         var grade = await GradeAsync(admin);
         Assert.All(PedidosDaGrade(grade), p => Assert.False(p.TryGetProperty("status", out _)));
@@ -37,7 +37,7 @@ public class ExcluirSolicitacaoAdminTests(ApiFixture fixture) : ApiTestBase(fixt
             await SolicitarAsync(Publicador(), carrinhoId, Segunda, Turno0810, nome);
         }
         // A 3ª pessoa só entra pelo admin: a vaga cheia barra o publicador.
-        await AdicionarRegistroAntigoAsync(admin, carrinhoId, Segunda, Turno0810, "Caio");
+        await AdicionarRegistroAntigoPorNomeAsync(admin, carrinhoId, Segunda, Turno0810, "Caio");
 
         var celula = Assert.Single((await GradeAsync(admin)).GetProperty("celulas").EnumerateArray());
         Assert.Equal(3, IdsDaCelula(celula).Length);
@@ -74,7 +74,7 @@ public class ExcluirSolicitacaoAdminTests(ApiFixture fixture) : ApiTestBase(fixt
         var admin = await AdminAsync();
         var carrinhoId = await CriarCarrinhoAsync(admin);
         await DefinirTurnosAsync(admin, carrinhoId, (Segunda, Turno0810));
-        var id = (await JsonAsync(await AdicionarRegistroAntigoAsync(admin, carrinhoId, Segunda, Turno0810, "Caio", mes: "2026-07")))
+        var id = (await JsonAsync(await AdicionarRegistroAntigoPorNomeAsync(admin, carrinhoId, Segunda, Turno0810, "Caio", mes: "2026-07")))
             .GetProperty("id").GetInt32();
         Fixture.Relogio.Agora = new DateTimeOffset(2026, 9, 5, 15, 0, 0, TimeSpan.Zero);
 

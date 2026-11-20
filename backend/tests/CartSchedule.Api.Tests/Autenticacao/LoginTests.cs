@@ -96,7 +96,7 @@ public class LoginTests(ApiFixture fixture) : ApiTestBase(fixture)
         var admin = await AdminAsync();
         var carrinhoId = await CriarCarrinhoAsync(admin);
         await DefinirTurnosAsync(admin, carrinhoId, (Segunda, Turno0810));
-        await AdicionarRegistroAntigoAsync(admin, carrinhoId, Segunda, Turno0810, "Pedro");
+        await AdicionarRegistroAntigoPorNomeAsync(admin, carrinhoId, Segunda, Turno0810, "Pedro");
 
         var resposta = await LoginAsync(Anonimo(), "Pedro", "");
 
