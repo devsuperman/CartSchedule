@@ -138,21 +138,21 @@ não dá para estar em dois lugares ao mesmo tempo.
    - Escolhe o carrinho, o dia da semana e o turno (a vaga tocada) — o turno só pode
      ser um dos configurados como disponível para aquele carrinho
      naquele dia da semana, e o carrinho precisa estar ativo (mesma restrição que vale para o publicador, ver item 2 e regra 18).
-   - Informa o nome do publicador — pode escolher um publicador já
-     cadastrado **ou digitar um nome novo livremente** (o sistema cria
-     o publicador automaticamente se ele ainda não existir). A comparação
-     é exata depois de tirar os espaços das pontas (maiúsculas, minúsculas
-     e acentos contam). Se houver mais de um publicador com exatamente esse
-     nome, usa sempre o que fez o pedido mais antigo (quem não tem nenhum
-     pedido fica por último; empate pelo identificador).
+   - Escolhe um **publicador já cadastrado e ativo**, buscando pelo nome
+     ou pelo usuário (sem diferenciar maiúsculas nem acentos); quem já está
+     na vaga aparece desabilitado. Nome digitado livremente **não cria**
+     publicador. Para alguém que ainda não tem conta, o atalho **"Novo
+     publicador"** cria a conta ali mesmo (nome, usuário — por padrão o
+     primeiro nome — e criança/idoso), já adiciona a pessoa à vaga e mostra
+     o PIN gerado uma única vez, com "Copiar mensagem" para o WhatsApp.
    - Vale a **regra de duplicidade** (regra 10): o sistema não permite
      criar uma solicitação manual idêntica a uma que aquele publicador
      já tenha na mesma escala. Se ele já estiver em outro carrinho no
      mesmo dia e turno, a tela só avisa.
    - A solicitação criada dessa forma entra na escala como qualquer
      outra.
-   - Pode marcar a pessoa como **criança ou idoso** (regra 1). Se o nome
-     já existe, a marca passa a valer para ela; a adição nunca desmarca.
+   - A marca **criança ou idoso** (regra 1) é a da pessoa: posta ao criar
+     o novo publicador ou, para quem já existe, em "Editar pessoa".
    - **Não há bloqueio do sistema** caso uma trinca passe da meta da
      regra 1 (seja por adição manual, seja por mover) — a
      tela apenas **sinaliza visualmente** o excesso, e cabe ao
@@ -174,7 +174,7 @@ não dá para estar em dois lugares ao mesmo tempo.
 
 ## 7. Regras de Negócio
 
-1. **Limite alvo por combinação**: cada trinca `(carrinho, dia da semana, turno)` em uma escala deve ter **2 pessoas** — ou **3, se pelo menos uma delas for criança ou idoso** (marca que o administrador põe na pessoa, na tela da Escala: em "Editar pessoa" ou ao adicionar alguém). Vale tanto para solicitações de publicadores quanto para adições manuais do administrador. Esse limite **não é imposto ao administrador**; é uma meta que ele persegue manualmente ao revisar a escala. **Para o publicador, a vaga com 2 pessoas é "cheia" e o envio é recusado** (`409`, `codigo: "VAGA_CHEIA"`; o 3º, de criança/idoso, é adicionado só pelo administrador). No envio, na escolha do carrinho, a vaga com uma pessoa mostra o primeiro nome dela ("Com: Maria", seção 5, passo 5) e a cheia fica desabilitada com "Cheio" (dia ou turno sem nenhuma vaga livre também); ao excluir/mover alguém, a vaga volta a aceitar pedidos (calculado a cada request). Quem já tem pedido numa vaga que depois enche mantém o pedido. Para o publicador, "cheia" é sempre **2 ou mais pessoas**, mesmo que uma delas seja criança/idoso. Na tela do administrador o sistema apenas **sinaliza pela cor** cada vaga, sem texto:
+1. **Limite alvo por combinação**: cada trinca `(carrinho, dia da semana, turno)` em uma escala deve ter **2 pessoas** — ou **3, se pelo menos uma delas for criança ou idoso** (marca que o administrador põe na pessoa, na tela da Escala: em "Editar pessoa" ou ao criar um novo publicador pelo "+"). Vale tanto para solicitações de publicadores quanto para adições manuais do administrador. Esse limite **não é imposto ao administrador**; é uma meta que ele persegue manualmente ao revisar a escala. **Para o publicador, a vaga com 2 pessoas é "cheia" e o envio é recusado** (`409`, `codigo: "VAGA_CHEIA"`; o 3º, de criança/idoso, é adicionado só pelo administrador). No envio, na escolha do carrinho, a vaga com uma pessoa mostra o primeiro nome dela ("Com: Maria", seção 5, passo 5) e a cheia fica desabilitada com "Cheio" (dia ou turno sem nenhuma vaga livre também); ao excluir/mover alguém, a vaga volta a aceitar pedidos (calculado a cada request). Quem já tem pedido numa vaga que depois enche mantém o pedido. Para o publicador, "cheia" é sempre **2 ou mais pessoas**, mesmo que uma delas seja criança/idoso. Na tela do administrador o sistema apenas **sinaliza pela cor** cada vaga, sem texto:
    - **vazia** (0 pessoas): sem cor;
    - **incompleta** (1 pessoa, mesmo que seja criança ou idoso): cor de perigo (vermelho) — precisa de atenção;
    - **completa** (2 pessoas, ou 3 com pelo menos uma criança/idoso): cor de sucesso (verde);
@@ -218,7 +218,7 @@ EXISTE ──(admin exclui, a qualquer momento)──► (registro apagado)
 ## 9. Modelo de Dados (entidades sugeridas)
 
 **Publicador**
-- `id` (GUID — é o próprio token anônimo do aparelho; na adição manual de um nome novo, gerado pelo servidor)
+- `id` (GUID — é o próprio token anônimo do aparelho; na criação pelo administrador, gerado pelo servidor)
 - `nome` (até 200 caracteres)
 - `crianca_ou_idoso` (booleano, padrão falso; marcado pelo administrador — regra 1)
 

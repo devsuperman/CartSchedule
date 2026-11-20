@@ -19,7 +19,7 @@ public class GerenciarPublicadoresTests(ApiFixture fixture) : ApiTestBase(fixtur
     private static Task<HttpResponseMessage> EditarAsync(HttpClient admin, Guid id, object corpo) =>
         admin.PutAsJsonAsync($"/api/admin/publicadores/{id}", corpo);
 
-    /// <summary>Registro antigo, sem usuário/PIN, com um pedido (criado pela adição manual por nome).</summary>
+    /// <summary>Registro antigo, sem usuário/PIN, com um pedido (gravado direto no banco, pela adição manual).</summary>
     private async Task<(HttpClient Admin, Guid Id)> RegistroAntigoComPedidoAsync(string nome = "Pedro Alves")
     {
         var admin = await AdminAsync();

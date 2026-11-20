@@ -1,6 +1,10 @@
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
+using CartSchedule.Api.Domain;
+using CartSchedule.Api.Infrastructure;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace CartSchedule.Api.Tests.Infraestrutura;
 
@@ -92,9 +96,45 @@ public abstract class ApiTestBase(ApiFixture fixture) : IAsyncLifetime
         HttpClient publicador, int carrinhoId, int dia, int turno, string nome = "Ana") =>
         publicador.PostAsJsonAsync("/api/solicitacoes", new { nome, carrinhoId, diaSemana = dia, turnoId = turno });
 
-    protected static Task<HttpResponseMessage> AdicionarManualAsync(
-        HttpClient admin, int carrinhoId, int dia, int turno, string nome, string mes = MesAlvo) =>
-        admin.PostAsJsonAsync($"/api/admin/escalas/{mes}/solicitacoes", new { nome, carrinhoId, diaSemana = dia, turnoId = turno });
+    /// <summary>
+    /// Adição manual para a pessoa com esse nome exato: reusa o publicador que já existe com ele
+    /// ou cria um registro antigo (sem usuário/PIN, <see cref="RegistroAntigoAsync"/>). Atalho
+    /// para os testes que só precisam de "alguém" na vaga; o endpoint recebe o id.
+    /// </summary>
+    protected async Task<HttpResponseMessage> AdicionarManualAsync(
+        HttpClient admin, int carrinhoId, int dia, int turno, string nome, string mes = MesAlvo)
+    {
+        Guid publicadorId;
+        using (var scope = Fixture.Factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+            publicadorId = await db.Publicadores.Where(p => p.Nome == nome).OrderBy(p => p.Id)
+                .Select(p => (Guid?)p.Id).FirstOrDefaultAsync() ?? await RegistroAntigoAsync(nome);
+        }
+
+        return await AdicionarParaAsync(admin, carrinhoId, dia, turno, publicadorId, mes);
+    }
+
+    /// <summary>POST /api/admin/escalas/{mes}/solicitacoes para um publicador já cadastrado.</summary>
+    protected static Task<HttpResponseMessage> AdicionarParaAsync(
+        HttpClient admin, int carrinhoId, int dia, int turno, Guid publicadorId, string mes = MesAlvo) =>
+        admin.PostAsJsonAsync(
+            $"/api/admin/escalas/{mes}/solicitacoes",
+            new { publicadorId, carrinhoId, diaSemana = dia, turnoId = turno });
+
+    /// <summary>
+    /// Publicador sem usuário/PIN, como os registros antigos (do token anônimo do aparelho ou da
+    /// antiga adição manual por nome), gravado direto no banco.
+    /// </summary>
+    protected async Task<Guid> RegistroAntigoAsync(string nome, bool criancaOuIdoso = false)
+    {
+        using var scope = Fixture.Factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        var publicador = new Publicador { Id = Guid.NewGuid(), Nome = nome, CriancaOuIdoso = criancaOuIdoso };
+        db.Publicadores.Add(publicador);
+        await db.SaveChangesAsync();
+        return publicador.Id;
+    }
 
     /// <summary>Fecha (aberto = false) ou reabre o envio dos publicadores para a escala do mês.</summary>
     protected static Task<HttpResponseMessage> AlterarEnvioAsync(HttpClient admin, bool aberto, string mes = MesAlvo) =>

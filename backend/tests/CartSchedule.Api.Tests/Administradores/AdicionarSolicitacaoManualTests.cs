@@ -59,89 +59,106 @@ public class AdicionarSolicitacaoManualTests(ApiFixture fixture) : ApiTestBase(f
 
         foreach (var (nome, marca) in new[] { ("Ana", false), ("Bia", false), ("Vô Zé", true), ("Caio", false) })
         {
-            var resposta = await AdicionarComMarcaAsync(admin, carrinhoId, nome, marca);
+            var id = await RegistroAntigoAsync(nome, marca);
+            var resposta = await AdicionarParaAsync(admin, carrinhoId, Segunda, Turno0810, id);
             Assert.Equal(HttpStatusCode.Created, resposta.StatusCode);
         }
     }
 
     [Fact]
-    public async Task CriancaOuIdoso_MarcaPublicadorNovo()
+    public async Task PublicadorComConta_EntraNaVagaComNomeEMarcaDaConta()
     {
         var admin = await AdminAsync();
         var carrinhoId = await CriarCarrinhoAsync(admin);
         await DefinirTurnosAsync(admin, carrinhoId, (Segunda, Turno0810));
+        var (id, _) = await CriarContaAsync(admin, "Vô Zé", "ze", criancaOuIdoso: true);
 
-        var resposta = await AdicionarComMarcaAsync(admin, carrinhoId, "Vô Zé", true);
+        var resposta = await AdicionarParaAsync(admin, carrinhoId, Segunda, Turno0810, id);
 
         Assert.Equal(HttpStatusCode.Created, resposta.StatusCode);
-        Assert.True((await JsonAsync(resposta)).GetProperty("criancaOuIdoso").GetBoolean());
-        Assert.True(Assert.Single(PedidosDaGrade(await GradeAsync(admin))).GetProperty("criancaOuIdoso").GetBoolean());
+        var corpo = await JsonAsync(resposta);
+        Assert.Equal(id, corpo.GetProperty("publicadorId").GetGuid());
+        Assert.Equal("Vô Zé", corpo.GetProperty("publicadorNome").GetString());
+        Assert.True(corpo.GetProperty("criancaOuIdoso").GetBoolean());
+        var pedido = Assert.Single(PedidosDaGrade(await GradeAsync(admin)));
+        Assert.Equal(id, pedido.GetProperty("publicadorId").GetGuid());
+        Assert.True(pedido.GetProperty("criancaOuIdoso").GetBoolean());
     }
 
     [Fact]
-    public async Task CriancaOuIdoso_MarcaPublicadorReusado_ENuncaDesmarca()
-    {
-        var admin = await AdminAsync();
-        var carrinhoId = await CriarCarrinhoAsync(admin);
-        await DefinirTurnosAsync(admin, carrinhoId, (Segunda, Turno0810), (Terca, Turno0810), (Quarta, Turno0810));
-        await SolicitarAsync(Publicador(), carrinhoId, Segunda, Turno0810, "Vó Lia");
-
-        await AdicionarComMarcaAsync(admin, carrinhoId, "Vó Lia", true, Terca);
-        var semMarca = await AdicionarComMarcaAsync(admin, carrinhoId, "Vó Lia", false, Quarta);
-
-        Assert.True((await JsonAsync(semMarca)).GetProperty("criancaOuIdoso").GetBoolean());
-        var pedidos = PedidosDaGrade(await GradeAsync(admin));
-        Assert.Equal(3, pedidos.Length);
-        Assert.All(pedidos, p => Assert.True(p.GetProperty("criancaOuIdoso").GetBoolean()));
-    }
-
-    [Fact]
-    public async Task SemMarca_PublicadorNovoNaoEhCriancaOuIdoso()
+    public async Task PublicadorInexistente_Retorna400ENaoCriaNinguem()
     {
         var admin = await AdminAsync();
         var carrinhoId = await CriarCarrinhoAsync(admin);
         await DefinirTurnosAsync(admin, carrinhoId, (Segunda, Turno0810));
 
-        var resposta = await AdicionarManualAsync(admin, carrinhoId, Segunda, Turno0810, "Caio");
+        var resposta = await AdicionarParaAsync(admin, carrinhoId, Segunda, Turno0810, Guid.NewGuid());
 
-        Assert.False((await JsonAsync(resposta)).GetProperty("criancaOuIdoso").GetBoolean());
+        Assert.Equal(HttpStatusCode.BadRequest, resposta.StatusCode);
+        Assert.Empty(PedidosDaGrade(await GradeAsync(admin)));
+        Assert.Empty((await admin.GetFromJsonAsync<JsonElement>("/api/admin/publicadores?incluirInativos=true")).EnumerateArray());
     }
 
-    private static Task<HttpResponseMessage> AdicionarComMarcaAsync(
-        HttpClient admin, int carrinhoId, string nome, bool criancaOuIdoso, int dia = Segunda) =>
-        admin.PostAsJsonAsync(
+    [Fact]
+    public async Task PublicadorDesativado_Retorna400()
+    {
+        var admin = await AdminAsync();
+        var carrinhoId = await CriarCarrinhoAsync(admin);
+        await DefinirTurnosAsync(admin, carrinhoId, (Segunda, Turno0810));
+        var (id, _) = await CriarContaAsync(admin, "Pedro", "pedro");
+        (await admin.PutAsJsonAsync($"/api/admin/publicadores/{id}", new { ativo = false })).EnsureSuccessStatusCode();
+
+        var resposta = await AdicionarParaAsync(admin, carrinhoId, Segunda, Turno0810, id);
+
+        Assert.Equal(HttpStatusCode.BadRequest, resposta.StatusCode);
+        Assert.Empty(PedidosDaGrade(await GradeAsync(admin)));
+    }
+
+    [Fact]
+    public async Task NomeLivre_Retorna400ENaoCriaPublicador()
+    {
+        // Contrato antigo ({ nome }): sem publicadorId o pedido é inválido.
+        var admin = await AdminAsync();
+        var carrinhoId = await CriarCarrinhoAsync(admin);
+        await DefinirTurnosAsync(admin, carrinhoId, (Segunda, Turno0810));
+
+        var resposta = await admin.PostAsJsonAsync(
             $"/api/admin/escalas/{MesAlvo}/solicitacoes",
-            new { nome, carrinhoId, diaSemana = dia, turnoId = Turno0810, criancaOuIdoso });
+            new { nome = "Caio", carrinhoId, diaSemana = Segunda, turnoId = Turno0810 });
+
+        Assert.Equal(HttpStatusCode.BadRequest, resposta.StatusCode);
+        Assert.Empty((await admin.GetFromJsonAsync<JsonElement>("/api/admin/publicadores?incluirInativos=true")).EnumerateArray());
+    }
 
     [Fact]
-    public async Task MesmoNomeNaMesmaTrinca_Retorna409()
+    public async Task MesmoPublicadorNaMesmaTrinca_Retorna409()
     {
-        // Regra 9: nome igual reusa o publicador, então cai no bloqueio de duplicidade.
         var admin = await AdminAsync();
         var carrinhoId = await CriarCarrinhoAsync(admin);
         await DefinirTurnosAsync(admin, carrinhoId, (Segunda, Turno0810));
-        await AdicionarManualAsync(admin, carrinhoId, Segunda, Turno0810, "Caio");
+        var (id, _) = await CriarContaAsync(admin, "Caio", "caio");
+        await AdicionarParaAsync(admin, carrinhoId, Segunda, Turno0810, id);
 
-        var resposta = await AdicionarManualAsync(admin, carrinhoId, Segunda, Turno0810, "Caio");
+        var resposta = await AdicionarParaAsync(admin, carrinhoId, Segunda, Turno0810, id);
 
         Assert.Equal(HttpStatusCode.Conflict, resposta.StatusCode);
     }
 
     [Fact]
-    public async Task NomeDeHomonimos_ReusaOPublicadorDePedidoMaisAntigo()
+    public async Task MesmoHorarioEmOutroCarrinho_NaoEhBloqueado()
     {
-        // Regra 9: nomes repetidos são permitidos; entre homônimos, a adição manual usa sempre
-        // o de pedido mais antigo.
+        // Regra 10: para o administrador, horário ocupado só é avisado (na tela).
         var admin = await AdminAsync();
-        var carrinhoId = await CriarCarrinhoAsync(admin);
-        await DefinirTurnosAsync(admin, carrinhoId, (Segunda, Turno0810), (Terca, Turno0810));
-        var maisAntigo = Guid.NewGuid();
-        await SolicitarAsync(Publicador(maisAntigo), carrinhoId, Segunda, Turno0810, "João");
-        await SolicitarAsync(Publicador(), carrinhoId, Segunda, Turno0810, "João");
+        var primeiro = await CriarCarrinhoAsync(admin, "Carrinho 01");
+        var segundo = await CriarCarrinhoAsync(admin, "Carrinho 02");
+        await DefinirTurnosAsync(admin, primeiro, (Segunda, Turno0810));
+        await DefinirTurnosAsync(admin, segundo, (Segunda, Turno0810));
+        var (id, _) = await CriarContaAsync(admin, "Caio", "caio");
+        await AdicionarParaAsync(admin, primeiro, Segunda, Turno0810, id);
 
-        var resposta = await AdicionarManualAsync(admin, carrinhoId, Terca, Turno0810, "João");
+        var resposta = await AdicionarParaAsync(admin, segundo, Segunda, Turno0810, id);
 
-        Assert.Equal(maisAntigo, (await JsonAsync(resposta)).GetProperty("publicadorId").GetGuid());
+        Assert.Equal(HttpStatusCode.Created, resposta.StatusCode);
     }
 
     [Fact]

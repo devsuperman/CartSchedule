@@ -8,7 +8,8 @@ namespace CartSchedule.Api.Features.Administradores.RevisarEscala.AdicionarSolic
 
 /// <summary>
 /// POST /api/admin/escalas/{mes}/solicitacoes — adição manual de solicitação pelo
-/// administrador (PLANNING.md regra 9, TECHNICAL_SPEC.md §2.3), origem
+/// administrador (PLANNING.md regra 9, TECHNICAL_SPEC.md §2.3) para um publicador existente e
+/// ativo (inexistente/desativado → 400; nome livre não cria publicador), origem
 /// Administrador; como toda solicitação, já conta na escala. O administrador não é limitado pela janela de envio (regra 7):
 /// {mes} pode ser qualquer escala, passada, atual ou futura.
 /// </summary>
@@ -57,33 +58,18 @@ public static class Endpoint
             });
         }
 
-        var escala = await EscalaHelpers.ObterOuCriarAsync(db, mesReferencia, ct);
-
-        var nomeSolicitado = request.Nome.Trim();
-
-        // Nomes repetidos são permitidos (regra 9): entre homônimos, reusa sempre o mesmo —
-        // o de pedido mais antigo (sem pedidos por último), desempate pelo Id.
         var publicador = await db.Publicadores
-            .Where(p => p.Nome == nomeSolicitado)
-            .OrderBy(p => p.Solicitacoes.Min(s => (DateTimeOffset?)s.CriadoEm) == null)
-            .ThenBy(p => p.Solicitacoes.Min(s => (DateTimeOffset?)s.CriadoEm))
-            .ThenBy(p => p.Id)
-            .FirstOrDefaultAsync(ct);
+            .SingleOrDefaultAsync(p => p.Id == request.PublicadorId && p.Ativo, ct);
 
         if (publicador is null)
         {
-            publicador = new Publicador
+            return Results.ValidationProblem(new Dictionary<string, string[]>
             {
-                Id = Guid.NewGuid(),
-                Nome = nomeSolicitado,
-            };
-            db.Publicadores.Add(publicador);
+                ["publicadorId"] = ["Publicador não encontrado ou desativado."],
+            });
         }
 
-        if (request.CriancaOuIdoso == true)
-        {
-            publicador.CriancaOuIdoso = true;
-        }
+        var escala = await EscalaHelpers.ObterOuCriarAsync(db, mesReferencia, ct);
 
         var jaExiste = await db.Solicitacoes.AnyAsync(
             s => s.PublicadorId == publicador.Id

@@ -6,9 +6,8 @@ public class Validator : AbstractValidator<Request>
 {
     public Validator()
     {
-        RuleFor(r => r.Nome)
-            .NotEmpty()
-            .MaximumLength(200);
+        RuleFor(r => r.PublicadorId)
+            .NotEmpty();
 
         RuleFor(r => r.CarrinhoId)
             .GreaterThan(0);

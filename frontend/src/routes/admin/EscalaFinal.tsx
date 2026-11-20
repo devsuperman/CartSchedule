@@ -212,8 +212,6 @@ export default function EscalaFinal() {
   const pedidos = lista.flatMap((c) => c.publicadores);
   const incompletas = lista.filter((c) => estadoVaga(c) === "incompleta").length;
   const excedentes = lista.filter((c) => estadoVaga(c) === "excesso").length;
-  const nomesSugeridos = [...new Set(pedidos.map((p) => p.publicadorNome))].sort((a, b) => a.localeCompare(b, "pt-BR"));
-  const nomesCriancaOuIdoso = [...new Set(pedidos.filter((p) => p.criancaOuIdoso).map((p) => p.publicadorNome))];
 
   function limparSelecao() {
     setSelecionadoId(null);
@@ -507,8 +505,6 @@ export default function EscalaFinal() {
         mes={mes}
         celula={adicionando}
         celulas={celulas ?? []}
-        nomesSugeridos={nomesSugeridos}
-        nomesCriancaOuIdoso={nomesCriancaOuIdoso}
         onFechar={() => setAdicionando(null)}
         onAdicionado={(celula, criada) => {
           setCelulas((atual) =>
@@ -526,7 +522,6 @@ export default function EscalaFinal() {
                 )
               : atual,
           );
-          setAdicionando(null);
           setAviso(`${criada.publicadorNome} adicionado em ${descreverCelula(celula)}.`);
         }}
       />

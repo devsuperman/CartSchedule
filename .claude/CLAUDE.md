@@ -127,10 +127,11 @@ todas são intencionais, confirmadas no `PLANNING.md`:
    com modal de confirmação na tela).
    Recusas por janela fechada vêm com `codigo: "JANELA_FECHADA"` no
    ProblemDetails — o frontend decide por esse código, nunca por "qualquer 400".
-9. **Adição manual do admin**: entra na escala como qualquer outra. Publicador por
-   nome livre — se o nome bater exatamente com um existente, reusa o
-   registro; senão, cria um novo (pequenas diferenças de grafia podem
-   gerar registros distintos — é uma consequência aceita, não um bug).
+9. **Adição manual do admin**: entra na escala como qualquer outra. O "+" escolhe
+   um publicador **existente e ativo** (busca por nome/usuário; a API recebe
+   `publicadorId`, inexistente/inativo → 400) — nome livre não cria ninguém. O
+   atalho "Novo publicador" cria a conta ali (`POST /api/admin/publicadores`),
+   mostra o PIN uma vez e já adiciona à vaga.
 9a. **Carrinho** tem `Nome`, `Descricao` (opcional, exibida ao publicador
     abaixo do nome no wizard) e `Ativo`; o admin pode editar nome e
     descrição a qualquer momento.
