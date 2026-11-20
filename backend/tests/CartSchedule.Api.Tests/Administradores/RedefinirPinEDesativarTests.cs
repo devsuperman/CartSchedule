@@ -208,26 +208,23 @@ public class RedefinirPinEDesativarTests(ApiFixture fixture) : ApiTestBase(fixtu
         Assert.Equal(pedroId, pedido.GetProperty("publicadorId").GetGuid());
     }
     [Fact]
-    public async Task Desativado_ComTokenAnonimoDoAparelho_NaoPedeNemExcluiNemRenomeia()
+    public async Task Desativado_PerdeASessao_NaoPedeNemExcluiNemVeOHistorico()
     {
         var admin = await AdminAsync();
         var carrinhoId = await CriarCarrinhoAsync(admin);
         await DefinirTurnosAsync(admin, carrinhoId, (Segunda, Turno0810), (Terca, Turno0810));
-        var token = Guid.NewGuid();
-        var aparelho = Publicador(token);
+        var aparelho = await PublicadorAsync("Ana");
         var pedido = await JsonAsync(await SolicitarAsync(aparelho, carrinhoId, Segunda, Turno0810));
 
-        // O token anônimo do aparelho é o id do publicador.
-        await EditarAsync(admin, token, new { ativo = false });
+        await EditarAsync(admin, await IdDoPublicadorAsync(aparelho), new { ativo = false });
 
         var novo = await SolicitarAsync(aparelho, carrinhoId, Terca, Turno0810);
         var exclusao = await aparelho.DeleteAsync($"/api/solicitacoes/{pedido.GetProperty("id").GetInt32()}");
-        var renomear = await aparelho.PutAsJsonAsync("/api/publicador", new { nome = "Outro" });
+        var historico = await aparelho.GetAsync("/api/solicitacoes");
 
-        foreach (var resposta in new[] { novo, exclusao, renomear })
+        foreach (var resposta in new[] { novo, exclusao, historico })
         {
-            Assert.Equal(HttpStatusCode.Forbidden, resposta.StatusCode);
-            Assert.Equal("PUBLICADOR_INATIVO", (await JsonAsync(resposta)).GetProperty("codigo").GetString());
+            Assert.Equal(HttpStatusCode.Unauthorized, resposta.StatusCode);
         }
 
         var item = Assert.Single(PedidosDaGrade(await GradeAsync(admin)));

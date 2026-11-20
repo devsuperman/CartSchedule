@@ -1,9 +1,9 @@
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
+import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { ADMIN_TOKEN_SESSION_KEY, apiFetch, PUBLICADOR_NOME_STORAGE_KEY } from "../api/client";
-import { usePublicadorToken } from "../hooks/usePublicadorToken";
+import { apiFetch } from "../api/client";
+import { iniciarSessao, obterSessao, type Papel } from "../api/sessao";
 import { Layout } from "./Layout";
 
 vi.mock("../api/client", async (importOriginal) => ({
@@ -13,23 +13,20 @@ vi.mock("../api/client", async (importOriginal) => ({
 
 const mockApiFetch = vi.mocked(apiFetch);
 
-beforeEach(() => {
-  mockApiFetch.mockReset();
-  mockApiFetch.mockResolvedValue({ aberta: true, mesAlvo: "2026-10-01" });
-});
-
-function MostraEstado() {
-  const location = useLocation();
-  return <p>Origem: {(location.state as { de?: string } | null)?.de}</p>;
+function mockarApi({ nome = "João da Silva", administrador = false } = {}) {
+  mockApiFetch.mockImplementation(async (path: string) => {
+    if (path === "/api/eu") return { id: "1", nome, usuario: "joao", administrador };
+    return { aberta: true, mesAlvo: "2026-10-01" };
+  });
 }
 
-function TelaQueTrocaONome() {
-  const { setNome } = usePublicadorToken();
-  return (
-    <button type="button" onClick={() => setNome("Maria Souza")}>
-      Trocar nome
-    </button>
-  );
+beforeEach(() => {
+  mockApiFetch.mockReset();
+  mockarApi();
+});
+
+function logar(papel: Papel = "publicador") {
+  iniciarSessao({ token: "jwt", papel });
 }
 
 function renderizar(caminho = "/") {
@@ -37,8 +34,7 @@ function renderizar(caminho = "/") {
     <MemoryRouter initialEntries={[caminho]}>
       <Layout>
         <Routes>
-          <Route path="/" element={<TelaQueTrocaONome />} />
-          <Route path="/nome" element={<MostraEstado />} />
+          <Route path="/" element={<p>Início</p>} />
           <Route path="/admin" element={<p>Admin</p>} />
           <Route path="/admin/carrinhos" element={<p>Tela Carrinhos</p>} />
           <Route path="/admin/publicadores" element={<p>Tela Publicadores</p>} />
@@ -50,46 +46,84 @@ function renderizar(caminho = "/") {
   return userEvent.setup();
 }
 
-describe("Layout — Olá, Fulano", () => {
-  it("mostra só o primeiro nome e leva à edição lembrando a tela de origem", async () => {
-    localStorage.setItem(PUBLICADOR_NOME_STORAGE_KEY, "João da Silva");
-    const user = renderizar();
-
-    const link = screen.getByRole("link", { name: /Olá, João/ });
-    expect(link).toHaveTextContent("Olá, João");
-    expect(link).not.toHaveTextContent("Silva");
-
-    await user.click(link);
-    expect(screen.getByText("Origem: /")).toBeInTheDocument();
-  });
-
-  it("atualiza na hora quando o nome muda em outra tela", async () => {
-    localStorage.setItem(PUBLICADOR_NOME_STORAGE_KEY, "Joao");
-    const user = renderizar();
-
-    await user.click(screen.getByRole("button", { name: "Trocar nome" }));
-
-    expect(screen.getByRole("link", { name: /Olá, Maria/ })).toBeInTheDocument();
-  });
-
-  it("não aparece sem nome salvo", () => {
+describe("Layout — menu Olá do publicador", () => {
+  it("mostra só o primeiro nome da conta (GET /api/eu)", async () => {
+    logar();
     renderizar();
-    expect(screen.queryByRole("link", { name: /Olá/ })).not.toBeInTheDocument();
+
+    const botao = await screen.findByRole("button", { name: /Olá, João/ });
+    expect(botao).not.toHaveTextContent("Silva");
+    expect(mockApiFetch).toHaveBeenCalledWith("/api/eu");
   });
 
-  it.each(["/nome", "/admin"])("não aparece em %s", (caminho) => {
-    localStorage.setItem(PUBLICADOR_NOME_STORAGE_KEY, "Ana");
-    renderizar(caminho);
-    expect(screen.queryByRole("link", { name: /Olá/ })).not.toBeInTheDocument();
+  it("o menu tem Sair, que encerra a sessão e vai ao login", async () => {
+    logar();
+    const user = renderizar();
+
+    const botao = await screen.findByRole("button", { name: /Olá, João/ });
+    expect(botao).toHaveAttribute("aria-expanded", "false");
+    await user.click(botao);
+    expect(botao).toHaveAttribute("aria-expanded", "true");
+    await user.click(screen.getByRole("button", { name: "Sair" }));
+
+    expect(screen.getByText("Tela de login")).toBeInTheDocument();
+    expect(obterSessao()).toBeNull();
   });
 
-  it("o publicador não tem menu; o título leva à tela inicial", async () => {
-    localStorage.setItem(PUBLICADOR_NOME_STORAGE_KEY, "Ana");
-    const user = renderizar("/nome");
+  it("não tem edição de nome", async () => {
+    logar();
+    const user = renderizar();
+
+    await user.click(await screen.findByRole("button", { name: /Olá, João/ }));
+
+    expect(screen.queryByRole("link", { name: /nome/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole("textbox")).not.toBeInTheDocument();
+  });
+
+  it("Esc fecha o menu e devolve o foco", async () => {
+    logar();
+    const user = renderizar();
+    const botao = await screen.findByRole("button", { name: /Olá, João/ });
+
+    await user.click(botao);
+    await user.keyboard("{Escape}");
+
+    expect(screen.queryByRole("button", { name: "Sair" })).not.toBeInTheDocument();
+    expect(botao).toHaveFocus();
+  });
+
+  it("administrador vê o link Administração", async () => {
+    mockarApi({ administrador: true });
+    logar("administrador");
+    const user = renderizar();
+
+    await user.click(await screen.findByRole("link", { name: "Administração" }));
+
+    expect(screen.getByText("Admin")).toBeInTheDocument();
+  });
+
+  it("publicador comum não vê o link Administração", async () => {
+    logar();
+    renderizar();
+
+    await screen.findByRole("button", { name: /Olá, João/ });
+    expect(screen.queryByRole("link", { name: "Administração" })).not.toBeInTheDocument();
+  });
+
+  it("sem login, não aparece (nem pergunta à API)", () => {
+    renderizar("/login");
+
+    expect(screen.queryByRole("button", { name: /Olá/ })).not.toBeInTheDocument();
+    expect(mockApiFetch).not.toHaveBeenCalledWith("/api/eu");
+  });
+
+  it("o publicador não tem menu de navegação; o título leva à tela inicial", async () => {
+    logar();
+    const user = renderizar("/login");
 
     expect(screen.queryByRole("link", { name: "Início" })).not.toBeInTheDocument();
     await user.click(screen.getByRole("link", { name: "Escala TPL" }));
-    expect(screen.getByRole("button", { name: "Trocar nome" })).toBeInTheDocument();
+    expect(screen.getByText("Início")).toBeInTheDocument();
   });
 });
 
@@ -127,6 +161,25 @@ describe("Layout — menu do administrador", () => {
     ]);
   });
 
+  it("administrador (que também é publicador) tem o link Meus pedidos", async () => {
+    logar("administrador");
+    const user = renderizar("/admin");
+
+    await user.click(screen.getByRole("button", { name: "Menu" }));
+    await user.click(screen.getByRole("link", { name: "Meus pedidos" }));
+
+    expect(screen.getByText("Início")).toBeInTheDocument();
+  });
+
+  it("administrador de recuperação não tem Meus pedidos", async () => {
+    logar("recuperacao");
+    const user = renderizar("/admin");
+
+    await user.click(screen.getByRole("button", { name: "Menu" }));
+
+    expect(screen.queryByRole("link", { name: "Meus pedidos" })).not.toBeInTheDocument();
+  });
+
   it("marca a tela atual no menu", async () => {
     const user = renderizar("/admin/publicadores");
 
@@ -162,14 +215,14 @@ describe("Layout — menu do administrador", () => {
   });
 
   it("Sair no menu encerra a sessão e vai ao login", async () => {
-    sessionStorage.setItem(ADMIN_TOKEN_SESSION_KEY, "jwt");
+    logar("recuperacao");
     const user = renderizar("/admin");
 
     await user.click(screen.getByRole("button", { name: "Menu" }));
     await user.click(screen.getByRole("button", { name: "Sair" }));
 
     expect(screen.getByText("Tela de login")).toBeInTheDocument();
-    expect(sessionStorage.getItem(ADMIN_TOKEN_SESSION_KEY)).toBeNull();
+    expect(obterSessao()).toBeNull();
   });
 
   it("no tablet e no computador, os links ficam à vista, sem botão Menu", () => {

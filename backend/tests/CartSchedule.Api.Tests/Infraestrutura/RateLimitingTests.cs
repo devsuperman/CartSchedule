@@ -6,7 +6,7 @@ using Microsoft.AspNetCore.Mvc.Testing;
 namespace CartSchedule.Api.Tests.Infraestrutura;
 
 /// <summary>
-/// Proteção contra bots/força bruta sem exigir login do publicador: limites por IP.
+/// Proteção contra bots/força bruta: limites por IP (sem bloqueio de conta).
 /// Cada teste sobe um host próprio com limites baixos (o da fixture tem limites altos)
 /// e identifica o cliente pelo X-Forwarded-For, como o nginx faz em produção.
 /// </summary>
@@ -24,7 +24,6 @@ public class RateLimitingTests(ApiFixture fixture) : ApiTestBase(fixture)
     {
         var client = host.CreateClient();
         client.DefaultRequestHeaders.Add("X-Forwarded-For", ip);
-        client.DefaultRequestHeaders.Add("X-Publicador-Token", Guid.NewGuid().ToString());
         return client;
     }
 
@@ -73,8 +72,11 @@ public class RateLimitingTests(ApiFixture fixture) : ApiTestBase(fixture)
         var carrinhoId = await CriarCarrinhoAsync(admin);
         await DefinirTurnosAsync(admin, carrinhoId, (Segunda, Turno0810), (Terca, Turno1012), (Quarta, Turno1416));
 
+        // Conta logada pelo host da fixture: o token vale no host com limites (mesma chave e banco).
+        var publicador = await PublicadorAsync();
         await using var host = HostComLimites(escrita: 2);
         var bot = ClienteDoIp(host, "203.0.113.30");
+        bot.DefaultRequestHeaders.Authorization = publicador.DefaultRequestHeaders.Authorization;
 
         Assert.Equal(HttpStatusCode.Created, (await SolicitarAsync(bot, carrinhoId, Segunda, Turno0810)).StatusCode);
         Assert.Equal(HttpStatusCode.Created, (await SolicitarAsync(bot, carrinhoId, Terca, Turno1012)).StatusCode);

@@ -1,11 +1,13 @@
 import "@testing-library/jest-dom/vitest";
 import { cleanup } from "@testing-library/react";
 import { afterEach } from "vitest";
+import { recarregarSessaoParaTestes } from "../api/sessao";
 
 afterEach(() => {
   cleanup();
   localStorage.clear();
   sessionStorage.clear();
+  recarregarSessaoParaTestes();
 });
 
 // O Radix Select usa APIs de ponteiro/rolagem que o jsdom não implementa.

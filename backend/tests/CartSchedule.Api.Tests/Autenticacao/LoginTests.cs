@@ -24,7 +24,7 @@ public class LoginTests(ApiFixture fixture) : ApiTestBase(fixture)
         Assert.Equal(HttpStatusCode.OK, resposta.StatusCode);
         var corpo = await JsonAsync(resposta);
         Assert.Equal("recuperacao", corpo.GetProperty("papel").GetString());
-        Assert.InRange(Expiracao(corpo) - DateTime.UtcNow, TimeSpan.FromMinutes(110), TimeSpan.FromMinutes(121));
+        Assert.InRange(Expiracao(corpo) - Fixture.Relogio.Agora.UtcDateTime, TimeSpan.FromMinutes(110), TimeSpan.FromMinutes(121));
         Assert.Equal(HttpStatusCode.OK, (await ClienteComToken(corpo).GetAsync("/api/admin/publicadores")).StatusCode);
     }
 
@@ -47,7 +47,7 @@ public class LoginTests(ApiFixture fixture) : ApiTestBase(fixture)
         Assert.Equal(HttpStatusCode.OK, resposta.StatusCode);
         var corpo = await JsonAsync(resposta);
         Assert.Equal("administrador", corpo.GetProperty("papel").GetString());
-        Assert.InRange(Expiracao(corpo) - DateTime.UtcNow, TimeSpan.FromMinutes(110), TimeSpan.FromMinutes(121));
+        Assert.InRange(Expiracao(corpo) - Fixture.Relogio.Agora.UtcDateTime, TimeSpan.FromMinutes(110), TimeSpan.FromMinutes(121));
         var admin = ClienteComToken(corpo);
         Assert.Equal(HttpStatusCode.OK, (await admin.GetAsync("/api/admin/publicadores")).StatusCode);
         Assert.Equal(HttpStatusCode.OK, (await admin.GetAsync("/api/admin/carrinhos")).StatusCode);

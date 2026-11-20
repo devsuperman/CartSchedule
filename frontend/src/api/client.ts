@@ -1,50 +1,6 @@
-export const PUBLICADOR_TOKEN_STORAGE_KEY = "cartschedule:publicadorToken";
-export const PUBLICADOR_NOME_STORAGE_KEY = "cartschedule:publicadorNome";
-export const ADMIN_TOKEN_SESSION_KEY = "cartschedule:adminToken";
+import { encerrarSessao, obterSessao } from "./sessao";
 
 const API_BASE_URL = import.meta.env.VITE_API_URL ?? "";
-
-function lerAdminTokenSalvo(): string | null {
-  try {
-    return sessionStorage.getItem(ADMIN_TOKEN_SESSION_KEY);
-  } catch {
-    return null;
-  }
-}
-
-// Inicializado direto do sessionStorage (não de um useEffect) para que o token já
-// esteja disponível na primeira requisição de uma tela protegida, mesmo antes do
-// efeito de sincronização de useAdminAuth rodar (efeitos de componentes filhos
-// disparam antes dos do pai no mount).
-let adminToken: string | null = lerAdminTokenSalvo();
-
-/** Guarda o JWT do administrador em memória (nunca em localStorage). */
-export function setAdminToken(token: string | null): void {
-  adminToken = token;
-}
-
-function getPublicadorToken(): string | null {
-  try {
-    return localStorage.getItem(PUBLICADOR_TOKEN_STORAGE_KEY);
-  } catch {
-    return null;
-  }
-}
-
-/**
- * Token de administrador expirado, revogado ou de antes de uma mudança de papéis: a API recusa
- * (401/403) e a guarda de rota só olha se existe token. Limpa a sessão e volta ao login, em vez
- * de deixar a tela presa em erros.
- */
-function encerrarSessaoAdmin(): void {
-  adminToken = null;
-  try {
-    sessionStorage.removeItem(ADMIN_TOKEN_SESSION_KEY);
-  } catch {
-    // sessionStorage indisponível — o token já saiu da memória.
-  }
-  window.location.replace("/login");
-}
 
 export class ApiError extends Error {
   status: number;
@@ -58,26 +14,27 @@ export class ApiError extends Error {
   }
 }
 
+/**
+ * Chamada à API com o token da sessão em `Authorization: Bearer`. Um 401 fora do próprio login
+ * (token expirado, PIN redefinido, conta desativada) encerra a sessão: a guarda ExigeLogin leva
+ * ao /login, lembrando a página em que a pessoa estava.
+ */
 export async function apiFetch<T>(path: string, options: RequestInit = {}): Promise<T> {
   const headers = new Headers(options.headers);
   if (!headers.has("Content-Type") && options.body) {
     headers.set("Content-Type", "application/json");
   }
 
-  const publicadorToken = getPublicadorToken();
-  if (publicadorToken) {
-    headers.set("X-Publicador-Token", publicadorToken);
-  }
-
-  if (adminToken) {
-    headers.set("Authorization", `Bearer ${adminToken}`);
+  const sessao = obterSessao();
+  if (sessao) {
+    headers.set("Authorization", `Bearer ${sessao.token}`);
   }
 
   const response = await fetch(`${API_BASE_URL}${path}`, { ...options, headers });
 
   if (!response.ok) {
-    if ((response.status === 401 || response.status === 403) && adminToken && path.startsWith("/api/admin/")) {
-      encerrarSessaoAdmin();
+    if (response.status === 401 && path !== "/api/login") {
+      encerrarSessao();
     }
     const problem = await response.json().catch(() => null);
     throw new ApiError(response.status, problem?.title ?? response.statusText, problem);

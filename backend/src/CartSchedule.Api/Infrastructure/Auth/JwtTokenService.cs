@@ -39,10 +39,12 @@ public class JwtTokenService : IJwtTokenService
     private static readonly TimeSpan DuracaoPublicador = TimeSpan.FromDays(180);
 
     private readonly JwtOptions _jwtOptions;
+    private readonly TimeProvider _relogio;
 
-    public JwtTokenService(IOptions<JwtOptions> jwtOptions)
+    public JwtTokenService(IOptions<JwtOptions> jwtOptions, TimeProvider relogio)
     {
         _jwtOptions = jwtOptions.Value;
+        _relogio = relogio;
     }
 
     public string GerarTokenDeRecuperacao(string usuario) =>
@@ -68,7 +70,7 @@ public class JwtTokenService : IJwtTokenService
 
         var token = new JwtSecurityToken(
             claims: claims,
-            expires: DateTime.UtcNow.Add(duracao),
+            expires: _relogio.GetUtcNow().UtcDateTime.Add(duracao),
             signingCredentials: credenciaisAssinatura);
 
         return new JwtSecurityTokenHandler().WriteToken(token);

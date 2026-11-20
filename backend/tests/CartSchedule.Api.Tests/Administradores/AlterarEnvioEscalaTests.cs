@@ -12,7 +12,7 @@ namespace CartSchedule.Api.Tests.Administradores;
 public class AlterarEnvioEscalaTests(ApiFixture fixture) : ApiTestBase(fixture)
 {
     private async Task<JsonElement> JanelaAsync() =>
-        await Fixture.Factory.CreateClient().GetFromJsonAsync<JsonElement>("/api/janela");
+        await (await PublicadorAsync("Leitor")).GetFromJsonAsync<JsonElement>("/api/janela");
 
     [Fact]
     public async Task SemFechar_JanelaAbertaParaOMesSeguinte()

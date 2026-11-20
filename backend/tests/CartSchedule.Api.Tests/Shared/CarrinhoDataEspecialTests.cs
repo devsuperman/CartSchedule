@@ -30,14 +30,14 @@ public class CarrinhoDataEspecialTests(ApiFixture fixture) : ApiTestBase(fixture
     public async Task PedidoNoNormal_NaoOcupaOHorarioDoEspecial_NemOContrario()
     {
         var (normal, especial) = await NormalEEspecialNaQuarta0810Async();
-        var ana = Publicador();
-        var bia = Publicador();
+        var ana = await PublicadorAsync("Ana");
+        var bia = await PublicadorAsync("Bia");
 
         Assert.Equal(HttpStatusCode.Created, (await SolicitarAsync(ana, normal, Quarta, Turno0810)).StatusCode);
         Assert.Equal(HttpStatusCode.Created, (await SolicitarAsync(ana, especial, Quarta, Turno0810)).StatusCode);
 
-        Assert.Equal(HttpStatusCode.Created, (await SolicitarAsync(bia, especial, Quarta, Turno0810, "Bia")).StatusCode);
-        Assert.Equal(HttpStatusCode.Created, (await SolicitarAsync(bia, normal, Quarta, Turno0810, "Bia")).StatusCode);
+        Assert.Equal(HttpStatusCode.Created, (await SolicitarAsync(bia, especial, Quarta, Turno0810)).StatusCode);
+        Assert.Equal(HttpStatusCode.Created, (await SolicitarAsync(bia, normal, Quarta, Turno0810)).StatusCode);
     }
 
     [Fact]
@@ -48,7 +48,7 @@ public class CarrinhoDataEspecialTests(ApiFixture fixture) : ApiTestBase(fixture
         var segundo = await CriarCarrinhoEspecialAsync(admin, QuartaDeOutubro, "Evento B");
         await DefinirTurnosAsync(admin, primeiro, (Quarta, Turno0810));
         await DefinirTurnosAsync(admin, segundo, (Quarta, Turno0810));
-        var publicador = Publicador();
+        var publicador = await PublicadorAsync();
         await SolicitarAsync(publicador, primeiro, Quarta, Turno0810);
 
         var resposta = await SolicitarAsync(publicador, segundo, Quarta, Turno0810);
@@ -61,10 +61,10 @@ public class CarrinhoDataEspecialTests(ApiFixture fixture) : ApiTestBase(fixture
     public async Task EspecialSegueOLimiteDaVaga()
     {
         var (_, especial) = await NormalEEspecialNaQuarta0810Async();
-        await SolicitarAsync(Publicador(), especial, Quarta, Turno0810, "Ana");
-        await SolicitarAsync(Publicador(), especial, Quarta, Turno0810, "Bia");
+        await SolicitarAsync(await PublicadorAsync("Ana"), especial, Quarta, Turno0810);
+        await SolicitarAsync(await PublicadorAsync("Bia"), especial, Quarta, Turno0810);
 
-        var resposta = await SolicitarAsync(Publicador(), especial, Quarta, Turno0810, "Caio");
+        var resposta = await SolicitarAsync(await PublicadorAsync("Caio"), especial, Quarta, Turno0810);
 
         Assert.Equal(HttpStatusCode.Conflict, resposta.StatusCode);
         Assert.Equal("VAGA_CHEIA", (await JsonAsync(resposta)).GetProperty("codigo").GetString());
@@ -74,10 +74,10 @@ public class CarrinhoDataEspecialTests(ApiFixture fixture) : ApiTestBase(fixture
     public async Task EspecialTrazONomeDeQuemEstaNaVaga_SemMisturarComONormal()
     {
         var (normal, especial) = await NormalEEspecialNaQuarta0810Async();
-        await SolicitarAsync(Publicador(), especial, Quarta, Turno0810, "Ana Lima");
-        await SolicitarAsync(Publicador(), normal, Quarta, Turno0810, "Bia");
+        await SolicitarAsync(await PublicadorAsync("Ana Lima"), especial, Quarta, Turno0810);
+        await SolicitarAsync(await PublicadorAsync("Bia"), normal, Quarta, Turno0810);
 
-        var carrinhos = await Fixture.Factory.CreateClient().GetFromJsonAsync<JsonElement>("/api/carrinhos");
+        var carrinhos = await (await PublicadorAsync("Leitor")).GetFromJsonAsync<JsonElement>("/api/carrinhos");
         var nomes = carrinhos.EnumerateArray().ToDictionary(
             c => c.GetProperty("id").GetInt32(),
             c => c.GetProperty("disponibilidades")[0].GetProperty("nomes").EnumerateArray().Select(n => n.GetString()).ToArray());
@@ -95,12 +95,12 @@ public class CarrinhoDataEspecialTests(ApiFixture fixture) : ApiTestBase(fixture
         await DefinirTurnosAsync(admin, doMes, (Quarta, Turno0810));
         await DefinirTurnosAsync(admin, deOutroMes, (Quarta, Turno0810));
 
-        var carrinhos = await Fixture.Factory.CreateClient().GetFromJsonAsync<JsonElement>("/api/carrinhos");
+        var carrinhos = await (await PublicadorAsync("Leitor")).GetFromJsonAsync<JsonElement>("/api/carrinhos");
         var unico = Assert.Single(carrinhos.EnumerateArray());
         Assert.Equal(doMes, unico.GetProperty("id").GetInt32());
         Assert.Equal(QuartaDeOutubro, unico.GetProperty("dataEspecial").GetString());
 
-        var resposta = await SolicitarAsync(Publicador(), deOutroMes, Quarta, Turno0810);
+        var resposta = await SolicitarAsync(await PublicadorAsync(), deOutroMes, Quarta, Turno0810);
         Assert.Equal(HttpStatusCode.BadRequest, resposta.StatusCode);
     }
 
@@ -131,7 +131,7 @@ public class CarrinhoDataEspecialTests(ApiFixture fixture) : ApiTestBase(fixture
         var admin = await AdminAsync();
         var carrinho = await CriarCarrinhoAsync(admin);
         await DefinirTurnosAsync(admin, carrinho, (Quarta, Turno0810), (Quinta, Turno0810));
-        await SolicitarAsync(Publicador(), carrinho, Quinta, Turno0810);
+        await SolicitarAsync(await PublicadorAsync(), carrinho, Quinta, Turno0810);
 
         var resposta = await admin.PutAsJsonAsync($"/api/admin/carrinhos/{carrinho}", new
         {
@@ -170,7 +170,7 @@ public class CarrinhoDataEspecialTests(ApiFixture fixture) : ApiTestBase(fixture
     public async Task Historico_TrazADataEspecialDoCarrinho()
     {
         var (normal, especial) = await NormalEEspecialNaQuarta0810Async();
-        var publicador = Publicador();
+        var publicador = await PublicadorAsync();
         await SolicitarAsync(publicador, normal, Quarta, Turno0810);
         await SolicitarAsync(publicador, especial, Quarta, Turno0810);
 
@@ -190,7 +190,7 @@ public class CarrinhoDataEspecialTests(ApiFixture fixture) : ApiTestBase(fixture
         var outro = await CriarCarrinhoAsync(admin, "Carrinho 02");
         await DefinirTurnosAsync(admin, normal, (Terca, Turno0810));
         await DefinirTurnosAsync(admin, outro, (Terca, Turno0810));
-        var publicador = Publicador();
+        var publicador = await PublicadorAsync();
         Assert.Equal(HttpStatusCode.Created, (await SolicitarAsync(publicador, normal, Terca, Turno0810)).StatusCode);
 
         // O carrinho do pedido ganha uma data especial; o pedido já feito continua no grupo dos normais.
@@ -213,7 +213,7 @@ public class CarrinhoDataEspecialTests(ApiFixture fixture) : ApiTestBase(fixture
         await DefinirTurnosAsync(admin, normal, (Quarta, Turno0810));
         var especialDeNovembro = await CriarCarrinhoEspecialAsync(admin, QuartaDeNovembro);
         await DefinirTurnosAsync(admin, especialDeNovembro, (Quarta, Turno0810));
-        var pedido = (await JsonAsync(await SolicitarAsync(Publicador(), normal, Quarta, Turno0810)))
+        var pedido = (await JsonAsync(await SolicitarAsync(await PublicadorAsync(), normal, Quarta, Turno0810)))
             .GetProperty("id").GetInt32();
 
         var resposta = await admin.PatchAsJsonAsync($"/api/admin/solicitacoes/{pedido}", new

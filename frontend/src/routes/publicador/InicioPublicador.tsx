@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import { Link, Navigate } from "react-router-dom";
 import { apiFetch, ApiError } from "../../api/client";
 import { ehErroDeJanelaFechada, useJanela } from "../../hooks/useJanela";
-import { usePublicadorToken } from "../../hooks/usePublicadorToken";
 import { formatarNomeMes } from "../../utils/formatacao";
 import { GRUPO_WHATSAPP_URL } from "../../constants/whatsapp";
 import { cn } from "@/lib/utils";
@@ -47,9 +46,6 @@ function ordenarPorDiaTurnoCarrinho(lista: Solicitacao[]): Solicitacao[] {
  * PLANNING.md — os dados continuam no banco, só não há mais UI para eles.
  */
 export default function InicioPublicador() {
-  // Gera o token no primeiro acesso antes do GET /api/solicitacoes abaixo — sem ele o
-  // backend responde 400 e o redirecionamento de primeiro acesso nunca acontece.
-  usePublicadorToken();
   const {
     janela,
     carregando: carregandoJanela,

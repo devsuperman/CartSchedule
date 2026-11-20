@@ -3,7 +3,6 @@ import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { apiFetch, ApiError } from "../../../api/client";
-import { PUBLICADOR_NOME_STORAGE_KEY } from "../../../api/client";
 import { SolicitacaoWizard, type Carrinho } from "./SolicitacaoWizard";
 
 vi.mock("../../../api/client", async (importOriginal) => ({
@@ -101,7 +100,6 @@ function radiosVisiveis() {
 }
 
 beforeEach(() => {
-  localStorage.setItem(PUBLICADOR_NOME_STORAGE_KEY, "Bia");
   mockApiFetch.mockReset();
   mockarApi();
 });
@@ -151,7 +149,7 @@ describe("SolicitacaoWizard — dia, depois turno, depois carrinho", () => {
     expect(cheio).toBeDisabled();
   });
 
-  it("envia nome, carrinho, dia e turno escolhidos", async () => {
+  it("envia carrinho, dia e turno escolhidos (o publicador vem do login)", async () => {
     const user = renderWizard();
     await esperarEtapaDoDia();
     await escolherDia(user, /Terça-feira/);
@@ -165,7 +163,7 @@ describe("SolicitacaoWizard — dia, depois turno, depois carrinho", () => {
     const [, opcoes] = mockApiFetch.mock.calls.find(
       ([path, o]) => path === "/api/solicitacoes" && o?.method === "POST",
     )!;
-    expect(JSON.parse(opcoes!.body as string)).toEqual({ nome: "Bia", carrinhoId: 1, diaSemana: 2, turnoId: 3 });
+    expect(JSON.parse(opcoes!.body as string)).toEqual({ carrinhoId: 1, diaSemana: 2, turnoId: 3 });
   });
 
   it("quando o servidor limita o envio (429), mostra o aviso para aguardar", async () => {

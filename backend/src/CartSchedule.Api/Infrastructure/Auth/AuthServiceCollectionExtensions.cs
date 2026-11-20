@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
@@ -41,12 +42,29 @@ public static class AuthServiceCollectionExtensions
                 };
             });
 
+        // A validade do token segue o mesmo relógio que o emite (TimeProvider), não o do sistema:
+        // assim os testes controlam a expiração (180 dias do publicador, 2 h do administrador).
+        services.AddOptions<JwtBearerOptions>(JwtBearerDefaults.AuthenticationScheme)
+            .Configure<TimeProvider>((options, relogio) =>
+                options.TokenValidationParameters.LifetimeValidator = (_, expira, _, parametros) =>
+                    expira is { } validade
+                    && relogio.GetUtcNow().UtcDateTime <= validade.ToUniversalTime().Add(parametros.ClockSkew));
+
         // Toda rota com .RequireAuthorization() é administrativa: só administrador ou o
         // administrador de recuperação. O publicador comum, mesmo logado, recebe 403.
+        // As rotas do publicador usam a política Politicas.Publicador: publicador ou administrador
+        // (que também pede vagas); o administrador de recuperação não é publicador e recebe 403.
         services.AddAuthorizationBuilder()
             .SetDefaultPolicy(new AuthorizationPolicyBuilder(JwtBearerDefaults.AuthenticationScheme)
                 .RequireRole(Papeis.Administrador, Papeis.Recuperacao)
-                .Build());
+                .Build())
+            .AddPolicy(Politicas.Publicador, policy => policy
+                .AddAuthenticationSchemes(JwtBearerDefaults.AuthenticationScheme)
+                .RequireRole(Papeis.Publicador, Papeis.Administrador)
+                .RequireClaim(ClaimTypes.NameIdentifier))
+            .AddPolicy(Politicas.Logado, policy => policy
+                .AddAuthenticationSchemes(JwtBearerDefaults.AuthenticationScheme)
+                .RequireRole(Papeis.Publicador, Papeis.Administrador, Papeis.Recuperacao));
 
         return services;
     }

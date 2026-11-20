@@ -11,7 +11,7 @@ public class ExcluirSolicitacaoTests(ApiFixture fixture) : ApiTestBase(fixture)
         var admin = await AdminAsync();
         var carrinhoId = await CriarCarrinhoAsync(admin);
         await DefinirTurnosAsync(admin, carrinhoId, (Segunda, Turno0810));
-        var publicador = Publicador();
+        var publicador = await PublicadorAsync();
         var criada = await JsonAsync(await SolicitarAsync(publicador, carrinhoId, Segunda, Turno0810));
         return (publicador, carrinhoId, criada.GetProperty("id").GetInt32());
     }
@@ -58,7 +58,7 @@ public class ExcluirSolicitacaoTests(ApiFixture fixture) : ApiTestBase(fixture)
     {
         var (_, _, solicitacaoId) = await SolicitacaoCriadaAsync();
 
-        var resposta = await Publicador().DeleteAsync($"/api/solicitacoes/{solicitacaoId}");
+        var resposta = await (await PublicadorAsync("Bia")).DeleteAsync($"/api/solicitacoes/{solicitacaoId}");
 
         Assert.Equal(HttpStatusCode.Forbidden, resposta.StatusCode);
     }

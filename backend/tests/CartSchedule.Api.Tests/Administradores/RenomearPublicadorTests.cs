@@ -12,10 +12,10 @@ public class RenomearPublicadorTests(ApiFixture fixture) : ApiTestBase(fixture)
         var admin = await AdminAsync();
         var carrinhoId = await CriarCarrinhoAsync(admin);
         await DefinirTurnosAsync(admin, carrinhoId, (Segunda, Turno0810), (Terca, Turno0810));
-        var token = Guid.NewGuid();
-        await SolicitarAsync(Publicador(token), carrinhoId, Segunda, Turno0810, nome);
-        await SolicitarAsync(Publicador(token), carrinhoId, Terca, Turno0810, nome);
-        return (admin, token);
+        var publicador = await PublicadorAsync(nome);
+        await SolicitarAsync(publicador, carrinhoId, Segunda, Turno0810);
+        await SolicitarAsync(publicador, carrinhoId, Terca, Turno0810);
+        return (admin, await IdDoPublicadorAsync(publicador));
     }
 
     private static Task<HttpResponseMessage> RenomearAsync(HttpClient client, Guid id, string nome) =>
@@ -40,7 +40,7 @@ public class RenomearPublicadorTests(ApiFixture fixture) : ApiTestBase(fixture)
         var (admin, id) = await PublicadorComPedidoAsync();
         var carrinhoId = await CriarCarrinhoAsync(admin, "Carrinho 02");
         await DefinirTurnosAsync(admin, carrinhoId, (Segunda, Turno0810));
-        await SolicitarAsync(Publicador(), carrinhoId, Segunda, Turno0810, "Maria");
+        await SolicitarAsync(await PublicadorAsync("Maria"), carrinhoId, Segunda, Turno0810);
 
         Assert.Equal(HttpStatusCode.NoContent, (await RenomearAsync(admin, id, "Maria")).StatusCode);
     }

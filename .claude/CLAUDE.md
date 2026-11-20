@@ -3,7 +3,7 @@
 Sistema web para organizar o uso de carrinhos de trabalho ao longo do mês.
 Na interface o sistema se chama **"Escala TPL"** — "CartSchedule" é só o
 nome interno (repo, namespaces, pastas); não renomear o código.
-Publicadores solicitam `(carrinho, dia da semana, turno)` em que querem
+Publicadores (com conta: usuário + PIN) solicitam `(carrinho, dia da semana, turno)` em que querem
 trabalhar; todo pedido aceito já entra na escala (vaga cheia é recusada ao
 publicador) e um administrador ajusta/exclui os excedentes (meta de 2
 pessoas por combinação, ou 3 com uma criança/idoso).
@@ -38,17 +38,19 @@ backend/src/CartSchedule.Api/
   Infrastructure/          # AppDbContext, Migrations, Auth
   Shared/                  # JanelaDeEnvio.cs, EscalaHelpers.cs, LotacaoDaVaga.cs, HorarioOcupado.cs, DataEspecial.cs, Credenciais.cs (usuário normalizado, PIN)
   Features/
-    Autenticacao/Login/    # POST /api/login (login único)
+    Autenticacao/          # Login/ (POST /api/login, login único), RenovarSessao/ (POST /api/sessao/renovar)
     Publicadores/<Slice>/  # Endpoint.cs, Request.cs, Response.cs, Validator.cs
     Administradores/<Slice>/
   Program.cs
 
 frontend/src/
   api/                     # client.ts + wrappers por área
-  routes/publicador/       # InicioPublicador (histórico + botões), SolicitarEscala, wizard/, Nome, JanelaFechada
-  routes/Login.tsx         # login único (/login): usuário + PIN; /admin/login redireciona
+  routes/publicador/       # InicioPublicador (histórico + botões), SolicitarEscala, wizard/, JanelaFechada
+  routes/Login.tsx         # login único (/login, a única rota pública): usuário + PIN; /admin/login redireciona
   routes/admin/            # GestaoCarrinhos, Publicadores (contas: criar, editar, redefinir PIN — mostrado uma vez —, desativar/reativar com "Mostrar desativados", unir duplicados com prévia), EscalaFinal (gestão da escala: mover/adicionar/excluir), EscalaCompartilhar (imagem só leitura do mês, dia → turno → carrinho, + uma por data especial)
-  hooks/                   # usePublicadorToken, useJanela, useAdminAuth
+  api/sessao.ts            # token + papel no localStorage; 401 da API encerra a sessão
+  components/ExigeLogin.tsx # guarda de todas as rotas (admin → /admin/*); renova o token ao abrir o app
+  hooks/                   # useSessao, useJanela
   constants/                # turnos.ts, diasSemana.ts (espelham enums do backend)
 ```
 
@@ -98,13 +100,18 @@ todas são intencionais, confirmadas no `PLANNING.md`:
    e cada data especial são grupos separados (`HorarioOcupado.NoHorario`, pelo
    `Solicitacao.DataEspecial` gravado no pedido): pedir o especial não ocupa o horário da
    escala semanal, nem o contrário. O publicador só pede até a própria data (admin sem limite).
-5. **Sem cadastro/login para o publicador.** Identificação via token
-   anônimo (GUID) gerado no frontend e salvo em `localStorage`, enviado no
-   header `X-Publicador-Token`. Nome é um campo livre, pedido no primeiro
-   acesso (rota `/nome`, guarda `ExigeNome`) e fora do wizard; editável
-   pelo publicador ("Olá, Fulano" → `PUT /api/publicador`) e pelo admin
-   (`PUT /api/admin/publicadores/{id}`). Nomes repetidos são permitidos. O nome do aparelho
-   vai em cada pedido e sobrescreve uma correção do admin (consequência aceita).
+5. **Todo o site atrás do login (ADR 0001).** Cada publicador tem conta
+   criada pelo admin (usuário único sem maiúsculas/acentos + PIN de 4 dígitos)
+   e entra em `/login`; a guarda `ExigeLogin` cobre todas as outras rotas
+   (sem login → `/login`, voltando à página pedida). Token em `localStorage`,
+   enviado como `Authorization: Bearer`; publicador fica logado **180 dias**,
+   renovados ao abrir o app (`POST /api/sessao/renovar`). As rotas do publicador
+   (`/api/janela`, `/api/carrinhos`, `/api/solicitacoes`, `/api/eu`) exigem a política
+   `Politicas.Publicador` (sem token → 401) e tiram o publicador do token. **Não
+   existem** token anônimo, `X-Publicador-Token`, `/nome` nem `PUT /api/publicador` — não
+   reintroduzir. O nome é o da conta: o pedido não leva nome e **só o admin edita**
+   (`PUT /api/admin/publicadores/{id}`); "Olá, {primeiro nome}" (`GET /api/eu`) é um menu com
+   "Sair", sem edição de nome. Nomes repetidos são permitidos.
 6. **Janela de envio: abre sozinha no dia 15, só o admin fecha**, sem
    job/cron: calculada a cada request (`JanelaDeEnvio`). Escala-alvo = a
    aberta no último dia 15 (dia ≥ 15 → mês seguinte; dia 1–14 → mês
@@ -146,8 +153,10 @@ todas são intencionais, confirmadas no `PLANNING.md`:
     publicador **e do admin** (pedir, adicionar ou mover para carrinho inativo é recusado).
 11. **Administradores** são publicadores marcados como administrador (vários,
     todos com os mesmos poderes), entrando por `POST /api/login` com usuário + PIN
-    (JWT de 2 h). As credenciais das variáveis de ambiente ficam só como
-    **administrador de recuperação** (ADR 0001). Sem bloqueio de conta: só o rate
+    (JWT de 2 h) e vendo o link "Administração" no cabeçalho; também pedem vagas.
+    As credenciais das variáveis de ambiente ficam só como **administrador de
+    recuperação** (ADR 0001): só a área administrativa, nunca pede vagas (403). O
+    publicador comum recebe 403 nas rotas admin. Sem bloqueio de conta: só o rate
     limit `login` por IP.
 12. **Sem notificações** (e-mail/push) de nenhum tipo.
 13. **Contagem de apoio ao desempate**: ao selecionar uma pessoa na tela da

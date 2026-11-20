@@ -16,7 +16,7 @@ public class ListarCarrinhosDisponiveisTests(ApiFixture fixture) : ApiTestBase(f
         await DefinirTurnosAsync(admin, inativo, (Segunda, Turno0810));
         await admin.PutAsJsonAsync($"/api/admin/carrinhos/{inativo}", new { nome = "Carrinho 02", descricao = (string?)null, ativo = false });
 
-        var carrinhos = await Fixture.Factory.CreateClient().GetFromJsonAsync<JsonElement>("/api/carrinhos");
+        var carrinhos = await (await PublicadorAsync("Leitor")).GetFromJsonAsync<JsonElement>("/api/carrinhos");
 
         var unico = Assert.Single(carrinhos.EnumerateArray());
         Assert.Equal(ativo, unico.GetProperty("id").GetInt32());
@@ -30,13 +30,13 @@ public class ListarCarrinhosDisponiveisTests(ApiFixture fixture) : ApiTestBase(f
         var admin = await AdminAsync();
         var carrinho = await CriarCarrinhoAsync(admin);
         await DefinirTurnosAsync(admin, carrinho, (Segunda, Turno0810), (Segunda, Turno1012), (Terca, Turno1012));
-        await SolicitarAsync(Publicador(), carrinho, Segunda, Turno0810, "Ana");
-        await SolicitarAsync(Publicador(), carrinho, Segunda, Turno0810, "Bia");
-        await SolicitarAsync(Publicador(), carrinho, Segunda, Turno1012, "Ana");
+        await SolicitarAsync(await PublicadorAsync("Ana"), carrinho, Segunda, Turno0810);
+        await SolicitarAsync(await PublicadorAsync("Bia"), carrinho, Segunda, Turno0810);
+        await SolicitarAsync(await PublicadorAsync("Ana"), carrinho, Segunda, Turno1012);
         // Excesso adicionado pelo admin em outra vaga conta na ocupação.
         await AdicionarRegistroAntigoPorNomeAsync(admin, carrinho, Terca, Turno1012, "Caio");
 
-        var carrinhos = await Fixture.Factory.CreateClient().GetFromJsonAsync<JsonElement>("/api/carrinhos");
+        var carrinhos = await (await PublicadorAsync("Leitor")).GetFromJsonAsync<JsonElement>("/api/carrinhos");
 
         var vagas = carrinhos[0].GetProperty("disponibilidades").EnumerateArray()
             .Select(d => (d.GetProperty("ocupacao").GetInt32(), d.GetProperty("cheia").GetBoolean()))
@@ -52,7 +52,7 @@ public class ListarCarrinhosDisponiveisTests(ApiFixture fixture) : ApiTestBase(f
         await DefinirTurnosAsync(admin, carrinho, (Segunda, Turno0810));
         await AdicionarRegistroAntigoPorNomeAsync(admin, carrinho, Segunda, Turno0810, "Ana", mes: "2026-07");
 
-        var carrinhos = await Fixture.Factory.CreateClient().GetFromJsonAsync<JsonElement>("/api/carrinhos");
+        var carrinhos = await (await PublicadorAsync("Leitor")).GetFromJsonAsync<JsonElement>("/api/carrinhos");
 
         var vaga = carrinhos[0].GetProperty("disponibilidades")[0];
         Assert.Equal(0, vaga.GetProperty("ocupacao").GetInt32());
@@ -75,9 +75,9 @@ public class ListarCarrinhosDisponiveisTests(ApiFixture fixture) : ApiTestBase(f
         var admin = await AdminAsync();
         var carrinho = await CriarCarrinhoAsync(admin);
         await DefinirTurnosAsync(admin, carrinho, (Segunda, Turno0810));
-        await SolicitarAsync(Publicador(), carrinho, Segunda, Turno0810, "  Maria   da Silva ");
+        await SolicitarAsync(await PublicadorAsync("  Maria   da Silva "), carrinho, Segunda, Turno0810);
 
-        var vaga = await PrimeiraVagaAsync(Fixture.Factory.CreateClient());
+        var vaga = await PrimeiraVagaAsync(await PublicadorAsync("Leitor"));
 
         Assert.Equal(1, vaga.GetProperty("ocupacao").GetInt32());
         Assert.Equal(["Maria"], Nomes(vaga));
@@ -90,7 +90,7 @@ public class ListarCarrinhosDisponiveisTests(ApiFixture fixture) : ApiTestBase(f
         var carrinho = await CriarCarrinhoAsync(admin);
         await DefinirTurnosAsync(admin, carrinho, (Segunda, Turno0810));
 
-        Assert.Empty(Nomes(await PrimeiraVagaAsync(Fixture.Factory.CreateClient())));
+        Assert.Empty(Nomes(await PrimeiraVagaAsync(await PublicadorAsync("Leitor"))));
     }
 
     [Fact]
@@ -99,10 +99,10 @@ public class ListarCarrinhosDisponiveisTests(ApiFixture fixture) : ApiTestBase(f
         var admin = await AdminAsync();
         var carrinho = await CriarCarrinhoAsync(admin);
         await DefinirTurnosAsync(admin, carrinho, (Segunda, Turno0810));
-        await SolicitarAsync(Publicador(), carrinho, Segunda, Turno0810, "Ana");
-        await SolicitarAsync(Publicador(), carrinho, Segunda, Turno0810, "Bia");
+        await SolicitarAsync(await PublicadorAsync("Ana"), carrinho, Segunda, Turno0810);
+        await SolicitarAsync(await PublicadorAsync("Bia"), carrinho, Segunda, Turno0810);
 
-        var vaga = await PrimeiraVagaAsync(Fixture.Factory.CreateClient());
+        var vaga = await PrimeiraVagaAsync(await PublicadorAsync("Leitor"));
 
         Assert.True(vaga.GetProperty("cheia").GetBoolean());
         Assert.Empty(Nomes(vaga));
@@ -114,17 +114,18 @@ public class ListarCarrinhosDisponiveisTests(ApiFixture fixture) : ApiTestBase(f
         var admin = await AdminAsync();
         var carrinho = await CriarCarrinhoAsync(admin);
         await DefinirTurnosAsync(admin, carrinho, (Segunda, Turno0810));
-        var token = Guid.NewGuid();
-        await SolicitarAsync(Publicador(token), carrinho, Segunda, Turno0810, "Joao Pereira");
+        var joao = await PublicadorAsync("Joao Pereira");
+        await SolicitarAsync(joao, carrinho, Segunda, Turno0810);
+        var token = await IdDoPublicadorAsync(joao);
         (await admin.PutAsJsonAsync($"/api/admin/publicadores/{token}", new { nome = "Joao Pereira", criancaOuIdoso = true }))
             .EnsureSuccessStatusCode();
 
-        var json = await Fixture.Factory.CreateClient().GetStringAsync("/api/carrinhos");
+        var json = await (await PublicadorAsync("Leitor")).GetStringAsync("/api/carrinhos");
 
         Assert.DoesNotContain(token.ToString(), json, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("Pereira", json);
         Assert.DoesNotContain("criancaOuIdoso", json, StringComparison.OrdinalIgnoreCase);
-        var vaga = (await PrimeiraVagaAsync(Fixture.Factory.CreateClient())).EnumerateObject().Select(p => p.Name);
+        var vaga = (await PrimeiraVagaAsync(await PublicadorAsync("Leitor"))).EnumerateObject().Select(p => p.Name);
         Assert.Equal(["diaSemana", "turnoId", "ocupacao", "cheia", "nomes"], vaga);
     }
 
@@ -134,10 +135,11 @@ public class ListarCarrinhosDisponiveisTests(ApiFixture fixture) : ApiTestBase(f
         var admin = await AdminAsync();
         var carrinho = await CriarCarrinhoAsync(admin);
         await DefinirTurnosAsync(admin, carrinho, (Segunda, Turno0810));
-        var token = Guid.NewGuid();
-        await SolicitarAsync(Publicador(token), carrinho, Segunda, Turno0810, "Mari");
+        var mari = await PublicadorAsync("Mari");
+        await SolicitarAsync(mari, carrinho, Segunda, Turno0810);
+        var token = await IdDoPublicadorAsync(mari);
         (await admin.PutAsJsonAsync($"/api/admin/publicadores/{token}", new { nome = "Mariana Souza" })).EnsureSuccessStatusCode();
 
-        Assert.Equal(["Mariana"], Nomes(await PrimeiraVagaAsync(Fixture.Factory.CreateClient())));
+        Assert.Equal(["Mariana"], Nomes(await PrimeiraVagaAsync(await PublicadorAsync("Leitor"))));
     }
 }

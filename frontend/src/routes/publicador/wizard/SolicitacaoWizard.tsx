@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { apiFetch, ApiError } from "../../../api/client";
-import { usePublicadorToken } from "../../../hooks/usePublicadorToken";
 import { ehErroDeJanelaFechada } from "../../../hooks/useJanela";
 import { TURNOS } from "../../../constants/turnos";
 import { DIAS_SEMANA, type DiaSemana } from "../../../constants/diasSemana";
@@ -129,14 +128,13 @@ interface SolicitacaoWizardProps {
 /**
  * Formulário de solicitação em 3 etapas (PLANNING.md §5): dia da semana → turno → carrinho,
  * uma pergunta por tela, com um botão grande de confirmação no rodapé. O nome não é pedido
- * aqui: ele é informado no primeiro acesso (rota /nome) e vai junto no envio. "Voltar" na
+ * aqui: o pedido é da conta logada (o servidor tira o publicador do token). "Voltar" na
  * primeira etapa sai do wizard para a tela inicial. Cada
  * Etapa* é "burra" (recebe valor + callback, sem estado próprio); este componente guarda
  * todo o estado e faz o submit final.
  */
 export function SolicitacaoWizard({ mesAlvo }: SolicitacaoWizardProps) {
   const navigate = useNavigate();
-  const { nome } = usePublicadorToken();
   const [etapa, setEtapa] = useState<Etapa>(1);
   const [diaSemana, setDiaSemana] = useState<DiaSemana | null>(null);
   const [turnoId, setTurnoId] = useState<number | null>(null);
@@ -310,7 +308,7 @@ export function SolicitacaoWizard({ mesAlvo }: SolicitacaoWizardProps) {
     try {
       await apiFetch<SolicitacaoCriadaResponse>("/api/solicitacoes", {
         method: "POST",
-        body: JSON.stringify({ nome, carrinhoId, diaSemana, turnoId }),
+        body: JSON.stringify({ carrinhoId, diaSemana, turnoId }),
       });
       navigate("/", { replace: true });
     } catch (err) {

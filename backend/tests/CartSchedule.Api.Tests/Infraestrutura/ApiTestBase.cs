@@ -10,8 +10,8 @@ namespace CartSchedule.Api.Tests.Infraestrutura;
 
 /// <summary>
 /// Base dos testes de integração: banco limpo antes de cada teste e atalhos para os
-/// fluxos que quase todo teste precisa (login do admin, criar carrinho, configurar
-/// turnos). Os corpos são JSON anônimos em camelCase — o mesmo contrato que o frontend
+/// fluxos que quase todo teste precisa (login do admin e de publicadores, criar carrinho,
+/// configurar turnos). Os corpos são JSON anônimos em camelCase — o mesmo contrato que o frontend
 /// usa — em vez dos records internos da API.
 /// </summary>
 [Collection("api")]
@@ -63,12 +63,24 @@ public abstract class ApiTestBase(ApiFixture fixture) : IAsyncLifetime
         return (corpo.GetProperty("id").GetGuid(), corpo.GetProperty("pin").GetString()!);
     }
 
-    protected HttpClient Publicador(Guid? token = null)
+    private int _contas;
+
+    /// <summary>
+    /// Publicador comum com conta: criada pela API admin (usuário único gerado para o teste),
+    /// logada pelo POST /api/login. Devolve o cliente que manda o token no Authorization.
+    /// </summary>
+    protected async Task<HttpClient> PublicadorAsync(string nome = "Ana", bool criancaOuIdoso = false)
     {
-        var client = Fixture.Factory.CreateClient();
-        client.DefaultRequestHeaders.Add("X-Publicador-Token", (token ?? Guid.NewGuid()).ToString());
-        return client;
+        var usuario = $"pub{Interlocked.Increment(ref _contas)}";
+        var (_, pin) = await CriarContaAsync(await AdminAsync(), nome, usuario, criancaOuIdoso: criancaOuIdoso);
+        var login = await LoginAsync(Fixture.Factory.CreateClient(), usuario, pin);
+        login.EnsureSuccessStatusCode();
+        return ClienteComToken(await JsonAsync(login));
     }
+
+    /// <summary>Id do publicador logado no cliente (GET /api/eu).</summary>
+    protected static async Task<Guid> IdDoPublicadorAsync(HttpClient publicador) =>
+        (await publicador.GetFromJsonAsync<JsonElement>("/api/eu")).GetProperty("id").GetGuid();
 
     protected async Task<int> CriarCarrinhoAsync(HttpClient admin, string nome = "Carrinho 01")
     {
@@ -92,9 +104,9 @@ public abstract class ApiTestBase(ApiFixture fixture) : IAsyncLifetime
             disponibilidades = disponibilidades.Select(d => new { diaSemana = d.Dia, turnoId = d.Turno }),
         });
 
-    protected static Task<HttpResponseMessage> SolicitarAsync(
-        HttpClient publicador, int carrinhoId, int dia, int turno, string nome = "Ana") =>
-        publicador.PostAsJsonAsync("/api/solicitacoes", new { nome, carrinhoId, diaSemana = dia, turnoId = turno });
+    /// <summary>POST /api/solicitacoes — o publicador (e o nome) vêm do token do cliente.</summary>
+    protected static Task<HttpResponseMessage> SolicitarAsync(HttpClient publicador, int carrinhoId, int dia, int turno) =>
+        publicador.PostAsJsonAsync("/api/solicitacoes", new { carrinhoId, diaSemana = dia, turnoId = turno });
 
     /// <summary>
     /// Atalho de teste, não uma regra da API (que só recebe o id): adiciona à vaga o registro
