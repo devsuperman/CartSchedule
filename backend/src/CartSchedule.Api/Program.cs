@@ -11,6 +11,7 @@ using CartSchedule.Api.Features.Autenticacao.Login;
 using CartSchedule.Api.Features.Autenticacao.RenovarSessao;
 using CartSchedule.Api.Features.Publicadores.ExcluirSolicitacao;
 using CartSchedule.Api.Features.Publicadores.ObterEu;
+using CartSchedule.Api.Features.Publicadores.TrocarPin;
 using CartSchedule.Api.Features.Publicadores.ConsultarJanela;
 using CartSchedule.Api.Features.Publicadores.CriarSolicitacao;
 using CartSchedule.Api.Features.Publicadores.ListarCarrinhosDisponiveis;
@@ -79,6 +80,7 @@ app.MapCriarSolicitacao();
 app.MapListarHistorico();
 app.MapExcluirSolicitacao();
 app.MapObterEu();
+app.MapTrocarPin();
 
 // Login único (administrador de recuperação e publicadores)
 app.MapLogin();

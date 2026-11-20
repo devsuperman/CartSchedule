@@ -83,8 +83,11 @@ semana, por turno** — ou 3, quando uma delas é criança ou idoso (regra 1).
    entrar, volta à página pedida. O login dura **180 dias** no aparelho e é
    renovado a cada vez que ele abre o site, então o PIN quase nunca é pedido de
    novo. O cabeçalho mostra **"Olá, {primeiro nome}"** (o nome da conta), que
-   abre um menu com **"Sair"**; o publicador não edita o nome (só o
-   administrador). Quem é administrador vê também o link **"Administração"**.
+   abre um menu com **"Trocar PIN"** e **"Sair"**; o publicador não edita o nome (só o
+   administrador). Em "Trocar PIN" ele informa o PIN atual e o novo duas vezes; o
+   novo precisa ter exatamente 4 dígitos e não ser óbvio (todos iguais ou em
+   sequência, como 0000, 1234 ou 4321). Ao trocar, os outros aparelhos dele são
+   desconectados e o aparelho atual continua logado. Quem é administrador vê também o link **"Administração"**.
    O formulário de solicitação não pede o nome: o pedido é da conta logada.
 3. Toca em **"Solicitar Nova Escala"** e seleciona o **dia da semana** em que quer trabalhar — só aparecem os dias em que algum carrinho oferecido tem turno configurado (carrinho oferecido = ativo e, se for de data especial, da escala em envio e com a data ainda não passada — regras 10a e 18); um dia em que nenhuma vaga pode mais ser pedida por ele (todas cheias ou em horários em que ele já tem pedido) aparece desabilitado, sem texto.
 4. Seleciona o **turno** desejado — só aparecem os turnos que algum carrinho tem configurados **naquele dia da semana**; um turno sem nenhuma vaga que ele possa pedir aparece desabilitado, sem texto. Se ele já tem pedido naquele dia e horário (em qualquer carrinho), o turno fica desabilitado e mostra "Você já tem pedido neste horário" — não dá para estar em dois lugares ao mesmo tempo (regra 10).
@@ -222,7 +225,7 @@ EXISTE ──(admin exclui, a qualquer momento)──► (registro apagado)
 - `nome` (até 200 caracteres; só o administrador altera)
 - `crianca_ou_idoso` (booleano, padrão falso; marcado pelo administrador — regra 1)
 - `usuario` (único sem diferenciar maiúsculas nem acentos; vazio nos registros antigos até o administrador definir) e `pin_hash` (só o hash do PIN de 4 dígitos)
-- `administrador` (booleano), `ativo` (booleano; desativado não entra) e `versao_sessao` (incrementada ao redefinir o PIN ou desativar: desconecta os aparelhos)
+- `administrador` (booleano), `ativo` (booleano; desativado não entra) e `versao_sessao` (incrementada ao redefinir ou trocar o PIN e ao desativar: desconecta os aparelhos)
 
 **Carrinho**
 - `id`

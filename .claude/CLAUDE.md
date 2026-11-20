@@ -111,7 +111,8 @@ todas são intencionais, confirmadas no `PLANNING.md`:
    existem** token anônimo, `X-Publicador-Token`, `/nome` nem `PUT /api/publicador` — não
    reintroduzir. O nome é o da conta: o pedido não leva nome e **só o admin edita**
    (`PUT /api/admin/publicadores/{id}`); "Olá, {primeiro nome}" (`GET /api/eu`) é um menu com
-   "Sair", sem edição de nome. Nomes repetidos são permitidos.
+   "Trocar PIN" (`PUT /api/eu/pin`: PIN atual + novo, `PIN_FRACO` para óbvios, devolve token
+   novo e desconecta os outros aparelhos) e "Sair", sem edição de nome. Nomes repetidos são permitidos.
 6. **Janela de envio: abre sozinha no dia 15, só o admin fecha**, sem
    job/cron: calculada a cada request (`JanelaDeEnvio`). Escala-alvo = a
    aberta no último dia 15 (dia ≥ 15 → mês seguinte; dia 1–14 → mês
