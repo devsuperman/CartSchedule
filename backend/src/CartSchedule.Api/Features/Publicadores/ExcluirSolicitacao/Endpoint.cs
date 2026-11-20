@@ -42,6 +42,11 @@ public static class Endpoint
                     statusCode: StatusCodes.Status403Forbidden);
             }
 
+            if (!await db.Publicadores.AnyAsync(p => p.Id == publicadorId && p.Ativo))
+            {
+                return PublicadorInativo.Problema();
+            }
+
             var janela = await JanelaDeEnvio.CalcularParaHojeAsync(db, relogio);
             if (!janela.Aberta)
             {

@@ -89,9 +89,10 @@ backend/
           ObterEscalaFinal/         # GET  /api/admin/escalas/{mes}/grade  (todas as vagas configuradas + células com pedidos; disponivel; por célula: carrinhoDescricao, carrinhoDataEspecial (carrinho especial só no mês da data); por pedido: solicitacaoId, origem, totalNaEscala, criancaOuIdoso; envio: {aberto} só na escala em envio, senão null)
           AlterarEnvioEscala/       # PUT  /api/admin/escalas/{mes}/envio  ({aberto}; 204; 400 se o mês não é a escala em envio; idempotente; cria a escala se preciso)
           MoverSolicitacao/         # PATCH /api/admin/solicitacoes/{id}  ({carrinhoId, diaSemana, turnoId}; 204; 400 destino não configurado; 409 duplicidade; 404; sem janela; vaga com excesso não bloqueia)
-          GerenciarPublicadores/    # GET  /api/admin/publicadores?busca=  (id, nome, usuario, criancaOuIdoso, administrador, ativo, temPin)
+          GerenciarPublicadores/    # GET  /api/admin/publicadores?busca=&incluirInativos=  (desativados só com incluirInativos=true; ehVoce marca o administrador logado; id, nome, usuario, criancaOuIdoso, administrador, ativo, temPin)
                                     # POST /api/admin/publicadores  ({nome, usuario, criancaOuIdoso, administrador} → 201 {id, usuario, pin}; PIN só nesta resposta)
-                                    # PUT  /api/admin/publicadores/{id}  ({nome?, usuario?, criancaOuIdoso?, administrador?}; ausente = não muda; 204, ou 200 {id, usuario, pin} ao dar usuário a registro sem PIN; 409 USUARIO_EM_USO; nomes repetidos permitidos)
+                                    # PUT  /api/admin/publicadores/{id}  ({nome?, usuario?, criancaOuIdoso?, administrador?, ativo?}; ativo=false desconecta os aparelhos; 409 PROPRIA_CONTA ao desativar ou tirar o administrador da própria conta; ausente = não muda; 204, ou 200 {id, usuario, pin} ao dar usuário a registro sem PIN; 409 USUARIO_EM_USO; nomes repetidos permitidos)
+                                    # POST /api/admin/publicadores/{id}/pin  (redefine: 200 {id, usuario, pin}; desconecta os aparelhos; 400 SEM_USUARIO se ainda não tem usuário)
 ```
 
 Cada slice de `Features/` segue o mesmo padrão de arquivos:
@@ -105,9 +106,9 @@ Cada slice de `Features/` segue o mesmo padrão de arquivos:
 - **Login único** `POST /api/login` (`{ usuario, pin }` → `{ token, papel }`), tela `/login` no frontend (`/admin/login` redireciona para ela).
 - Primeiro confere o **administrador de recuperação**: usuário + hash da senha via **variáveis de ambiente** (`Admin:Usuario`/`Admin:SenhaHash`, hash do `PasswordHasher` do ASP.NET Core), nunca em código; a senha vai no campo `pin`. Senão, procura o **publicador** pelo usuário normalizado (sem maiúsculas e sem acentos, coluna `UsuarioNormalizado` com índice único) e confere o PIN (`PinHash`, mesmo hasher).
 - Usuário inexistente, PIN errado e conta sem PIN → mesma resposta `401` `codigo: "CREDENCIAIS_INVALIDAS"`; conta desativada → `403` `codigo: "PUBLICADOR_INATIVO"`. Sem bloqueio de conta: só o rate limit `login` por IP (2.9).
-- **JWT** HMAC SHA256 (chave em `Jwt:ChaveSecreta`), sem refresh token, com o papel em `ClaimTypes.Role` (`Papeis`): `recuperacao` e `administrador` valem **2 horas**; `publicador` vale 180 dias. Tokens de publicador levam o id e `versaoSessao`. O frontend guarda o JWT de administrador em `sessionStorage` (some ao fechar a aba).
+- **JWT** HMAC SHA256 (chave em `Jwt:ChaveSecreta`), sem refresh token, com o papel em `ClaimTypes.Role` (`Papeis`): `recuperacao` e `administrador` valem **2 horas**; `publicador` vale 180 dias. Tokens de publicador levam o id e `versaoSessao`. A cada request autenticado, `Infrastructure/Auth/ValidacaoDaSessao` (evento `OnTokenValidated`) confere que o publicador existe, está ativo, que a `versaoSessao` do token é a atual e que, se o token é de administrador, a pessoa ainda é administrador; senão `401` (dar administrador não desconecta: o papel novo vem no próximo login). Redefinir o PIN e desativar incrementam `versaoSessao` — é assim que todos os aparelhos são desconectados (reativar não devolve as sessões antigas). O frontend guarda o JWT de administrador em `sessionStorage` (some ao fechar a aba).
 - Todas as rotas de `Features/Administradores/*` exigem o token (`RequireAuthorization()`), e a política padrão exige o papel `administrador` ou `recuperacao`: o publicador comum recebe `403`.
-- Rotas de `Features/Publicadores/*` continuam públicas (sem autenticação), conforme regra de negócio.
+- Rotas de `Features/Publicadores/*` continuam públicas (sem autenticação), conforme regra de negócio. Enquanto usam o token anônimo, um publicador desativado recebe `403` `PUBLICADOR_INATIVO` (`Shared/PublicadorInativo`) ao pedir, excluir ou renomear; o histórico continua legível.
 
 ### 2.3 Identificação do Publicador (sem cadastro formal)
 

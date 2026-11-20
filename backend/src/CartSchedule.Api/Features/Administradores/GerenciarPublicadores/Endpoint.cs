@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using CartSchedule.Api.Domain;
 using CartSchedule.Api.Infrastructure;
 using CartSchedule.Api.Shared;
@@ -14,10 +15,17 @@ namespace CartSchedule.Api.Features.Administradores.GerenciarPublicadores;
 /// valem em todos os pedidos da pessoa. Nomes repetidos são permitidos; usuários não
 /// (comparados sem maiúsculas e sem acentos → 409 USUARIO_EM_USO). Registros antigos, sem
 /// usuário, recebem usuário pela edição e, junto, o PIN — mantendo id e histórico.
+/// Redefinir o PIN (gera outro, mostrado uma vez) e desativar desconectam todos os aparelhos da
+/// pessoa: incrementam <c>VersaoSessao</c>, conferida em todo request (Auth/ValidacaoDaSessao).
+/// Desativado some da lista por padrão (<c>incluirInativos</c> para vê-lo) e mantém o histórico.
+/// Um administrador não desativa nem tira o próprio administrador (409 PROPRIA_CONTA): ficaria
+/// sem acesso e só o administrador de recuperação desfaria.
 /// </summary>
 public static class Endpoint
 {
     public const string CodigoUsuarioEmUso = "USUARIO_EM_USO";
+    public const string CodigoSemUsuario = "SEM_USUARIO";
+    public const string CodigoPropriaConta = "PROPRIA_CONTA";
 
     public static IEndpointRouteBuilder MapGerenciarPublicadores(this IEndpointRouteBuilder app)
     {
@@ -31,18 +39,23 @@ public static class Endpoint
         group.MapPut("/{id:guid}", EditarAsync)
             .AddEndpointFilter<ValidationFilter<EditarPublicadorRequest>>();
 
+        group.MapPost("/{id:guid}/pin", RedefinirPinAsync);
+
         return app;
     }
 
-    private static async Task<IResult> ListarAsync(string? busca, AppDbContext db, CancellationToken ct)
+    private static async Task<IResult> ListarAsync(
+        string? busca, bool? incluirInativos, ClaimsPrincipal usuarioLogado, AppDbContext db, CancellationToken ct)
     {
+        var euId = IdDoLogado(usuarioLogado);
         // Poucas centenas de pessoas no máximo: a busca sem acentos é feita em memória, com a
         // mesma normalização do usuário.
         var publicadores = await db.Publicadores
             .AsNoTracking()
+            .Where(p => p.Ativo || incluirInativos == true)
             .OrderBy(p => p.Nome)
             .Select(p => new PublicadorResponse(
-                p.Id, p.Nome, p.Usuario, p.CriancaOuIdoso, p.Administrador, p.Ativo, p.PinHash != null))
+                p.Id, p.Nome, p.Usuario, p.CriancaOuIdoso, p.Administrador, p.Ativo, p.PinHash != null, p.Id == euId))
             .ToListAsync(ct);
 
         if (!string.IsNullOrWhiteSpace(busca))
@@ -73,8 +86,7 @@ public static class Endpoint
             Usuario = usuario,
             UsuarioNormalizado = UsuarioNormalizado.De(usuario),
         };
-        var pin = Pin.Gerar();
-        publicador.PinHash = passwordHasher.HashPassword(new object(), pin);
+        var pin = NovoPin(publicador, passwordHasher);
 
         if (await UsuarioEmUsoAsync(db, publicador.UsuarioNormalizado, publicador.Id, ct))
         {
@@ -95,6 +107,7 @@ public static class Endpoint
     private static async Task<IResult> EditarAsync(
         Guid id,
         EditarPublicadorRequest request,
+        ClaimsPrincipal usuarioLogado,
         AppDbContext db,
         [FromServices] PasswordHasher<object> passwordHasher,
         CancellationToken ct)
@@ -105,6 +118,14 @@ public static class Endpoint
             return Results.NotFound();
         }
 
+        if (IdDoLogado(usuarioLogado) == id && (request.Ativo == false || request.Administrador == false))
+        {
+            return Results.Problem(
+                title: "Você não pode desativar nem tirar o administrador da sua própria conta. Peça a outro administrador.",
+                statusCode: StatusCodes.Status409Conflict,
+                extensions: new Dictionary<string, object?> { ["codigo"] = CodigoPropriaConta });
+        }
+
         if (request.Nome is not null)
         {
             publicador.Nome = request.Nome.Trim();
@@ -112,6 +133,10 @@ public static class Endpoint
 
         publicador.CriancaOuIdoso = request.CriancaOuIdoso ?? publicador.CriancaOuIdoso;
         publicador.Administrador = request.Administrador ?? publicador.Administrador;
+
+        // Desativar desconecta os aparelhos; reativar não devolve as sessões antigas.
+        var desativou = request.Ativo == false && publicador.Ativo;
+        publicador.Ativo = request.Ativo ?? publicador.Ativo;
 
         string? pinGerado = null;
         if (request.Usuario is not null)
@@ -126,8 +151,7 @@ public static class Endpoint
             // Registro antigo recebendo usuário: cria as credenciais completas.
             if (publicador.PinHash is null)
             {
-                pinGerado = Pin.Gerar();
-                publicador.PinHash = passwordHasher.HashPassword(new object(), pinGerado);
+                pinGerado = NovoPin(publicador, passwordHasher);
             }
         }
 
@@ -136,9 +160,62 @@ public static class Endpoint
             return UsuarioEmUso();
         }
 
+        if (desativou)
+        {
+            await DesconectarAparelhosAsync(db, id, ct);
+        }
+
         return pinGerado is null
             ? Results.NoContent()
             : Results.Ok(new CredenciaisResponse(publicador.Id, publicador.Usuario!, pinGerado));
+    }
+
+    private static async Task<IResult> RedefinirPinAsync(
+        Guid id,
+        AppDbContext db,
+        [FromServices] PasswordHasher<object> passwordHasher,
+        CancellationToken ct)
+    {
+        var publicador = await db.Publicadores.SingleOrDefaultAsync(p => p.Id == id, ct);
+        if (publicador is null)
+        {
+            return Results.NotFound();
+        }
+
+        if (publicador.Usuario is null)
+        {
+            return Results.Problem(
+                title: "Este publicador ainda não tem usuário. Dê um usuário a ele para criar o acesso.",
+                statusCode: StatusCodes.Status400BadRequest,
+                extensions: new Dictionary<string, object?> { ["codigo"] = CodigoSemUsuario });
+        }
+
+        var pin = NovoPin(publicador, passwordHasher);
+        await db.SaveChangesAsync(ct);
+        await DesconectarAparelhosAsync(db, id, ct);
+
+        return Results.Ok(new CredenciaisResponse(publicador.Id, publicador.Usuario, pin));
+    }
+
+    /// <summary>
+    /// Incrementa <c>VersaoSessao</c> no próprio banco (atômico): duas ações simultâneas de
+    /// administradores não perdem um incremento, que poderia deixar uma sessão antiga valendo.
+    /// </summary>
+    private static Task DesconectarAparelhosAsync(AppDbContext db, Guid id, CancellationToken ct) =>
+        db.Publicadores
+            .Where(p => p.Id == id)
+            .ExecuteUpdateAsync(s => s.SetProperty(p => p.VersaoSessao, p => p.VersaoSessao + 1), ct);
+
+    /// <summary>Id do publicador logado; null para o administrador de recuperação.</summary>
+    private static Guid? IdDoLogado(ClaimsPrincipal usuario) =>
+        Guid.TryParse(usuario.FindFirstValue(ClaimTypes.NameIdentifier), out var id) ? id : null;
+
+    /// <summary>Gera um PIN, guarda só o hash e devolve o PIN em claro para a resposta.</summary>
+    private static string NovoPin(Publicador publicador, PasswordHasher<object> passwordHasher)
+    {
+        var pin = Pin.Gerar();
+        publicador.PinHash = passwordHasher.HashPassword(new object(), pin);
+        return pin;
     }
 
     private static Task<bool> UsuarioEmUsoAsync(AppDbContext db, string normalizado, Guid id, CancellationToken ct) =>

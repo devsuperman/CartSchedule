@@ -20,7 +20,6 @@ namespace CartSchedule.Api.Features.Autenticacao.Login;
 public static class Endpoint
 {
     public const string CodigoCredenciaisInvalidas = "CREDENCIAIS_INVALIDAS";
-    public const string CodigoPublicadorInativo = "PUBLICADOR_INATIVO";
 
     private static readonly string HashSemConta =
         new PasswordHasher<object>().HashPassword(new object(), Guid.NewGuid().ToString());
@@ -74,10 +73,7 @@ public static class Endpoint
 
         if (!publicador.Ativo)
         {
-            return Results.Problem(
-                title: "Seu acesso está desativado. Fale com o administrador.",
-                statusCode: StatusCodes.Status403Forbidden,
-                extensions: new Dictionary<string, object?> { ["codigo"] = CodigoPublicadorInativo });
+            return PublicadorInativo.Problema();
         }
 
         var token = jwtTokenService.GerarTokenDePublicador(

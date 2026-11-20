@@ -5,10 +5,12 @@ public record CriarPublicadorRequest(string Nome, string Usuario, bool CriancaOu
 
 /// <summary>
 /// Edição parcial: campo ausente (null) não muda. Dar <see cref="Usuario"/> a um registro que
-/// ainda não tem PIN cria as credenciais (o PIN gerado volta na resposta).
+/// ainda não tem PIN cria as credenciais (o PIN gerado volta na resposta). <see cref="Ativo"/>
+/// false desativa (desconecta os aparelhos e recusa o login); true reativa.
 /// </summary>
 public record EditarPublicadorRequest(
     string? Nome = null,
     string? Usuario = null,
     bool? CriancaOuIdoso = null,
-    bool? Administrador = null);
+    bool? Administrador = null,
+    bool? Ativo = null);

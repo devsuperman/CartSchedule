@@ -35,6 +35,10 @@ public static class AuthServiceCollectionExtensions
                     IssuerSigningKey = AuthSigningKey.CriarChave(chaveSecreta),
                     ClockSkew = TimeSpan.FromMinutes(1),
                 };
+                options.Events = new JwtBearerEvents
+                {
+                    OnTokenValidated = ValidacaoDaSessao.AoValidarTokenAsync,
+                };
             });
 
         // Toda rota com .RequireAuthorization() é administrativa: só administrador ou o
