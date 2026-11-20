@@ -47,7 +47,7 @@ frontend/src/
   api/                     # client.ts + wrappers por área
   routes/publicador/       # InicioPublicador (histórico + botões), SolicitarEscala, wizard/, Nome, JanelaFechada
   routes/Login.tsx         # login único (/login): usuário + PIN; /admin/login redireciona
-  routes/admin/            # GestaoCarrinhos, Publicadores (contas: criar, editar, redefinir PIN — mostrado uma vez —, desativar/reativar com "Mostrar desativados"), EscalaFinal (gestão da escala: mover/adicionar/excluir), EscalaCompartilhar (imagem só leitura do mês, dia → turno → carrinho, + uma por data especial)
+  routes/admin/            # GestaoCarrinhos, Publicadores (contas: criar, editar, redefinir PIN — mostrado uma vez —, desativar/reativar com "Mostrar desativados", unir duplicados com prévia), EscalaFinal (gestão da escala: mover/adicionar/excluir), EscalaCompartilhar (imagem só leitura do mês, dia → turno → carrinho, + uma por data especial)
   hooks/                   # usePublicadorToken, useJanela, useAdminAuth
   constants/                # turnos.ts, diasSemana.ts (espelham enums do backend)
 ```

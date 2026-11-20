@@ -93,6 +93,7 @@ backend/
                                     # POST /api/admin/publicadores  ({nome, usuario, criancaOuIdoso, administrador} → 201 {id, usuario, pin}; PIN só nesta resposta)
                                     # PUT  /api/admin/publicadores/{id}  ({nome?, usuario?, criancaOuIdoso?, administrador?, ativo?}; ativo=false desconecta os aparelhos; 409 PROPRIA_CONTA ao desativar ou tirar o administrador da própria conta; ausente = não muda; 204, ou 200 {id, usuario, pin} ao dar usuário a registro sem PIN; 409 USUARIO_EM_USO; nomes repetidos permitidos)
                                     # POST /api/admin/publicadores/{id}/pin  (redefine: 200 {id, usuario, pin}; desconecta os aparelhos; 400 SEM_USUARIO se ainda não tem usuário)
+          UnirPublicadores/         # GET  /api/admin/publicadores/{origemId}/unir/{destinoId}  (prévia: {pedidosMovidos, pedidosDescartados}); POST na mesma rota executa numa transação: move os pedidos da origem ao destino, descarta os que o destino já tem na mesma (escala, carrinho, dia, turno), criança/idoso da origem passa ao destino (nunca desmarca), apaga a origem; 400 origem = destino; 404 inexistente
 ```
 
 Cada slice de `Features/` segue o mesmo padrão de arquivos:
