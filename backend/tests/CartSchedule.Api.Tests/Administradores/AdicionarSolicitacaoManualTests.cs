@@ -14,7 +14,7 @@ public class AdicionarSolicitacaoManualTests(ApiFixture fixture) : ApiTestBase(f
         var carrinhoId = await CriarCarrinhoAsync(admin);
         await DefinirTurnosAsync(admin, carrinhoId, (Segunda, Turno0810));
 
-        var resposta = await AdicionarManualAsync(admin, carrinhoId, Segunda, Turno0810, "Caio");
+        var resposta = await AdicionarRegistroAntigoAsync(admin, carrinhoId, Segunda, Turno0810, "Caio");
 
         Assert.Equal(HttpStatusCode.Created, resposta.StatusCode);
         Assert.False((await JsonAsync(resposta)).TryGetProperty("status", out _));
@@ -30,7 +30,7 @@ public class AdicionarSolicitacaoManualTests(ApiFixture fixture) : ApiTestBase(f
         var carrinhoId = await CriarCarrinhoAsync(admin);
         await DefinirTurnosAsync(admin, carrinhoId, (Segunda, Turno0810), (Terca, Turno1012));
 
-        var resposta = await AdicionarManualAsync(admin, carrinhoId, Terca, Turno0810, "Caio");
+        var resposta = await AdicionarRegistroAntigoAsync(admin, carrinhoId, Terca, Turno0810, "Caio");
 
         Assert.Equal(HttpStatusCode.BadRequest, resposta.StatusCode);
     }
@@ -44,7 +44,7 @@ public class AdicionarSolicitacaoManualTests(ApiFixture fixture) : ApiTestBase(f
 
         foreach (var nome in new[] { "Ana", "Bia", "Caio" })
         {
-            var resposta = await AdicionarManualAsync(admin, carrinhoId, Segunda, Turno0810, nome);
+            var resposta = await AdicionarRegistroAntigoAsync(admin, carrinhoId, Segunda, Turno0810, nome);
             Assert.Equal(HttpStatusCode.Created, resposta.StatusCode);
         }
     }
@@ -170,7 +170,7 @@ public class AdicionarSolicitacaoManualTests(ApiFixture fixture) : ApiTestBase(f
         await DefinirTurnosAsync(admin, carrinhoId, (Segunda, Turno0810));
         Fixture.Relogio.Agora = new DateTimeOffset(2026, 9, 5, 15, 0, 0, TimeSpan.Zero);
 
-        var resposta = await AdicionarManualAsync(admin, carrinhoId, Segunda, Turno0810, "Caio", mes: "2026-07");
+        var resposta = await AdicionarRegistroAntigoAsync(admin, carrinhoId, Segunda, Turno0810, "Caio", mes: "2026-07");
 
         Assert.Equal(HttpStatusCode.Created, resposta.StatusCode);
     }

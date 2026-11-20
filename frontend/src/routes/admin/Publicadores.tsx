@@ -1,14 +1,7 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { apiFetch, ApiError } from "../../api/client";
 import { CampoCriancaOuIdoso } from "./components/ModalEditarNome";
-import { PainelAcesso } from "./components/PainelAcesso";
-import {
-  combinaComBusca,
-  normalizar,
-  primeiroNome,
-  type Credenciais,
-  type Publicador,
-} from "./components/publicadores";
+import { combinaComBusca, normalizar, type Publicador } from "./components/publicadores";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -25,6 +18,17 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+
+/** Resposta de criar (ou de dar usuário a um registro antigo): o único momento em que o PIN aparece. */
+interface Credenciais {
+  id: string;
+  usuario: string;
+  pin: string;
+}
+
+function primeiroNome(nome: string): string {
+  return nome.trim().split(/\s+/)[0] ?? "";
+}
 
 type Edicao = { modo: "criar" } | { modo: "editar"; publicador: Publicador };
 
@@ -644,6 +648,16 @@ function FormularioPublicador({
   );
 }
 
+/** Mensagem pronta para o WhatsApp: link do site, usuário e PIN. */
+function mensagemDeAcesso(nome: string, { usuario, pin }: Credenciais): string {
+  return [
+    `Olá, ${primeiroNome(nome)}! Este é o seu acesso à Escala TPL:`,
+    window.location.origin,
+    `Usuário: ${usuario}`,
+    `PIN: ${pin}`,
+  ].join("\n");
+}
+
 function DialogoAcesso({
   acesso,
   onFechar,
@@ -651,9 +665,59 @@ function DialogoAcesso({
   acesso: { nome: string; credenciais: Credenciais } | null;
   onFechar: () => void;
 }) {
+  const [copiado, setCopiado] = useState<"sim" | "falhou" | null>(null);
+
+  async function copiar() {
+    if (!acesso) return;
+    try {
+      await navigator.clipboard.writeText(mensagemDeAcesso(acesso.nome, acesso.credenciais));
+      setCopiado("sim");
+    } catch {
+      setCopiado("falhou");
+    }
+  }
+
   return (
-    <Dialog open={acesso !== null} onOpenChange={(aberto) => !aberto && onFechar()}>
-      <DialogContent>{acesso && <PainelAcesso nome={acesso.nome} credenciais={acesso.credenciais} />}</DialogContent>
+    <Dialog
+      open={acesso !== null}
+      onOpenChange={(aberto) => {
+        if (!aberto) {
+          setCopiado(null);
+          onFechar();
+        }
+      }}
+    >
+      <DialogContent>
+        {acesso && (
+          <div className="grid gap-4">
+            <DialogHeader>
+              <DialogTitle>Acesso de {acesso.nome}</DialogTitle>
+              <DialogDescription>Envie agora: o PIN não será mostrado de novo.</DialogDescription>
+            </DialogHeader>
+            <dl className="grid grid-cols-[auto_1fr] items-baseline gap-x-4 gap-y-2">
+              <dt className="text-muted-foreground">Usuário</dt>
+              <dd className="text-[1.1rem] font-bold">{acesso.credenciais.usuario}</dd>
+              <dt className="text-muted-foreground">PIN</dt>
+              <dd className="font-mono text-[1.6rem] font-bold tracking-[0.3em]">{acesso.credenciais.pin}</dd>
+            </dl>
+            {copiado === "falhou" && (
+              <Alert variant="destructive">
+                <AlertDescription>Não foi possível copiar. Anote o usuário e o PIN acima.</AlertDescription>
+              </Alert>
+            )}
+            <DialogFooter>
+              <DialogClose asChild>
+                <Button type="button" variant="outline">
+                  Pronto
+                </Button>
+              </DialogClose>
+              <Button type="button" onClick={copiar}>
+                {copiado === "sim" ? "Mensagem copiada" : "Copiar mensagem"}
+              </Button>
+            </DialogFooter>
+          </div>
+        )}
+      </DialogContent>
     </Dialog>
   );
 }

@@ -97,11 +97,11 @@ public abstract class ApiTestBase(ApiFixture fixture) : IAsyncLifetime
         publicador.PostAsJsonAsync("/api/solicitacoes", new { nome, carrinhoId, diaSemana = dia, turnoId = turno });
 
     /// <summary>
-    /// Adição manual para a pessoa com esse nome exato: reusa o publicador que já existe com ele
-    /// ou cria um registro antigo (sem usuário/PIN, <see cref="RegistroAntigoAsync"/>). Atalho
-    /// para os testes que só precisam de "alguém" na vaga; o endpoint recebe o id.
+    /// Atalho de teste, não uma regra da API (que só recebe o id): adiciona à vaga o registro
+    /// antigo (sem usuário/PIN) com esse nome, gravado direto no banco no primeiro uso do nome
+    /// no teste e reusado nos seguintes. Para os testes que só precisam de "alguém" na vaga.
     /// </summary>
-    protected async Task<HttpResponseMessage> AdicionarManualAsync(
+    protected async Task<HttpResponseMessage> AdicionarRegistroAntigoAsync(
         HttpClient admin, int carrinhoId, int dia, int turno, string nome, string mes = MesAlvo)
     {
         Guid publicadorId;

@@ -55,9 +55,9 @@ public class MoverSolicitacaoTests(ApiFixture fixture) : ApiTestBase(fixture)
         var admin = await AdminAsync();
         var carrinhoId = await CriarCarrinhoAsync(admin);
         await DefinirTurnosAsync(admin, carrinhoId, (Segunda, Turno0810), (Segunda, Turno1012));
-        await AdicionarManualAsync(admin, carrinhoId, Segunda, Turno1012, "Bia");
-        await AdicionarManualAsync(admin, carrinhoId, Segunda, Turno1012, "Caio");
-        var id = await IdAsync(await AdicionarManualAsync(admin, carrinhoId, Segunda, Turno0810, "Ana"));
+        await AdicionarRegistroAntigoAsync(admin, carrinhoId, Segunda, Turno1012, "Bia");
+        await AdicionarRegistroAntigoAsync(admin, carrinhoId, Segunda, Turno1012, "Caio");
+        var id = await IdAsync(await AdicionarRegistroAntigoAsync(admin, carrinhoId, Segunda, Turno0810, "Ana"));
 
         var resposta = await MoverAsync(admin, id, carrinhoId, Segunda, Turno1012);
 
@@ -71,7 +71,7 @@ public class MoverSolicitacaoTests(ApiFixture fixture) : ApiTestBase(fixture)
         var admin = await AdminAsync();
         var carrinhoId = await CriarCarrinhoAsync(admin);
         await DefinirTurnosAsync(admin, carrinhoId, (Segunda, Turno0810), (Terca, Turno1012));
-        var id = await IdAsync(await AdicionarManualAsync(admin, carrinhoId, Segunda, Turno0810, "Ana"));
+        var id = await IdAsync(await AdicionarRegistroAntigoAsync(admin, carrinhoId, Segunda, Turno0810, "Ana"));
 
         var resposta = await MoverAsync(admin, id, carrinhoId, Segunda, Turno1012);
 
@@ -100,7 +100,7 @@ public class MoverSolicitacaoTests(ApiFixture fixture) : ApiTestBase(fixture)
         var admin = await AdminAsync();
         var carrinhoId = await CriarCarrinhoAsync(admin);
         await DefinirTurnosAsync(admin, carrinhoId, (Segunda, Turno0810));
-        var id = await IdAsync(await AdicionarManualAsync(admin, carrinhoId, Segunda, Turno0810, "Ana"));
+        var id = await IdAsync(await AdicionarRegistroAntigoAsync(admin, carrinhoId, Segunda, Turno0810, "Ana"));
 
         var resposta = await MoverAsync(admin, id, carrinhoId, Segunda, Turno0810);
 
@@ -115,7 +115,7 @@ public class MoverSolicitacaoTests(ApiFixture fixture) : ApiTestBase(fixture)
         var admin = await AdminAsync();
         var carrinhoId = await CriarCarrinhoAsync(admin);
         await DefinirTurnosAsync(admin, carrinhoId, (Segunda, Turno0810), (Quarta, Turno0608));
-        var id = await IdAsync(await AdicionarManualAsync(admin, carrinhoId, Segunda, Turno0810, "Ana", mes: "2026-07"));
+        var id = await IdAsync(await AdicionarRegistroAntigoAsync(admin, carrinhoId, Segunda, Turno0810, "Ana", mes: "2026-07"));
         Fixture.Relogio.Agora = new DateTimeOffset(2026, 9, 5, 15, 0, 0, TimeSpan.Zero);
 
         var resposta = await MoverAsync(admin, id, carrinhoId, Quarta, Turno0608);
@@ -142,7 +142,7 @@ public class MoverSolicitacaoTests(ApiFixture fixture) : ApiTestBase(fixture)
         var admin = await AdminAsync();
         var carrinhoId = await CriarCarrinhoAsync(admin);
         await DefinirTurnosAsync(admin, carrinhoId, (Segunda, Turno0810), (Terca, Turno0810));
-        var id = await IdAsync(await AdicionarManualAsync(admin, carrinhoId, Segunda, Turno0810, "Ana"));
+        var id = await IdAsync(await AdicionarRegistroAntigoAsync(admin, carrinhoId, Segunda, Turno0810, "Ana"));
 
         var resposta = await MoverAsync(Fixture.Factory.CreateClient(), id, carrinhoId, Terca, Turno0810);
 

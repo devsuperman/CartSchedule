@@ -25,7 +25,7 @@ public class GerenciarPublicadoresTests(ApiFixture fixture) : ApiTestBase(fixtur
         var admin = await AdminAsync();
         var carrinhoId = await CriarCarrinhoAsync(admin);
         await DefinirTurnosAsync(admin, carrinhoId, (Segunda, Turno0810));
-        var adicao = await AdicionarManualAsync(admin, carrinhoId, Segunda, Turno0810, nome);
+        var adicao = await AdicionarRegistroAntigoAsync(admin, carrinhoId, Segunda, Turno0810, nome);
         adicao.EnsureSuccessStatusCode();
         return (admin, PedidosDaGrade(await GradeAsync(admin)).Single().GetProperty("publicadorId").GetGuid());
     }

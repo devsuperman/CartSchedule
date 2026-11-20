@@ -39,8 +39,8 @@ public class ObterEscalaFinalTests(ApiFixture fixture) : ApiTestBase(fixture)
         var inativo = await CriarCarrinhoAsync(admin, "Carrinho 02");
         await DefinirTurnosAsync(admin, ativo, (Segunda, Turno0810), (Segunda, Turno1012));
         await DefinirTurnosAsync(admin, inativo, (Segunda, Turno0810), (Terca, Turno0810));
-        await AdicionarManualAsync(admin, ativo, Segunda, Turno1012, "Ana");
-        await AdicionarManualAsync(admin, inativo, Segunda, Turno0810, "Bia");
+        await AdicionarRegistroAntigoAsync(admin, ativo, Segunda, Turno1012, "Ana");
+        await AdicionarRegistroAntigoAsync(admin, inativo, Segunda, Turno0810, "Bia");
         await DefinirTurnosAsync(admin, ativo, (Segunda, Turno0810));
         await admin.PutAsJsonAsync($"/api/admin/carrinhos/{inativo}", new { nome = "Carrinho 02", descricao = (string?)null, ativo = false });
 
@@ -64,7 +64,7 @@ public class ObterEscalaFinalTests(ApiFixture fixture) : ApiTestBase(fixture)
         var publicador = Publicador();
         var id = (await JsonAsync(await SolicitarAsync(publicador, carrinhoId, Segunda, Turno0810, "Ana"))).GetProperty("id").GetInt32();
         await SolicitarAsync(publicador, carrinhoId, Terca, Turno0810, "Ana");
-        await AdicionarManualAsync(admin, carrinhoId, Segunda, Turno0810, "Bia");
+        await AdicionarRegistroAntigoAsync(admin, carrinhoId, Segunda, Turno0810, "Bia");
 
         var pedidos = PedidosDaGrade(await GradeAsync(admin));
 

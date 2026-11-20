@@ -1,8 +1,8 @@
 import { useEffect, useState, type FormEvent, type ReactNode } from "react";
+import { Link } from "react-router-dom";
 import { apiFetch, ApiError } from "../../../api/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
@@ -14,9 +14,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { CampoCriancaOuIdoso } from "./ModalEditarNome";
-import { PainelAcesso } from "./PainelAcesso";
-import { combinaComBusca, normalizar, primeiroNome, type Credenciais, type Publicador } from "./publicadores";
+import { combinaComBusca, normalizar, type Publicador } from "./publicadores";
 import {
   descreverCelula,
   estadoCom,
@@ -251,17 +249,12 @@ interface SolicitacaoCriada {
   criancaOuIdoso: boolean;
 }
 
-type EtapaAdicionar =
-  | { etapa: "buscar" }
-  | { etapa: "novo" }
-  | { etapa: "acesso"; nome: string; credenciais: Credenciais; erro: string | null };
-
 /**
  * Adição manual numa vaga (regra 9): POST /api/admin/escalas/{mes}/solicitacoes com um
  * publicador existente e ativo, escolhido pela busca (nome ou usuário, sem maiúsculas nem
- * acentos). Nome livre não cria ninguém: "Novo publicador" cria a conta ali mesmo
- * (POST /api/admin/publicadores), adiciona à vaga e mostra o PIN uma única vez. Quem já está
- * na vaga aparece desabilitado; excesso e outro carrinho no mesmo horário só avisam.
+ * acentos). Nome livre não cria ninguém, e a Escala não cria contas: quem não tem conta é
+ * cadastrado na tela Publicadores. Quem já está na vaga aparece desabilitado; excesso e outro
+ * carrinho no mesmo horário só avisam.
  */
 export function ModalAdicionar({
   mes,
@@ -280,12 +273,11 @@ export function ModalAdicionar({
     <Dialog open={celula !== null} onOpenChange={(aberto) => !aberto && onFechar()}>
       <DialogContent>
         {celula && (
-          <FluxoAdicionar
+          <FormularioAdicionar
             key={`${celula.carrinhoId}-${celula.diaSemana}-${celula.turnoId}`}
             mes={mes}
             celula={celula}
             celulas={celulas}
-            onFechar={onFechar}
             onAdicionado={onAdicionado}
           />
         )}
@@ -294,102 +286,19 @@ export function ModalAdicionar({
   );
 }
 
-function FluxoAdicionar({
+function FormularioAdicionar({
   mes,
   celula,
   celulas,
-  onFechar,
   onAdicionado,
 }: {
   mes: string;
   celula: CelulaGrade;
   celulas: readonly CelulaGrade[];
-  onFechar: () => void;
   onAdicionado: (celula: CelulaGrade, criada: SolicitacaoCriada) => void;
 }) {
-  const [etapa, setEtapa] = useState<EtapaAdicionar>({ etapa: "buscar" });
-  const [busca, setBusca] = useState("");
-
-  function adicionar(publicadorId: string) {
-    return apiFetch<SolicitacaoCriada>(`/api/admin/escalas/${mes}/solicitacoes`, {
-      method: "POST",
-      body: JSON.stringify({
-        publicadorId,
-        carrinhoId: celula.carrinhoId,
-        diaSemana: celula.diaSemana,
-        turnoId: celula.turnoId,
-      }),
-    });
-  }
-
-  if (etapa.etapa === "acesso") {
-    return (
-      <PainelAcesso nome={etapa.nome} credenciais={etapa.credenciais}>
-        {etapa.erro ? (
-          <Alert variant="destructive">
-            <AlertDescription>
-              A conta foi criada, mas não foi possível adicionar à vaga: {etapa.erro} Use o + da vaga de novo.
-            </AlertDescription>
-          </Alert>
-        ) : (
-          <Alert className="border-success bg-success-muted text-foreground">
-            <AlertDescription>Adicionado em {descreverCelula(celula)}.</AlertDescription>
-          </Alert>
-        )}
-      </PainelAcesso>
-    );
-  }
-
-  if (etapa.etapa === "novo") {
-    return (
-      <FormularioNovoPublicador
-        celula={celula}
-        nomeInicial={busca.trim()}
-        onVoltar={() => setEtapa({ etapa: "buscar" })}
-        onCriado={async (nome, credenciais) => {
-          let erro: string | null = null;
-          try {
-            onAdicionado(celula, await adicionar(credenciais.id));
-          } catch (e) {
-            erro = e instanceof ApiError ? e.message : "Erro inesperado.";
-          }
-          setEtapa({ etapa: "acesso", nome, credenciais, erro });
-        }}
-      />
-    );
-  }
-
-  return (
-    <BuscarPublicador
-      celula={celula}
-      celulas={celulas}
-      busca={busca}
-      onBuscar={setBusca}
-      onNovo={() => setEtapa({ etapa: "novo" })}
-      onAdicionar={async (publicadorId) => {
-        onAdicionado(celula, await adicionar(publicadorId));
-        onFechar();
-      }}
-    />
-  );
-}
-
-function BuscarPublicador({
-  celula,
-  celulas,
-  busca,
-  onBuscar,
-  onNovo,
-  onAdicionar,
-}: {
-  celula: CelulaGrade;
-  celulas: readonly CelulaGrade[];
-  busca: string;
-  onBuscar: (busca: string) => void;
-  onNovo: () => void;
-  onAdicionar: (publicadorId: string) => Promise<void>;
-}) {
   const [publicadores, setPublicadores] = useState<Publicador[] | null>(null);
+  const [busca, setBusca] = useState("");
   const [escolhido, setEscolhido] = useState<Publicador | null>(null);
   const [salvando, setSalvando] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
@@ -414,9 +323,19 @@ function BuscarPublicador({
     setSalvando(true);
     setErro(null);
     try {
-      await onAdicionar(escolhido.id);
+      const criada = await apiFetch<SolicitacaoCriada>(`/api/admin/escalas/${mes}/solicitacoes`, {
+        method: "POST",
+        body: JSON.stringify({
+          publicadorId: escolhido.id,
+          carrinhoId: celula.carrinhoId,
+          diaSemana: celula.diaSemana,
+          turnoId: celula.turnoId,
+        }),
+      });
+      onAdicionado(celula, criada);
     } catch (e) {
       setErro(mensagemErro(e, "Essa pessoa já está nessa vaga.", "Não foi possível adicionar."));
+    } finally {
       setSalvando(false);
     }
   }
@@ -432,12 +351,17 @@ function BuscarPublicador({
         aria-label="Buscar publicador"
         placeholder="Nome ou usuário"
         value={busca}
-        onChange={(e) => onBuscar(e.target.value)}
+        onChange={(e) => setBusca(e.target.value)}
         autoComplete="off"
         autoFocus
       />
       {publicadores === null && !erro && <p className="text-muted-foreground">Carregando…</p>}
-      {publicadores !== null && visiveis.length === 0 && <p className="text-muted-foreground">Ninguém encontrado.</p>}
+      {publicadores !== null && visiveis.length === 0 && (
+        <p className="text-muted-foreground">
+          Ninguém encontrado. Quem ainda não tem conta é cadastrado em{" "}
+          <Link to="/admin/publicadores">Publicadores</Link>.
+        </p>
+      )}
       {visiveis.length > 0 && (
         <ul className="grid max-h-64 gap-1 overflow-y-auto" aria-label="Publicadores">
           {visiveis.map((p) => {
@@ -465,9 +389,6 @@ function BuscarPublicador({
           })}
         </ul>
       )}
-      <Button type="button" variant="outline" onClick={onNovo}>
-        Novo publicador
-      </Button>
       {escolhido && (
         <>
           <AvisoExcesso destino={celula} nome={escolhido.nome} criancaOuIdoso={escolhido.criancaOuIdoso} />
@@ -490,102 +411,6 @@ function BuscarPublicador({
         </DialogClose>
         <Button type="submit" disabled={!escolhido || salvando}>
           {salvando ? "Adicionando…" : "Adicionar"}
-        </Button>
-      </DialogFooter>
-    </form>
-  );
-}
-
-/** Cria a conta (nome, usuário = primeiro nome por padrão, criança/idoso), sem sair da Escala. */
-function FormularioNovoPublicador({
-  celula,
-  nomeInicial,
-  onVoltar,
-  onCriado,
-}: {
-  celula: CelulaGrade;
-  nomeInicial: string;
-  onVoltar: () => void;
-  onCriado: (nome: string, credenciais: Credenciais) => Promise<void>;
-}) {
-  const [nome, setNome] = useState(nomeInicial);
-  const [usuario, setUsuario] = useState(primeiroNome(nomeInicial));
-  const [usuarioEditado, setUsuarioEditado] = useState(false);
-  const [criancaOuIdoso, setCriancaOuIdoso] = useState(false);
-  const [salvando, setSalvando] = useState(false);
-  const [erro, setErro] = useState<string | null>(null);
-  const usuarioLimpo = usuario.trim();
-  const valido = nome.trim() !== "" && usuarioLimpo !== "" && !/\s/.test(usuarioLimpo);
-
-  function mudarNome(valor: string) {
-    setNome(valor);
-    if (!usuarioEditado) setUsuario(primeiroNome(valor));
-  }
-
-  async function criar(evento: FormEvent) {
-    evento.preventDefault();
-    if (!valido) return;
-    setSalvando(true);
-    setErro(null);
-    let credenciais: Credenciais;
-    try {
-      credenciais = await apiFetch<Credenciais>("/api/admin/publicadores", {
-        method: "POST",
-        body: JSON.stringify({ nome: nome.trim(), usuario: usuarioLimpo, criancaOuIdoso, administrador: false }),
-      });
-    } catch (e) {
-      setErro(e instanceof ApiError ? e.message : "Não foi possível criar o publicador.");
-      setSalvando(false);
-      return;
-    }
-    await onCriado(nome.trim(), credenciais);
-  }
-
-  return (
-    <form className="grid gap-4" onSubmit={criar}>
-      <DialogHeader>
-        <DialogTitle>Novo publicador</DialogTitle>
-        <DialogDescription>
-          Será adicionado em {descreverCelula(celula)}. O PIN é gerado pelo sistema e aparece uma única vez.
-        </DialogDescription>
-      </DialogHeader>
-      <Label className="flex flex-col items-start gap-1.5">
-        Nome
-        <Input value={nome} onChange={(e) => mudarNome(e.target.value)} maxLength={200} autoFocus required />
-      </Label>
-      <div className="flex flex-col gap-1.5">
-        <Label className="flex flex-col items-start gap-1.5">
-          Usuário
-          <Input
-            value={usuario}
-            onChange={(e) => {
-              setUsuarioEditado(true);
-              setUsuario(e.target.value);
-            }}
-            maxLength={50}
-            autoCapitalize="none"
-            autoCorrect="off"
-            required
-            aria-describedby="novo-usuario-dica"
-          />
-        </Label>
-        <span id="novo-usuario-dica" className="text-[0.9rem] text-muted-foreground">
-          Uma palavra, sem espaços. Maiúsculas e acentos não contam.
-        </span>
-      </div>
-      <CampoCriancaOuIdoso marcado={criancaOuIdoso} onMudar={setCriancaOuIdoso} />
-      <AvisoExcesso destino={celula} nome={nome.trim() || "essa pessoa"} criancaOuIdoso={criancaOuIdoso} />
-      {erro && (
-        <Alert variant="destructive">
-          <AlertDescription>{erro}</AlertDescription>
-        </Alert>
-      )}
-      <DialogFooter>
-        <Button type="button" variant="outline" disabled={salvando} onClick={onVoltar}>
-          Voltar
-        </Button>
-        <Button type="submit" disabled={!valido || salvando}>
-          {salvando ? "Criando…" : "Criar e adicionar"}
         </Button>
       </DialogFooter>
     </form>

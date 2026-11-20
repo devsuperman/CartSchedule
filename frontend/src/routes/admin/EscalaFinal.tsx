@@ -522,6 +522,7 @@ export default function EscalaFinal() {
                 )
               : atual,
           );
+          setAdicionando(null);
           setAviso(`${criada.publicadorNome} adicionado em ${descreverCelula(celula)}.`);
         }}
       />

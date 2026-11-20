@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { apiFetch, ApiError } from "../../api/client";
 import EscalaFinal from "./EscalaFinal";
 import RedirecionaParaEscala from "./RedirecionaParaEscala";
+import type { Publicador } from "./components/publicadores";
 
 vi.mock("../../api/client", async (importOriginal) => ({
   ...(await importOriginal<typeof import("../../api/client")>()),
@@ -42,7 +43,7 @@ const GRADE = {
   ],
 };
 
-function publicador(id: string, nome: string, usuario: string | null, criancaOuIdoso = false) {
+function publicador(id: string, nome: string, usuario: string | null, criancaOuIdoso = false): Publicador {
   return { id, nome, usuario, criancaOuIdoso, administrador: false, ativo: true, temPin: usuario !== null, ehVoce: false };
 }
 
@@ -55,7 +56,7 @@ const PUBLICADORES = [
 ];
 
 /** Resposta de POST /api/admin/escalas/{mes}/solicitacoes para o publicador do corpo. */
-function solicitacaoCriada(body: string, pessoas: { id: string; nome: string; criancaOuIdoso: boolean }[]) {
+function solicitacaoCriada(body: string, pessoas: Pick<Publicador, "id" | "nome" | "criancaOuIdoso">[]) {
   const { publicadorId, carrinhoId, diaSemana, turnoId } = JSON.parse(body);
   const p = pessoas.find((x) => x.id === publicadorId)!;
   return { id: 99, publicadorId, publicadorNome: p.nome, carrinhoId, diaSemana, turnoId, origem: 2, criancaOuIdoso: p.criancaOuIdoso };
@@ -325,7 +326,9 @@ describe("EscalaFinal (gestão da escala)", () => {
 
     await user.clear(busca);
     await user.type(busca, "fabi");
-    expect(within(modal).getByText("Ninguém encontrado.")).toBeInTheDocument();
+    expect(modal).toHaveTextContent("Ninguém encontrado.");
+    expect(within(modal).getByRole("link", { name: "Publicadores" })).toHaveAttribute("href", "/admin/publicadores");
+    expect(within(modal).queryByRole("button", { name: "Novo publicador" })).not.toBeInTheDocument();
   });
 
   it("quem já está na vaga aparece desabilitado", async () => {
@@ -370,87 +373,6 @@ describe("EscalaFinal (gestão da escala)", () => {
     await user.click(within(modal).getByRole("button", { name: "Adicionar" }));
 
     expect(await within(modal).findByText("Essa pessoa já está nessa vaga.")).toBeInTheDocument();
-  });
-
-  describe("Novo publicador", () => {
-    const CREDENCIAIS = { id: "novo", usuario: "Gil", pin: "4829" };
-
-    beforeEach(() => {
-      const padrao = mockApiFetch.getMockImplementation()!;
-      mockApiFetch.mockImplementation(async (path, init) => {
-        if (path === "/api/admin/publicadores" && init?.method === "POST") return { ...CREDENCIAIS };
-        if (path === "/api/admin/escalas/2026-10/solicitacoes" && init?.method === "POST") {
-          return solicitacaoCriada(init.body as string, [{ id: "novo", nome: "Gil Rocha", criancaOuIdoso: true }]);
-        }
-        return padrao(path, init);
-      });
-    });
-
-    it("cria a conta ali mesmo, adiciona à vaga e mostra o PIN com Copiar mensagem", async () => {
-      const user = await renderTela();
-
-      await user.click(screen.getByRole("button", { name: "Adicionar pessoa em Carrinho 01, Segunda-feira, 10:00–12:00" }));
-      let modal = screen.getByRole("dialog", { name: "Adicionar pessoa" });
-      await user.type(within(modal).getByRole("searchbox", { name: "Buscar publicador" }), "Gil Rocha");
-      await user.click(within(modal).getByRole("button", { name: "Novo publicador" }));
-
-      modal = screen.getByRole("dialog", { name: "Novo publicador" });
-      expect(within(modal).getByRole("textbox", { name: "Nome" })).toHaveValue("Gil Rocha");
-      expect(within(modal).getByRole("textbox", { name: "Usuário" })).toHaveValue("Gil");
-      await user.click(within(modal).getByRole("checkbox", { name: "Criança ou idoso (pode ser a 3ª pessoa da vaga)" }));
-      await user.click(within(modal).getByRole("button", { name: "Criar e adicionar" }));
-
-      expect(mockApiFetch).toHaveBeenCalledWith("/api/admin/publicadores", {
-        method: "POST",
-        body: JSON.stringify({ nome: "Gil Rocha", usuario: "Gil", criancaOuIdoso: true, administrador: false }),
-      });
-      expect(mockApiFetch).toHaveBeenCalledWith("/api/admin/escalas/2026-10/solicitacoes", {
-        method: "POST",
-        body: JSON.stringify({ publicadorId: "novo", carrinhoId: 1, diaSemana: 1, turnoId: 3 }),
-      });
-      modal = await screen.findByRole("dialog", { name: "Acesso de Gil Rocha" });
-      expect(modal).toHaveTextContent("4829");
-      expect(modal).toHaveTextContent("Adicionado em Carrinho 01, Segunda-feira, 10:00–12:00.");
-
-      await user.click(within(modal).getByRole("button", { name: "Copiar mensagem" }));
-      expect(await navigator.clipboard.readText()).toContain("PIN: 4829");
-      await user.click(within(modal).getByRole("button", { name: "Pronto" }));
-      expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
-      expect(
-        within(linhaTurno("Carrinho 01", "10:00–12:00")).getByRole("button", { name: "Gil Rocha (criança ou idoso)" }),
-      ).toBeInTheDocument();
-    });
-
-    it("usuário em uso aparece no formulário e não adiciona ninguém", async () => {
-      const padrao = mockApiFetch.getMockImplementation()!;
-      mockApiFetch.mockImplementation(async (path, init) => {
-        if (path === "/api/admin/publicadores" && init?.method === "POST") {
-          throw new ApiError(409, "Esse usuário já existe. Escolha outro.");
-        }
-        return padrao(path, init);
-      });
-      const user = await renderTela();
-
-      await user.click(screen.getByRole("button", { name: "Adicionar pessoa em Carrinho 01, Segunda-feira, 10:00–12:00" }));
-      await user.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Novo publicador" }));
-      const modal = screen.getByRole("dialog", { name: "Novo publicador" });
-      await user.type(within(modal).getByRole("textbox", { name: "Nome" }), "Bia Costa");
-      await user.click(within(modal).getByRole("button", { name: "Criar e adicionar" }));
-
-      expect(await within(modal).findByText("Esse usuário já existe. Escolha outro.")).toBeInTheDocument();
-      expect(chamadas("POST").filter(([path]) => path.toString().includes("/solicitacoes"))).toHaveLength(0);
-    });
-
-    it("Voltar no formulário retorna à busca sem criar nada", async () => {
-      const user = await renderTela();
-
-      await user.click(screen.getByRole("button", { name: "Adicionar pessoa em Carrinho 01, Segunda-feira, 10:00–12:00" }));
-      await user.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Novo publicador" }));
-      await user.click(within(screen.getByRole("dialog", { name: "Novo publicador" })).getByRole("button", { name: "Voltar" }));
-
-      expect(screen.getByRole("dialog", { name: "Adicionar pessoa" })).toBeInTheDocument();
-      expect(chamadas("POST")).toHaveLength(0);
-    });
   });
 
   it("vaga não configurada não tem o + de adicionar", async () => {
@@ -645,7 +567,7 @@ describe("EscalaFinal — mesma pessoa em dois carrinhos no mesmo horário", () 
       if (path === "/api/admin/publicadores") return [publicador("ana", "Ana", "ana"), publicador("bia", "Bia", "bia")];
       if (init?.method === "PATCH") return undefined;
       if (init?.method === "POST") {
-        return solicitacaoCriada(init.body as string, [{ id: "ana", nome: "Ana", criancaOuIdoso: false }]);
+        return solicitacaoCriada(init.body as string, [publicador("ana", "Ana", "ana")]);
       }
       throw new Error(`chamada inesperada: ${path}`);
     });
