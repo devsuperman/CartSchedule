@@ -61,7 +61,10 @@ public static class AuthServiceCollectionExtensions
             .AddPolicy(Politicas.Publicador, policy => policy
                 .AddAuthenticationSchemes(JwtBearerDefaults.AuthenticationScheme)
                 .RequireRole(Papeis.Publicador, Papeis.Administrador)
-                .RequireClaim(ClaimTypes.NameIdentifier));
+                .RequireClaim(ClaimTypes.NameIdentifier))
+            .AddPolicy(Politicas.Logado, policy => policy
+                .AddAuthenticationSchemes(JwtBearerDefaults.AuthenticationScheme)
+                .RequireRole(Papeis.Publicador, Papeis.Administrador, Papeis.Recuperacao));
 
         return services;
     }

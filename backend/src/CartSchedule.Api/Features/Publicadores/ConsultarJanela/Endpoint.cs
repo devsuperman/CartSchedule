@@ -7,7 +7,7 @@ namespace CartSchedule.Api.Features.Publicadores.ConsultarJanela;
 /// <summary>
 /// GET /api/janela — consulta se a janela de envio do publicador está aberta e qual é
 /// o mês-alvo, calculado em tempo real a partir da data do servidor e de o administrador
-/// ter fechado o envio. Exige login de publicador (ou administrador) — PLANNING.md §4.
+/// ter fechado o envio. Exige login (qualquer papel: o administrador de recuperação também precisa do mês da Escala) — PLANNING.md §4.
 /// </summary>
 public static class Endpoint
 {
@@ -19,7 +19,7 @@ public static class Endpoint
 
             return Results.Ok(new JanelaResponse(status.Aberta, status.MesAlvo));
         })
-        .RequireAuthorization(Politicas.Publicador);
+        .RequireAuthorization(Politicas.Logado);
 
         return app;
     }

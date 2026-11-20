@@ -10,6 +10,12 @@ public static class Politicas
     /// administrador. Sem token → 401; administrador de recuperação → 403.
     /// </summary>
     public const string Publicador = "publicador";
+
+    /// <summary>
+    /// Qualquer pessoa logada, inclusive o administrador de recuperação: só para leituras que a
+    /// área administrativa também usa (a janela de envio, que dá o mês da Escala).
+    /// </summary>
+    public const string Logado = "logado";
 }
 
 public static class UsuarioLogado

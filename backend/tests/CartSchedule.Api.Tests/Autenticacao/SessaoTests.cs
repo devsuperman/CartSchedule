@@ -94,6 +94,15 @@ public class SessaoTests(ApiFixture fixture) : ApiTestBase(fixture)
     }
 
     [Fact]
+    public async Task Janela_AdministradorDeRecuperacaoTambemLe()
+    {
+        // A área administrativa tira da janela o mês da Escala (link e card do painel).
+        var resposta = await (await AdminAsync()).GetAsync("/api/janela");
+
+        Assert.Equal(HttpStatusCode.OK, resposta.StatusCode);
+    }
+
+    [Fact]
     public async Task Eu_AdministradorDeRecuperacao_Retorna403()
     {
         Assert.Equal(HttpStatusCode.Forbidden, (await (await AdminAsync()).GetAsync("/api/eu")).StatusCode);
