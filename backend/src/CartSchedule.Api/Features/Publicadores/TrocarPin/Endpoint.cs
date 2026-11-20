@@ -1,6 +1,4 @@
 using System.Security.Claims;
-using CartSchedule.Api.Domain;
-using CartSchedule.Api.Features.Autenticacao.Login;
 using CartSchedule.Api.Infrastructure;
 using CartSchedule.Api.Infrastructure.Auth;
 using CartSchedule.Api.Infrastructure.RateLimiting;
@@ -70,14 +68,8 @@ public static class Endpoint
         await db.SaveChangesAsync(ct);
         await transacao.CommitAsync(ct);
 
-        return Results.Ok(NovaSessao(publicador, jwtTokenService));
+        return Results.Ok(SessaoDoPublicador.Emitir(publicador, jwtTokenService));
     }
-
-    private static LoginResponse NovaSessao(Publicador publicador, IJwtTokenService jwtTokenService) =>
-        new(
-            jwtTokenService.GerarTokenDePublicador(
-                publicador.Id, publicador.Nome, publicador.VersaoSessao, publicador.Administrador),
-            publicador.Administrador ? Papeis.Administrador : Papeis.Publicador);
 
     private static IResult Problema(string titulo, string codigo) =>
         Results.Problem(

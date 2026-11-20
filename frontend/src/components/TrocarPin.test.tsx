@@ -52,9 +52,9 @@ function chamadasDaTroca() {
   return mockApiFetch.mock.calls.filter(([path]) => path === "/api/eu/pin");
 }
 
-function erroDaApi(codigo: string) {
+function erroDaApi(status: number, mensagem: string, codigo: string) {
   return async () => {
-    throw new ApiError(400, "Erro do servidor", { codigo });
+    throw new ApiError(status, mensagem, { codigo });
   };
 }
 
@@ -103,7 +103,7 @@ describe("Trocar PIN (menu Olá)", () => {
   });
 
   it("PIN atual errado mostra o erro e mantém a sessão", async () => {
-    mockarApi(erroDaApi("PIN_ATUAL_INVALIDO"));
+    mockarApi(erroDaApi(400, "O PIN atual não confere.", "PIN_ATUAL_INVALIDO"));
     const user = await abrirDialogo();
 
     await preencher(user, "9999", "2580");
@@ -114,7 +114,7 @@ describe("Trocar PIN (menu Olá)", () => {
   });
 
   it("PIN fraco pede outro", async () => {
-    mockarApi(erroDaApi("PIN_FRACO"));
+    mockarApi(erroDaApi(400, "Esse PIN é fácil de adivinhar.", "PIN_FRACO"));
     const user = await abrirDialogo();
 
     await preencher(user, "1357", "1234");
@@ -123,14 +123,21 @@ describe("Trocar PIN (menu Olá)", () => {
   });
 
   it("muitas tentativas mostra a mensagem do servidor", async () => {
-    mockarApi(async () => {
-      throw new ApiError(429, "Muitas tentativas. Aguarde um pouco.", { codigo: "MUITAS_REQUISICOES" });
-    });
+    mockarApi(erroDaApi(429, "Muitas tentativas. Aguarde um pouco.", "MUITAS_REQUISICOES"));
     const user = await abrirDialogo();
 
     await preencher(user, "1357", "2580");
 
     expect(await screen.findByRole("alert")).toHaveTextContent("Muitas tentativas. Aguarde um pouco.");
+  });
+
+  it("outro erro mostra uma mensagem genérica", async () => {
+    mockarApi(erroDaApi(500, "Internal Server Error", "OUTRO"));
+    const user = await abrirDialogo();
+
+    await preencher(user, "1357", "2580");
+
+    expect(await screen.findByRole("alert")).toHaveTextContent("Não foi possível trocar o PIN. Tente de novo.");
   });
 
   it("Cancelar fecha sem trocar", async () => {

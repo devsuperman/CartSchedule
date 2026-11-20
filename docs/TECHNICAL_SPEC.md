@@ -70,7 +70,8 @@ backend/
         LotacaoDaVaga.cs             # limite de 2 (vaga cheia) para o publicador, código VAGA_CHEIA
         HorarioOcupado.cs            # filtro do "um lugar por horário" por grupo (normais × cada data especial), código HORARIO_OCUPADO
         DataEspecial.cs              # dia útil da data, mês da data, "cabe na escala"
-        Credenciais.cs               # UsuarioNormalizado (sem maiúsculas/acentos) e Pin (4 dígitos, gerado sem ser óbvio)
+        Credenciais.cs               # UsuarioNormalizado (sem maiúsculas/acentos) e Pin (4 dígitos, fraco = óbvio, gerado sem ser óbvio)
+        Sessao.cs                    # SessaoResponse {token, papel} e SessaoDoPublicador.Emitir (login, renovação, troca de PIN)
         ValidationFilter.cs          # filtro de endpoint que roda o FluentValidation do Request
       Features/
         Publicadores/

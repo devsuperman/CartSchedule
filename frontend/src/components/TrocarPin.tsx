@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from "react";
-import { apiFetch, ApiError } from "../api/client";
+import { apiFetch, codigoDoErro } from "../api/client";
 import { iniciarSessao, type Sessao } from "../api/sessao";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -16,11 +16,11 @@ import { Label } from "@/components/ui/label";
 
 const FORMATO_PIN = /^[0-9]{4}$/;
 
-/** Mensagens por `codigo` do PUT /api/eu/pin; o 400 de formato já é barrado aqui antes. */
-const MENSAGENS: Record<string, string> = {
-  PIN_ATUAL_INVALIDO: "O PIN atual não confere.",
-  PIN_FRACO: "Esse PIN é fácil de adivinhar. Evite números todos iguais ou em sequência (como 1234).",
-};
+/**
+ * Recusas do PUT /api/eu/pin cuja mensagem vem do próprio servidor (fonte única dos textos).
+ * O 400 de formato não chega aqui: o formato é conferido antes de enviar.
+ */
+const CODIGOS_COM_MENSAGEM_DO_SERVIDOR = new Set(["PIN_ATUAL_INVALIDO", "PIN_FRACO", "MUITAS_REQUISICOES"]);
 
 /**
  * "Trocar PIN" do menu "Olá" (issue #50): PIN atual + o novo duas vezes. A API devolve um token
@@ -63,11 +63,12 @@ function FormularioTrocarPin({ onFechar }: { onFechar: () => void }) {
       iniciarSessao(sessao);
       setTrocado(true);
     } catch (err) {
-      const codigo =
-        err instanceof ApiError ? (err.details as { codigo?: string } | null | undefined)?.codigo : undefined;
-      // Muitas tentativas (429, rate limit "login") traz a própria mensagem do servidor.
-      const doServidor = codigo === "MUITAS_REQUISICOES" && err instanceof Error ? err.message : undefined;
-      setErro((codigo && MENSAGENS[codigo]) ?? doServidor ?? "Não foi possível trocar o PIN. Tente de novo.");
+      const codigo = codigoDoErro(err);
+      setErro(
+        codigo && CODIGOS_COM_MENSAGEM_DO_SERVIDOR.has(codigo) && err instanceof Error
+          ? err.message
+          : "Não foi possível trocar o PIN. Tente de novo.",
+      );
     } finally {
       setEnviando(false);
     }

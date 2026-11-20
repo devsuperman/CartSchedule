@@ -15,6 +15,16 @@ export class ApiError extends Error {
 }
 
 /**
+ * O `codigo` que o backend põe no ProblemDetails (ex: JANELA_FECHADA, VAGA_CHEIA, PIN_FRACO).
+ * As telas decidem por ele, nunca por "qualquer 400". Undefined se não é um erro da API com código.
+ */
+export function codigoDoErro(err: unknown): string | undefined {
+  if (!(err instanceof ApiError)) return undefined;
+  const codigo = (err.details as { codigo?: unknown } | null | undefined)?.codigo;
+  return typeof codigo === "string" ? codigo : undefined;
+}
+
+/**
  * Chamada à API com o token da sessão em `Authorization: Bearer`. Um 401 fora do próprio login
  * (token expirado, PIN redefinido, conta desativada) encerra a sessão: a guarda ExigeLogin leva
  * ao /login, lembrando a página em que a pessoa estava.

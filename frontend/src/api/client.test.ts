@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { apiFetch, ApiError } from "./client";
+import { apiFetch, ApiError, codigoDoErro } from "./client";
 import { iniciarSessao, obterSessao, SESSAO_STORAGE_KEY } from "./sessao";
 
 function respostaHttp(status: number, corpo: unknown = null): Response {
@@ -53,5 +53,17 @@ describe("apiFetch — sessão", () => {
     await expect(apiFetch("/api/admin/publicadores", { method: "POST", body: "{}" })).rejects.toBeInstanceOf(ApiError);
 
     expect(obterSessao()?.token).toBe("token-antigo");
+  });
+});
+
+describe("codigoDoErro", () => {
+  it("lê o codigo do ProblemDetails de um erro da API", () => {
+    expect(codigoDoErro(new ApiError(409, "Cheia", { codigo: "VAGA_CHEIA" }))).toBe("VAGA_CHEIA");
+  });
+
+  it("é undefined sem código ou fora de um erro da API", () => {
+    expect(codigoDoErro(new ApiError(400, "Inválido", { title: "Inválido" }))).toBeUndefined();
+    expect(codigoDoErro(new ApiError(500, "Erro", null))).toBeUndefined();
+    expect(codigoDoErro(new Error("rede"))).toBeUndefined();
   });
 });
