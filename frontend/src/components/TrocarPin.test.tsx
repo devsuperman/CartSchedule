@@ -114,7 +114,7 @@ describe("Trocar senha (menu Olá)", () => {
     expect(screen.getByRole("dialog", { name: "Trocar senha" })).toBeInTheDocument();
   });
 
-  it("senha fraca pede outro", async () => {
+  it("senha fraca pede outra", async () => {
     mockarApi(erroDaApi(400, "Essa senha é fácil de adivinhar.", "PIN_FRACO"));
     const user = await abrirDialogo();
 

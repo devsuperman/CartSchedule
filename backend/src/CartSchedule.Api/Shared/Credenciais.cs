@@ -28,7 +28,7 @@ public static class UsuarioNormalizado
 }
 
 /// <summary>
-/// PIN do publicador (GLOSSARY.md): exatamente 4 dígitos. O sistema gera com gerador
+/// Senha do publicador (GLOSSARY.md; no código, `Pin`): exatamente 4 dígitos. O sistema gera com gerador
 /// criptográfico e nunca gera um PIN óbvio (todos iguais ou sequência como 1234/4321).
 /// </summary>
 public static class Pin

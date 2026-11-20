@@ -85,7 +85,7 @@ semana, por turno** — ou 3, quando uma delas é criança ou idoso (regra 1).
    novo. O cabeçalho mostra **"Olá, {primeiro nome}"** (o nome da conta), que
    abre um menu com **"Trocar senha"** e **"Sair"**; o publicador não edita o nome (só o
    administrador). Em "Trocar senha" ele informa a senha atual e a nova duas vezes; a
-   nova precisa ter exatamente 4 dígitos e não ser óbvio (todos iguais ou em
+   nova precisa ter exatamente 4 dígitos e não ser óbvia (dígitos todos iguais ou em
    sequência, como 0000, 1234 ou 4321). Ao trocar, os outros aparelhos dele são
    desconectados e o aparelho atual continua logado. Quem é administrador vê também o link **"Administração"**.
    O formulário de solicitação não pede o nome: o pedido é da conta logada.

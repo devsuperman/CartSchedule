@@ -25,9 +25,9 @@ _Avoid_: Login, apelido
 Como o publicador aparece na escala; só o administrador altera.
 _Avoid_: Nome de exibição, nome de usuário
 
-**PIN**:
-O segredo de 4 dígitos que, com o usuário, dá acesso à conta; gerado pelo sistema, redefinido pelo administrador e trocável pelo próprio publicador.
-_Avoid_: Senha (para o publicador), código
+**Senha**:
+O segredo de 4 dígitos que, com o usuário, dá acesso à conta; gerada pelo sistema, redefinida pelo administrador e trocável pelo próprio publicador. No código continua `Pin` (identificadores, rotas, JSON, `PIN_FRACO`).
+_Avoid_: PIN, código
 
 **Excluir publicador**:
 Apagar definitivamente o publicador e todos os seus pedidos, de todas as escalas; não há como desfazer.
