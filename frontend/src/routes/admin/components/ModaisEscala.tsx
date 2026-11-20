@@ -1,7 +1,9 @@
-import { useState, type FormEvent, type ReactNode } from "react";
+import { useEffect, useState, type FormEvent, type ReactNode } from "react";
+import { Link } from "react-router-dom";
 import { apiFetch, ApiError } from "../../../api/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { cn } from "@/lib/utils";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
   Dialog,
@@ -12,7 +14,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { CampoCriancaOuIdoso } from "./ModalEditarNome";
+import { combinaComBusca, normalizar, type Publicador } from "./publicadores";
 import {
   descreverCelula,
   estadoCom,
@@ -248,27 +250,22 @@ interface SolicitacaoCriada {
 }
 
 /**
- * Adição manual numa vaga (regra 9): POST /api/admin/escalas/{mes}/solicitacoes. Nome livre;
- * se bater exatamente com um existente, a API reaproveita o publicador — as sugestões ajudam
- * a digitar o nome igual. "Criança ou idoso" marcado vale para a pessoa (nova ou não); a API
- * nunca desmarca por aqui. `nomesCriancaOuIdoso` são os já marcados na escala, para o aviso de
- * excesso considerar a marca mesmo sem a caixa. `celulas` serve ao aviso de quem já está em
- * outro carrinho no mesmo horário (pelo nome exato, como a API reaproveita o publicador).
+ * Adição manual numa vaga (regra 9): POST /api/admin/escalas/{mes}/solicitacoes com um
+ * publicador existente e ativo, escolhido pela busca (nome ou usuário, sem maiúsculas nem
+ * acentos). Nome livre não cria ninguém, e a Escala não cria contas: quem não tem conta é
+ * cadastrado na tela Publicadores. Quem já está na vaga aparece desabilitado; excesso e outro
+ * carrinho no mesmo horário só avisam.
  */
 export function ModalAdicionar({
   mes,
   celula,
   celulas,
-  nomesSugeridos,
-  nomesCriancaOuIdoso,
   onFechar,
   onAdicionado,
 }: {
   mes: string;
   celula: CelulaGrade | null;
   celulas: readonly CelulaGrade[];
-  nomesSugeridos: string[];
-  nomesCriancaOuIdoso: string[];
   onFechar: () => void;
   onAdicionado: (celula: CelulaGrade, criada: SolicitacaoCriada) => void;
 }) {
@@ -281,8 +278,6 @@ export function ModalAdicionar({
             mes={mes}
             celula={celula}
             celulas={celulas}
-            nomesSugeridos={nomesSugeridos}
-            nomesCriancaOuIdoso={nomesCriancaOuIdoso}
             onAdicionado={onAdicionado}
           />
         )}
@@ -295,37 +290,46 @@ function FormularioAdicionar({
   mes,
   celula,
   celulas,
-  nomesSugeridos,
-  nomesCriancaOuIdoso,
   onAdicionado,
 }: {
   mes: string;
   celula: CelulaGrade;
   celulas: readonly CelulaGrade[];
-  nomesSugeridos: string[];
-  nomesCriancaOuIdoso: string[];
   onAdicionado: (celula: CelulaGrade, criada: SolicitacaoCriada) => void;
 }) {
-  const [nome, setNome] = useState("");
-  const [criancaOuIdoso, setCriancaOuIdoso] = useState(false);
+  const [publicadores, setPublicadores] = useState<Publicador[] | null>(null);
+  const [busca, setBusca] = useState("");
+  const [escolhido, setEscolhido] = useState<Publicador | null>(null);
   const [salvando, setSalvando] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
-  const valido = nome.trim() !== "";
+
+  useEffect(() => {
+    let atual = true;
+    apiFetch<Publicador[]>("/api/admin/publicadores")
+      .then((lista) => atual && setPublicadores(lista))
+      .catch((e) => atual && setErro(e instanceof ApiError ? e.message : "Não foi possível carregar os publicadores."));
+    return () => {
+      atual = false;
+    };
+  }, []);
+
+  const naVaga = new Set(celula.publicadores.map((p) => p.publicadorId));
+  const termo = normalizar(busca);
+  const visiveis = (publicadores ?? []).filter((p) => combinaComBusca(p, termo));
 
   async function adicionar(evento: FormEvent) {
     evento.preventDefault();
-    if (!valido) return;
+    if (!escolhido) return;
     setSalvando(true);
     setErro(null);
     try {
       const criada = await apiFetch<SolicitacaoCriada>(`/api/admin/escalas/${mes}/solicitacoes`, {
         method: "POST",
         body: JSON.stringify({
-          nome: nome.trim(),
+          publicadorId: escolhido.id,
           carrinhoId: celula.carrinhoId,
           diaSemana: celula.diaSemana,
           turnoId: celula.turnoId,
-          criancaOuIdoso,
         }),
       });
       onAdicionado(celula, criada);
@@ -343,31 +347,57 @@ function FormularioAdicionar({
         <DialogDescription>{descreverCelula(celula)}.</DialogDescription>
       </DialogHeader>
       <Input
-        aria-label="Nome do publicador"
-        placeholder="Nome e sobrenome"
-        value={nome}
-        onChange={(e) => setNome(e.target.value)}
-        list="nomes-na-escala"
-        maxLength={200}
+        type="search"
+        aria-label="Buscar publicador"
+        placeholder="Nome ou usuário"
+        value={busca}
+        onChange={(e) => setBusca(e.target.value)}
         autoComplete="off"
         autoFocus
-        required
       />
-      <datalist id="nomes-na-escala">
-        {nomesSugeridos.map((n) => (
-          <option key={n} value={n} />
-        ))}
-      </datalist>
-      <CampoCriancaOuIdoso marcado={criancaOuIdoso} onMudar={setCriancaOuIdoso} />
-      <AvisoExcesso
-        destino={celula}
-        nome={nome.trim() || "essa pessoa"}
-        criancaOuIdoso={criancaOuIdoso || nomesCriancaOuIdoso.includes(nome.trim())}
-      />
-      <AvisoHorario
-        nome={nome.trim()}
-        outra={valido ? vagaNoMesmoHorario(celulas, celula, (p) => p.publicadorNome === nome.trim()) : null}
-      />
+      {publicadores === null && !erro && <p className="text-muted-foreground">Carregando…</p>}
+      {publicadores !== null && visiveis.length === 0 && (
+        <p className="text-muted-foreground">
+          Ninguém encontrado. Quem ainda não tem conta é cadastrado em{" "}
+          <Link to="/admin/publicadores">Publicadores</Link>.
+        </p>
+      )}
+      {visiveis.length > 0 && (
+        <ul className="grid max-h-64 gap-1 overflow-y-auto" aria-label="Publicadores">
+          {visiveis.map((p) => {
+            const jaNaVaga = naVaga.has(p.id);
+            const selecionado = escolhido?.id === p.id;
+            return (
+              <li key={p.id}>
+                <button
+                  type="button"
+                  disabled={jaNaVaga}
+                  aria-pressed={selecionado}
+                  onClick={() => setEscolhido(p)}
+                  className={cn(
+                    "flex min-h-11 w-full flex-col items-start rounded-md border px-3 py-1.5 text-left disabled:opacity-60",
+                    selecionado ? "border-primary bg-primary/10" : "border-border",
+                  )}
+                >
+                  <span className="font-medium">{p.nome}</span>
+                  <span className="text-[0.9rem] text-muted-foreground">
+                    {jaNaVaga ? "Já está nessa vaga" : (p.usuario ?? "Sem usuário")}
+                  </span>
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+      {escolhido && (
+        <>
+          <AvisoExcesso destino={celula} nome={escolhido.nome} criancaOuIdoso={escolhido.criancaOuIdoso} />
+          <AvisoHorario
+            nome={escolhido.nome}
+            outra={vagaNoMesmoHorario(celulas, celula, (p) => p.publicadorId === escolhido.id)}
+          />
+        </>
+      )}
       {erro && (
         <Alert variant="destructive">
           <AlertDescription>{erro}</AlertDescription>
@@ -379,7 +409,7 @@ function FormularioAdicionar({
             Voltar
           </Button>
         </DialogClose>
-        <Button type="submit" disabled={!valido || salvando}>
+        <Button type="submit" disabled={!escolhido || salvando}>
           {salvando ? "Adicionando…" : "Adicionar"}
         </Button>
       </DialogFooter>

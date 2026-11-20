@@ -231,8 +231,8 @@ public class CarrinhoDataEspecialTests(ApiFixture fixture) : ApiTestBase(fixture
         var especialDeNovembro = await CriarCarrinhoEspecialAsync(admin, QuartaDeNovembro);
         await DefinirTurnosAsync(admin, especialDeNovembro, (Quarta, Turno0810));
 
-        var deOutubro = await AdicionarManualAsync(admin, especialDeNovembro, Quarta, Turno0810, "Carla");
-        var deNovembro = await AdicionarManualAsync(admin, especialDeNovembro, Quarta, Turno0810, "Carla", "2026-11");
+        var deOutubro = await AdicionarRegistroAntigoPorNomeAsync(admin, especialDeNovembro, Quarta, Turno0810, "Carla");
+        var deNovembro = await AdicionarRegistroAntigoPorNomeAsync(admin, especialDeNovembro, Quarta, Turno0810, "Carla", "2026-11");
 
         Assert.Equal(HttpStatusCode.BadRequest, deOutubro.StatusCode);
         Assert.Equal(HttpStatusCode.Created, deNovembro.StatusCode);

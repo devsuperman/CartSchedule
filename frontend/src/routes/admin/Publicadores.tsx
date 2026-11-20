@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { apiFetch, ApiError } from "../../api/client";
 import { CampoCriancaOuIdoso } from "./components/ModalEditarNome";
+import { combinaComBusca, normalizar, type Publicador } from "./components/publicadores";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -18,38 +19,11 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 
-/** Item de GET /api/admin/publicadores. O PIN nunca vem, só se a conta já tem um. */
-interface Publicador {
-  id: string;
-  nome: string;
-  usuario: string | null;
-  criancaOuIdoso: boolean;
-  administrador: boolean;
-  ativo: boolean;
-  temPin: boolean;
-  /** O administrador logado: a tela não oferece desativar nem tirar o próprio administrador. */
-  ehVoce: boolean;
-}
-
 /** Resposta de criar (ou de dar usuário a um registro antigo): o único momento em que o PIN aparece. */
 interface Credenciais {
   id: string;
   usuario: string;
   pin: string;
-}
-
-/** Sem maiúsculas e sem acentos, como o backend compara usuários ("jose" acha "José"). */
-function normalizar(texto: string): string {
-  return texto.normalize("NFD").replace(/\p{M}/gu, "").toLowerCase().trim();
-}
-
-/** Busca por nome ou usuário; `termo` já normalizado (vazio = todos). */
-function combinaComBusca(publicador: Publicador, termo: string): boolean {
-  return (
-    !termo ||
-    normalizar(publicador.nome).includes(termo) ||
-    (publicador.usuario !== null && normalizar(publicador.usuario).includes(termo))
-  );
 }
 
 function primeiroNome(nome: string): string {

@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { apiFetch, ApiError } from "../../api/client";
 import EscalaFinal from "./EscalaFinal";
 import RedirecionaParaEscala from "./RedirecionaParaEscala";
+import type { Publicador } from "./components/publicadores";
 
 vi.mock("../../api/client", async (importOriginal) => ({
   ...(await importOriginal<typeof import("../../api/client")>()),
@@ -42,14 +43,33 @@ const GRADE = {
   ],
 };
 
+function publicador(id: string, nome: string, usuario: string | null, criancaOuIdoso = false): Publicador {
+  return { id, nome, usuario, criancaOuIdoso, administrador: false, ativo: true, temPin: usuario !== null, ehVoce: false };
+}
+
+// Ativos (GET /api/admin/publicadores); Bia já está em C1 Seg 08–10.
+const PUBLICADORES = [
+  publicador("bia", "Bia", "bia"),
+  publicador("gil", "Gil Souza", "gilzinho"),
+  publicador("jose", "José Lima", "ze"),
+  publicador("lia", "Vó Lia", null, true),
+];
+
+/** Resposta de POST /api/admin/escalas/{mes}/solicitacoes para o publicador do corpo. */
+function solicitacaoCriada(body: string, pessoas: Pick<Publicador, "id" | "nome" | "criancaOuIdoso">[]) {
+  const { publicadorId, carrinhoId, diaSemana, turnoId } = JSON.parse(body);
+  const p = pessoas.find((x) => x.id === publicadorId)!;
+  return { id: 99, publicadorId, publicadorNome: p.nome, carrinhoId, diaSemana, turnoId, origem: 2, criancaOuIdoso: p.criancaOuIdoso };
+}
+
 beforeEach(() => {
   mockApiFetch.mockReset();
   mockApiFetch.mockImplementation(async (path, init) => {
     if (path === "/api/admin/escalas/2026-10/grade") return structuredClone(GRADE);
+    if (path === "/api/admin/publicadores" && !init?.method) return structuredClone(PUBLICADORES);
     if (init?.method === "PATCH" || init?.method === "DELETE" || init?.method === "PUT") return undefined;
-    if (init?.method === "POST") {
-      const { criancaOuIdoso } = JSON.parse(init.body as string);
-      return { id: 99, publicadorId: "gil", publicadorNome: "Gil", carrinhoId: 1, diaSemana: 1, turnoId: 3, origem: 2, criancaOuIdoso };
+    if (path === "/api/admin/escalas/2026-10/solicitacoes" && init?.method === "POST") {
+      return solicitacaoCriada(init.body as string, PUBLICADORES);
     }
     throw new Error(`chamada inesperada: ${path}`);
   });
@@ -272,44 +292,87 @@ describe("EscalaFinal (gestão da escala)", () => {
     expect(within(linhaTurno("Carrinho 01", "08:00–10:00")).getByRole("button", { name: "Bia" })).toBeInTheDocument();
   });
 
-  it("adiciona alguém tocando no + de uma vaga", async () => {
+  it("adiciona um publicador existente, buscando pelo nome, tocando no + de uma vaga", async () => {
     const user = await renderTela();
 
     await user.click(screen.getByRole("button", { name: "Adicionar pessoa em Carrinho 01, Segunda-feira, 10:00–12:00" }));
     const modal = screen.getByRole("dialog", { name: "Adicionar pessoa" });
-    await user.type(within(modal).getByRole("combobox", { name: "Nome do publicador" }), "  Gil ");
+    expect(mockApiFetch).toHaveBeenCalledWith("/api/admin/publicadores");
+    expect(within(modal).getByRole("button", { name: "Adicionar" })).toBeDisabled();
+    await user.type(within(modal).getByRole("searchbox", { name: "Buscar publicador" }), "gil");
+    expect(within(modal).queryByRole("button", { name: /José Lima/ })).not.toBeInTheDocument();
+    await user.click(await within(modal).findByRole("button", { name: /Gil Souza/ }));
     await user.click(within(modal).getByRole("button", { name: "Adicionar" }));
 
     expect(mockApiFetch).toHaveBeenCalledWith("/api/admin/escalas/2026-10/solicitacoes", {
       method: "POST",
-      body: JSON.stringify({ nome: "Gil", carrinhoId: 1, diaSemana: 1, turnoId: 3, criancaOuIdoso: false }),
+      body: JSON.stringify({ publicadorId: "gil", carrinhoId: 1, diaSemana: 1, turnoId: 3 }),
     });
-    expect(within(linhaTurno("Carrinho 01", "10:00–12:00")).getByRole("button", { name: "Gil" })).toBeInTheDocument();
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(within(linhaTurno("Carrinho 01", "10:00–12:00")).getByRole("button", { name: "Gil Souza" })).toBeInTheDocument();
     expect(screen.getByText("Pedidos").nextSibling).toHaveTextContent("8");
     expect(screen.getByText("Vagas com 1 pessoa").nextSibling).toHaveTextContent("3");
   });
 
-  it("adicionar numa vaga completa avisa do excesso, a não ser que seja criança ou idoso", async () => {
+  it("a busca acha pelo usuário, sem maiúsculas nem acentos", async () => {
+    const user = await renderTela();
+
+    await user.click(screen.getByRole("button", { name: "Adicionar pessoa em Carrinho 01, Segunda-feira, 10:00–12:00" }));
+    const modal = screen.getByRole("dialog", { name: "Adicionar pessoa" });
+    const busca = within(modal).getByRole("searchbox", { name: "Buscar publicador" });
+
+    await user.type(busca, "ZÉ");
+    expect(await within(modal).findByRole("button", { name: /José Lima/ })).toBeEnabled();
+
+    await user.clear(busca);
+    await user.type(busca, "fabi");
+    expect(modal).toHaveTextContent("Ninguém encontrado.");
+    expect(within(modal).getByRole("link", { name: "Publicadores" })).toHaveAttribute("href", "/admin/publicadores");
+    expect(within(modal).queryByRole("button", { name: "Novo publicador" })).not.toBeInTheDocument();
+  });
+
+  it("quem já está na vaga aparece desabilitado", async () => {
+    const user = await renderTela();
+
+    await user.click(within(linhaTurno("Carrinho 01", "08:00–10:00")).getByRole("button", { name: /^Adicionar pessoa/ }));
+    const modal = screen.getByRole("dialog", { name: "Adicionar pessoa" });
+
+    expect(await within(modal).findByRole("button", { name: /Bia.*Já está nessa vaga/ })).toBeDisabled();
+  });
+
+  it("adicionar numa vaga completa avisa do excesso, a não ser que a pessoa seja criança ou idoso", async () => {
     const user = await renderTela();
 
     await user.click(within(carrinho("Carrinho 01")).getByRole("button", { name: "Terça-feira" }));
     await user.click(screen.getByRole("button", { name: "Adicionar pessoa em Carrinho 01, Terça-feira, 08:00–10:00" }));
     const modal = screen.getByRole("dialog", { name: "Adicionar pessoa" });
-    await user.type(within(modal).getByRole("combobox", { name: "Nome do publicador" }), "Gil");
-    expect(modal).toHaveTextContent("Essa vaga já tem 2 pessoas. Com Gil, ficará com excesso.");
+    await user.click(await within(modal).findByRole("button", { name: /Gil Souza/ }));
+    expect(modal).toHaveTextContent("Essa vaga já tem 2 pessoas. Com Gil Souza, ficará com excesso.");
 
-    await user.click(within(modal).getByRole("checkbox", { name: "Criança ou idoso (pode ser a 3ª pessoa da vaga)" }));
+    await user.click(within(modal).getByRole("button", { name: /Vó Lia/ }));
     expect(modal).not.toHaveTextContent("ficará com excesso");
     await user.click(within(modal).getByRole("button", { name: "Adicionar" }));
 
-    expect(mockApiFetch).toHaveBeenCalledWith("/api/admin/escalas/2026-10/solicitacoes", {
-      method: "POST",
-      body: JSON.stringify({ nome: "Gil", carrinhoId: 1, diaSemana: 2, turnoId: 2, criancaOuIdoso: true }),
-    });
     const vaga = linhaTurno("Carrinho 01", "08:00–10:00");
-    expect(within(vaga).getByRole("button", { name: "Gil (criança ou idoso)" })).toBeInTheDocument();
+    expect(within(vaga).getByRole("button", { name: "Vó Lia (criança ou idoso)" })).toBeInTheDocument();
     expect(within(vaga).getByText("vaga completa")).toBeInTheDocument();
     expect(vaga).toHaveClass("bg-success-muted");
+  });
+
+  it("duplicidade (409) ao adicionar aparece no modal", async () => {
+    mockApiFetch.mockImplementation(async (path) => {
+      if (path === "/api/admin/escalas/2026-10/grade") return structuredClone(GRADE);
+      if (path === "/api/admin/publicadores") return structuredClone(PUBLICADORES);
+      throw new ApiError(409, "Solicitação duplicada.");
+    });
+    const user = await renderTela();
+
+    await user.click(screen.getByRole("button", { name: "Adicionar pessoa em Carrinho 01, Segunda-feira, 10:00–12:00" }));
+    const modal = screen.getByRole("dialog", { name: "Adicionar pessoa" });
+    await user.click(await within(modal).findByRole("button", { name: /Gil Souza/ }));
+    await user.click(within(modal).getByRole("button", { name: "Adicionar" }));
+
+    expect(await within(modal).findByText("Essa pessoa já está nessa vaga.")).toBeInTheDocument();
   });
 
   it("vaga não configurada não tem o + de adicionar", async () => {
@@ -501,9 +564,10 @@ describe("EscalaFinal — mesma pessoa em dois carrinhos no mesmo horário", () 
   beforeEach(() => {
     mockApiFetch.mockImplementation(async (path, init) => {
       if (path === "/api/admin/escalas/2026-10/grade") return structuredClone(GRADE_HORARIO);
+      if (path === "/api/admin/publicadores") return [publicador("ana", "Ana", "ana"), publicador("bia", "Bia", "bia")];
       if (init?.method === "PATCH") return undefined;
       if (init?.method === "POST") {
-        return { id: 99, publicadorId: "ana", publicadorNome: "Ana", carrinhoId: 2, diaSemana: 1, turnoId: 2, origem: 2, criancaOuIdoso: false };
+        return solicitacaoCriada(init.body as string, [publicador("ana", "Ana", "ana")]);
       }
       throw new Error(`chamada inesperada: ${path}`);
     });
@@ -534,17 +598,15 @@ describe("EscalaFinal — mesma pessoa em dois carrinhos no mesmo horário", () 
     expect(screen.getByRole("dialog", { name: "Mover Ana?" })).not.toHaveTextContent("no mesmo horário");
   });
 
-  it("adicionar pelo nome de quem já está em outro carrinho no horário só avisa, e deixa adicionar", async () => {
+  it("adicionar quem já está em outro carrinho no horário só avisa, e deixa adicionar", async () => {
     const user = await renderTela();
 
     await user.click(screen.getByRole("button", { name: "Adicionar pessoa em Carrinho 02, Segunda-feira, 08:00–10:00" }));
     const modal = screen.getByRole("dialog", { name: "Adicionar pessoa" });
-    const campo = within(modal).getByRole("combobox", { name: "Nome do publicador" });
-    await user.type(campo, "Bia");
+    await user.click(await within(modal).findByRole("button", { name: /Bia/ }));
     expect(modal).not.toHaveTextContent("no mesmo horário");
 
-    await user.clear(campo);
-    await user.type(campo, "Ana");
+    await user.click(within(modal).getByRole("button", { name: /Ana/ }));
     expect(modal).toHaveTextContent(AVISO);
     await user.click(within(modal).getByRole("button", { name: "Adicionar" }));
     expect(chamadas("POST")).toHaveLength(1);

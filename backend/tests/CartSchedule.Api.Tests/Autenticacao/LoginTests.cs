@@ -92,11 +92,11 @@ public class LoginTests(ApiFixture fixture) : ApiTestBase(fixture)
     [Fact]
     public async Task ContaSemPin_Retorna401CredenciaisInvalidas()
     {
-        // Registro antigo (sem usuário/PIN): só existe pela adição manual por nome.
+        // Registro antigo (sem usuário/PIN), como os do token anônimo do aparelho.
         var admin = await AdminAsync();
         var carrinhoId = await CriarCarrinhoAsync(admin);
         await DefinirTurnosAsync(admin, carrinhoId, (Segunda, Turno0810));
-        await AdicionarManualAsync(admin, carrinhoId, Segunda, Turno0810, "Pedro");
+        await AdicionarRegistroAntigoPorNomeAsync(admin, carrinhoId, Segunda, Turno0810, "Pedro");
 
         var resposta = await LoginAsync(Anonimo(), "Pedro", "");
 

@@ -42,7 +42,7 @@ public class AtualizarNomeTests(ApiFixture fixture) : ApiTestBase(fixture)
         var admin = await AdminAsync();
         var carrinhoId = await CriarCarrinhoAsync(admin);
         await DefinirTurnosAsync(admin, carrinhoId, (Segunda, Turno0810));
-        var criada = await JsonAsync(await AdicionarManualAsync(admin, carrinhoId, Segunda, Turno0810, "Ana"));
+        var criada = await JsonAsync(await AdicionarRegistroAntigoPorNomeAsync(admin, carrinhoId, Segunda, Turno0810, "Ana"));
         Assert.NotEqual(token, criada.GetProperty("publicadorId").GetGuid());
     }
 

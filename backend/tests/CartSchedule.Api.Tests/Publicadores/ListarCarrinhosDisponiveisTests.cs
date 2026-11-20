@@ -34,7 +34,7 @@ public class ListarCarrinhosDisponiveisTests(ApiFixture fixture) : ApiTestBase(f
         await SolicitarAsync(Publicador(), carrinho, Segunda, Turno0810, "Bia");
         await SolicitarAsync(Publicador(), carrinho, Segunda, Turno1012, "Ana");
         // Excesso adicionado pelo admin em outra vaga conta na ocupação.
-        await AdicionarManualAsync(admin, carrinho, Terca, Turno1012, "Caio");
+        await AdicionarRegistroAntigoPorNomeAsync(admin, carrinho, Terca, Turno1012, "Caio");
 
         var carrinhos = await Fixture.Factory.CreateClient().GetFromJsonAsync<JsonElement>("/api/carrinhos");
 
@@ -50,7 +50,7 @@ public class ListarCarrinhosDisponiveisTests(ApiFixture fixture) : ApiTestBase(f
         var admin = await AdminAsync();
         var carrinho = await CriarCarrinhoAsync(admin);
         await DefinirTurnosAsync(admin, carrinho, (Segunda, Turno0810));
-        await AdicionarManualAsync(admin, carrinho, Segunda, Turno0810, "Ana", mes: "2026-07");
+        await AdicionarRegistroAntigoPorNomeAsync(admin, carrinho, Segunda, Turno0810, "Ana", mes: "2026-07");
 
         var carrinhos = await Fixture.Factory.CreateClient().GetFromJsonAsync<JsonElement>("/api/carrinhos");
 

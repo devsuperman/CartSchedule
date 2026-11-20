@@ -87,7 +87,7 @@ public class RedefinirPinEDesativarTests(ApiFixture fixture) : ApiTestBase(fixtu
         var admin = await AdminAsync();
         var carrinhoId = await CriarCarrinhoAsync(admin);
         await DefinirTurnosAsync(admin, carrinhoId, (Segunda, Turno0810));
-        (await AdicionarManualAsync(admin, carrinhoId, Segunda, Turno0810, "Pedro")).EnsureSuccessStatusCode();
+        (await AdicionarRegistroAntigoPorNomeAsync(admin, carrinhoId, Segunda, Turno0810, "Pedro")).EnsureSuccessStatusCode();
         var id = PedidosDaGrade(await GradeAsync(admin)).Single().GetProperty("publicadorId").GetGuid();
 
         var resposta = await RedefinirPinAsync(admin, id);
@@ -191,7 +191,7 @@ public class RedefinirPinEDesativarTests(ApiFixture fixture) : ApiTestBase(fixtu
         var admin = await AdminAsync();
         var carrinhoId = await CriarCarrinhoAsync(admin);
         await DefinirTurnosAsync(admin, carrinhoId, (Segunda, Turno0810));
-        (await AdicionarManualAsync(admin, carrinhoId, Segunda, Turno0810, "Pedro")).EnsureSuccessStatusCode();
+        (await AdicionarRegistroAntigoPorNomeAsync(admin, carrinhoId, Segunda, Turno0810, "Pedro")).EnsureSuccessStatusCode();
         var pedroId = PedidosDaGrade(await GradeAsync(admin)).Single().GetProperty("publicadorId").GetGuid();
         await CriarContaAsync(admin, "Ana", "ana");
 
