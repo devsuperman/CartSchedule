@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using CartSchedule.Api.Domain;
 using CartSchedule.Api.Infrastructure;
+using CartSchedule.Api.Infrastructure.Auth;
 using CartSchedule.Api.Shared;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -25,7 +26,6 @@ public static class Endpoint
 {
     public const string CodigoUsuarioEmUso = "USUARIO_EM_USO";
     public const string CodigoSemUsuario = "SEM_USUARIO";
-    public const string CodigoPropriaConta = "PROPRIA_CONTA";
 
     public static IEndpointRouteBuilder MapGerenciarPublicadores(this IEndpointRouteBuilder app)
     {
@@ -47,7 +47,7 @@ public static class Endpoint
     private static async Task<IResult> ListarAsync(
         string? busca, bool? incluirInativos, ClaimsPrincipal usuarioLogado, AppDbContext db, CancellationToken ct)
     {
-        var euId = IdDoLogado(usuarioLogado);
+        var euId = usuarioLogado.PublicadorIdOuNulo();
         // Poucas centenas de pessoas no máximo: a busca sem acentos é feita em memória, com a
         // mesma normalização do usuário.
         var publicadores = await db.Publicadores
@@ -118,12 +118,10 @@ public static class Endpoint
             return Results.NotFound();
         }
 
-        if (IdDoLogado(usuarioLogado) == id && (request.Ativo == false || request.Administrador == false))
+        if (PropriaConta.Eh(usuarioLogado, id) && (request.Ativo == false || request.Administrador == false))
         {
-            return Results.Problem(
-                title: "Você não pode desativar nem tirar o administrador da sua própria conta. Peça a outro administrador.",
-                statusCode: StatusCodes.Status409Conflict,
-                extensions: new Dictionary<string, object?> { ["codigo"] = CodigoPropriaConta });
+            return PropriaConta.Problema(
+                "Você não pode desativar nem tirar o administrador da sua própria conta. Peça a outro administrador.");
         }
 
         if (request.Nome is not null)
@@ -205,10 +203,6 @@ public static class Endpoint
         db.Publicadores
             .Where(p => p.Id == id)
             .ExecuteUpdateAsync(s => s.SetProperty(p => p.VersaoSessao, p => p.VersaoSessao + 1), ct);
-
-    /// <summary>Id do publicador logado; null para o administrador de recuperação.</summary>
-    private static Guid? IdDoLogado(ClaimsPrincipal usuario) =>
-        Guid.TryParse(usuario.FindFirstValue(ClaimTypes.NameIdentifier), out var id) ? id : null;
 
     /// <summary>Gera um PIN, guarda só o hash e devolve o PIN em claro para a resposta.</summary>
     private static string NovoPin(Publicador publicador, PasswordHasher<object> passwordHasher)

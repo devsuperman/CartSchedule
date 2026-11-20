@@ -27,4 +27,8 @@ public static class UsuarioLogado
     /// </summary>
     public static Guid PublicadorId(this ClaimsPrincipal usuario) =>
         Guid.Parse(usuario.FindFirstValue(ClaimTypes.NameIdentifier)!);
+
+    /// <summary>Id do publicador dono do token; null para o administrador de recuperação.</summary>
+    public static Guid? PublicadorIdOuNulo(this ClaimsPrincipal usuario) =>
+        Guid.TryParse(usuario.FindFirstValue(ClaimTypes.NameIdentifier), out var id) ? id : null;
 }

@@ -1,6 +1,6 @@
 # 0001 — Publicadores com conta (usuário + PIN) em vez de token anônimo
 
-- **Status**: aceita (implantação em etapas: #45 a #50, plano em #44)
+- **Status**: aceita (implantação em etapas: #45 a #50, plano em #44); a marca **ativo** é substituída pela exclusão (ADR 0002, em etapas: #61, #62)
 - **Data**: 2026-11-19
 
 ## Contexto

@@ -424,4 +424,78 @@ describe("Publicadores", () => {
     await user.keyboard("{Escape}");
     expect(screen.getByText("José Lima")).toBeInTheDocument();
   });
+
+  it("exclui com prévia dos pedidos e a pessoa some da lista", async () => {
+    mockApiFetch.mockImplementation(async (path, opcoes) => {
+      if (path === "/api/admin/publicadores" && !opcoes?.method) return LISTA;
+      if (path === "/api/admin/publicadores/j/exclusao" && !opcoes?.method) return { pedidos: 3, escalas: 2 };
+      if (path === "/api/admin/publicadores/j" && opcoes?.method === "DELETE") return undefined;
+      throw new Error(`chamada inesperada: ${path}`);
+    });
+    const user = renderizar();
+
+    await user.click((await itemDe("José Lima")).getByRole("button", { name: "Editar José Lima" }));
+    await user.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Excluir" }));
+
+    const excluir = within(screen.getByRole("dialog", { name: "Excluir José Lima?" }));
+    expect(await excluir.findByText(/3 pedidos em 2 escalas/)).toBeInTheDocument();
+    expect(excluir.getByText(/Não dá para desfazer/)).toBeInTheDocument();
+    expect(mockApiFetch).not.toHaveBeenCalledWith("/api/admin/publicadores/j", { method: "DELETE" });
+    await user.click(excluir.getByRole("button", { name: "Excluir" }));
+
+    expect(mockApiFetch).toHaveBeenCalledWith("/api/admin/publicadores/j", { method: "DELETE" });
+    expect(await screen.findByRole("status")).toHaveTextContent("José Lima foi excluído.");
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(screen.queryByText("José Lima")).not.toBeInTheDocument();
+  });
+
+  it("voltar da exclusão não exclui", async () => {
+    mockApiFetch.mockImplementation(async (path, opcoes) => {
+      if (path === "/api/admin/publicadores" && !opcoes?.method) return LISTA;
+      if (path === "/api/admin/publicadores/j/exclusao" && !opcoes?.method) return { pedidos: 1, escalas: 1 };
+      throw new Error(`chamada inesperada: ${path}`);
+    });
+    const user = renderizar();
+
+    await user.click((await itemDe("José Lima")).getByRole("button", { name: "Editar José Lima" }));
+    await user.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Excluir" }));
+    const excluir = within(screen.getByRole("dialog"));
+    expect(await excluir.findByText(/1 pedido em 1 escala/)).toBeInTheDocument();
+    await user.click(excluir.getByRole("button", { name: "Voltar" }));
+
+    expect(within(screen.getByRole("dialog")).getByRole("button", { name: "Excluir" })).toBeInTheDocument();
+    expect(mockApiFetch).not.toHaveBeenCalledWith("/api/admin/publicadores/j", { method: "DELETE" });
+  });
+
+  it("na própria conta não oferece excluir", async () => {
+    mockApiFetch.mockImplementation(async (path, opcoes) => {
+      if (path === "/api/admin/publicadores" && !opcoes?.method) return [{ ...LISTA[0], ehVoce: true }, LISTA[1]];
+      throw new Error(`chamada inesperada: ${path}`);
+    });
+    const user = renderizar();
+
+    await user.click((await itemDe("Ana Paula")).getByRole("button", { name: "Editar Ana Paula" }));
+
+    expect(within(screen.getByRole("dialog")).queryByRole("button", { name: "Excluir" })).not.toBeInTheDocument();
+  });
+
+  it("erro ao excluir aparece na confirmação e nada some da lista", async () => {
+    mockApiFetch.mockImplementation(async (path, opcoes) => {
+      if (path === "/api/admin/publicadores" && !opcoes?.method) return LISTA;
+      if (path === "/api/admin/publicadores/j/exclusao" && !opcoes?.method) return { pedidos: 0, escalas: 0 };
+      throw new ApiError(404, "Não encontrado.");
+    });
+    const user = renderizar();
+
+    await user.click((await itemDe("José Lima")).getByRole("button", { name: "Editar José Lima" }));
+    await user.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Excluir" }));
+    const excluir = within(screen.getByRole("dialog"));
+    expect(await excluir.findByText(/José Lima não tem pedidos/)).toBeInTheDocument();
+    await user.click(excluir.getByRole("button", { name: "Excluir" }));
+
+    expect(await excluir.findByText("Não encontrado.")).toBeInTheDocument();
+    await user.click(excluir.getByRole("button", { name: "Voltar" }));
+    await user.keyboard("{Escape}");
+    expect(screen.getByText("José Lima")).toBeInTheDocument();
+  });
 });

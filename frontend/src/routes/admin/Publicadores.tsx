@@ -38,6 +38,12 @@ interface ResultadoDaUniao {
   pedidosDescartados: number;
 }
 
+/** Prévia da exclusão: GET /api/admin/publicadores/{id}/exclusao. */
+interface PreviaDaExclusao {
+  pedidos: number;
+  escalas: number;
+}
+
 /** "1 pedido passa" / "3 pedidos passam": a contagem com o verbo concordando. */
 function rotuloPedidos(n: number, verboSingular: string, verboPlural: string): string {
   return n === 1 ? `1 pedido ${verboSingular}` : `${n} pedidos ${verboPlural}`;
@@ -53,6 +59,8 @@ function rotuloPedidos(n: number, verboSingular: string, verboPlural: string): s
  * "Unir a outro registro" (issue #47) junta dois registros da mesma pessoa: os pedidos passam ao
  * registro escolhido, os que ele já tem na mesma vaga são descartados e o registro editado é
  * apagado — com prévia das contagens antes de confirmar.
+ * "Excluir" (issue #61, ADR 0002) apaga a pessoa e todos os pedidos dela, de todas as escalas,
+ * com prévia de quantos pedidos e em quantas escalas; não na própria conta.
  */
 export default function Publicadores() {
   const [publicadores, setPublicadores] = useState<Publicador[] | null>(null);
@@ -109,6 +117,12 @@ export default function Publicadores() {
     );
     setEdicao(null);
     setAviso(`${origem.nome} foi unido a ${destino.nome}.`);
+  }
+
+  function aoExcluir(excluido: Publicador) {
+    setPublicadores((atuais) => (atuais ?? []).filter((p) => p.id !== excluido.id));
+    setEdicao(null);
+    setAviso(`${excluido.nome} foi excluído.`);
   }
 
   return (
@@ -189,6 +203,7 @@ export default function Publicadores() {
               todos={publicadores ?? []}
               onSalvo={aoSalvar}
               onUnido={aoUnir}
+              onExcluido={aoExcluir}
             />
           )}
         </DialogContent>
@@ -222,22 +237,25 @@ function rascunhoInicial(original: Publicador | null): Rascunho {
 }
 
 /**
- * Formulário de criar/editar; na edição, também redefinir PIN, desativar/reativar e unir a outro
- * registro (cada um com confirmação).
+ * Formulário de criar/editar; na edição, também redefinir PIN, desativar/reativar, unir a outro
+ * registro e excluir (cada um com confirmação).
  */
 function EdicaoPublicador({
   edicao,
   todos,
   onSalvo,
   onUnido,
+  onExcluido,
 }: {
   edicao: Edicao;
   todos: Publicador[];
   onSalvo: (publicador: Publicador, credenciais: Credenciais | null) => void;
   onUnido: (origem: Publicador, destino: Publicador) => void;
+  onExcluido: (publicador: Publicador) => void;
 }) {
   const [confirmando, setConfirmando] = useState<AcaoDeAcesso | null>(null);
   const [unindo, setUnindo] = useState(false);
+  const [excluindo, setExcluindo] = useState(false);
   const [rascunho, setRascunho] = useState(() =>
     rascunhoInicial(edicao.modo === "editar" ? edicao.publicador : null),
   );
@@ -249,6 +267,16 @@ function EdicaoPublicador({
         candidatos={todos.filter((p) => p.id !== edicao.publicador.id)}
         onVoltar={() => setUnindo(false)}
         onUnido={onUnido}
+      />
+    );
+  }
+
+  if (edicao.modo === "editar" && excluindo) {
+    return (
+      <ExcluirPublicador
+        publicador={edicao.publicador}
+        onVoltar={() => setExcluindo(false)}
+        onExcluido={onExcluido}
       />
     );
   }
@@ -292,6 +320,12 @@ function EdicaoPublicador({
           ) : (
             <Button type="button" variant="outline" onClick={() => setConfirmando("reativar")}>
               Reativar
+            </Button>
+          )}
+          {/* Excluir apaga a conta: não na própria, que ficaria sem acesso. */}
+          {!edicao.publicador.ehVoce && (
+            <Button type="button" variant="destructive" onClick={() => setExcluindo(true)}>
+              Excluir
             </Button>
           )}
         </div>
@@ -512,6 +546,85 @@ function UnirPublicador({
         </Button>
         <Button type="button" variant="destructive" onClick={confirmar} disabled={!previa || enviando}>
           {enviando ? "Aguarde…" : "Unir"}
+        </Button>
+      </DialogFooter>
+    </div>
+  );
+}
+
+/** "3 pedidos em 2 escalas" / "1 pedido em 1 escala". */
+function rotuloDaPrevia({ pedidos, escalas }: PreviaDaExclusao): string {
+  return `${pedidos === 1 ? "1 pedido" : `${pedidos} pedidos`} em ${escalas === 1 ? "1 escala" : `${escalas} escalas`}`;
+}
+
+/**
+ * Confirmação de "Excluir": busca a prévia (quantos pedidos, em quantas escalas) e, ao
+ * confirmar, apaga a pessoa e todos os pedidos dela, de todas as escalas — sem desfazer.
+ */
+function ExcluirPublicador({
+  publicador,
+  onVoltar,
+  onExcluido,
+}: {
+  publicador: Publicador;
+  onVoltar: () => void;
+  onExcluido: (publicador: Publicador) => void;
+}) {
+  const [previa, setPrevia] = useState<PreviaDaExclusao | null>(null);
+  const [enviando, setEnviando] = useState(false);
+  const [erro, setErro] = useState<string | null>(null);
+
+  useEffect(() => {
+    let atual = true;
+    apiFetch<PreviaDaExclusao>(`/api/admin/publicadores/${publicador.id}/exclusao`)
+      .then((resultado) => atual && setPrevia(resultado))
+      .catch(
+        (err) => atual && setErro(err instanceof ApiError ? err.message : "Não foi possível calcular a prévia."),
+      );
+    return () => {
+      atual = false;
+    };
+  }, [publicador.id]);
+
+  async function confirmar() {
+    setEnviando(true);
+    setErro(null);
+    try {
+      await apiFetch<void>(`/api/admin/publicadores/${publicador.id}`, { method: "DELETE" });
+      onExcluido(publicador);
+    } catch (err) {
+      setErro(err instanceof ApiError ? err.message : "Não foi possível excluir.");
+      setEnviando(false);
+    }
+  }
+
+  return (
+    <div className="grid gap-4">
+      <DialogHeader>
+        <DialogTitle>Excluir {publicador.nome}?</DialogTitle>
+        <DialogDescription>
+          A conta e todos os pedidos de {publicador.nome}, de todas as escalas, serão excluídos. Não dá para
+          desfazer.
+        </DialogDescription>
+      </DialogHeader>
+      {previa && (
+        <p className="rounded-md bg-muted px-3 py-2">
+          {previa.pedidos === 0
+            ? `${publicador.nome} não tem pedidos.`
+            : `${publicador.nome} tem ${rotuloDaPrevia(previa)}. ${previa.pedidos === 1 ? "Ele será excluído" : "Eles serão excluídos"} junto com a conta.`}
+        </p>
+      )}
+      {erro && (
+        <Alert variant="destructive">
+          <AlertDescription>{erro}</AlertDescription>
+        </Alert>
+      )}
+      <DialogFooter>
+        <Button type="button" variant="outline" onClick={onVoltar} disabled={enviando}>
+          Voltar
+        </Button>
+        <Button type="button" variant="destructive" onClick={confirmar} disabled={!previa || enviando}>
+          {enviando ? "Aguarde…" : "Excluir"}
         </Button>
       </DialogFooter>
     </div>

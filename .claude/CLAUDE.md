@@ -36,7 +36,7 @@ verdade.
 backend/src/CartSchedule.Api/
   Domain/                 # entidades + Enums/
   Infrastructure/          # AppDbContext, Migrations, Auth
-  Shared/                  # JanelaDeEnvio.cs, EscalaHelpers.cs, LotacaoDaVaga.cs, HorarioOcupado.cs, DataEspecial.cs, Credenciais.cs (usuário normalizado, PIN: formato, fraco, gerar), Sessao.cs (token + papel de login/renovação/troca de PIN)
+  Shared/                  # JanelaDeEnvio.cs, EscalaHelpers.cs, LotacaoDaVaga.cs, HorarioOcupado.cs, DataEspecial.cs, Credenciais.cs (usuário normalizado, PIN: formato, fraco, gerar), Sessao.cs (token + papel de login/renovação/troca de PIN), PropriaConta.cs (409 PROPRIA_CONTA: o que o admin não faz na própria conta)
   Features/
     Autenticacao/          # Login/ (POST /api/login, login único), RenovarSessao/ (POST /api/sessao/renovar)
     Publicadores/<Slice>/  # Endpoint.cs, Request.cs, Response.cs, Validator.cs
@@ -47,7 +47,7 @@ frontend/src/
   api/                     # client.ts + wrappers por área
   routes/publicador/       # InicioPublicador (histórico + botões), SolicitarEscala, wizard/, JanelaFechada
   routes/Login.tsx         # login único (/login, a única rota pública): usuário + PIN; /admin/login redireciona
-  routes/admin/            # GestaoCarrinhos, Publicadores (contas: criar, editar, redefinir PIN — mostrado uma vez —, desativar/reativar com "Mostrar desativados", unir duplicados com prévia), EscalaFinal (gestão da escala: mover/adicionar/excluir), EscalaCompartilhar (imagem só leitura do mês, dia → turno → carrinho, + uma por data especial)
+  routes/admin/            # GestaoCarrinhos, Publicadores (contas: criar, editar, redefinir PIN — mostrado uma vez —, desativar/reativar com "Mostrar desativados", unir duplicados com prévia, excluir com prévia — apaga a conta e todos os pedidos, ADR 0002), EscalaFinal (gestão da escala: mover/adicionar/excluir), EscalaCompartilhar (imagem só leitura do mês, dia → turno → carrinho, + uma por data especial)
   api/sessao.ts            # token + papel no localStorage; 401 da API encerra a sessão
   components/ExigeLogin.tsx # guarda de todas as rotas (admin → /admin/*); renova o token ao abrir o app
   components/TrocarPin.tsx  # diálogo "Trocar PIN" do menu "Olá" (Layout.tsx)
@@ -160,6 +160,10 @@ todas são intencionais, confirmadas no `PLANNING.md`:
     recuperação** (ADR 0001): só a área administrativa, nunca pede vagas (403). O
     publicador comum recebe 403 nas rotas admin. Sem bloqueio de conta: só o rate
     limit `login` por IP.
+11a. **Excluir publicador** (ADR 0002): `DELETE /api/admin/publicadores/{id}` apaga a conta
+    e **todos os pedidos dela, de todas as escalas**, sem desfazer; a tela mostra antes a
+    prévia (`GET .../{id}/exclusao`: pedidos e escalas). Nunca na própria conta
+    (409 `PROPRIA_CONTA`); outro administrador pode. Nunca trocar por "pessoa excluída"/soft delete.
 12. **Sem notificações** (e-mail/push) de nenhum tipo.
 13. **Contagem de apoio ao desempate**: ao selecionar uma pessoa na tela da
     Escala, mostrar quantas solicitações (todas as trincas) ela já tem na
