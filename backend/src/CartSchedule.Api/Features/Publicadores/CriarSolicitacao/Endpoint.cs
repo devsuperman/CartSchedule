@@ -74,6 +74,10 @@ public static class Endpoint
             publicador = new Publicador { Id = publicadorId, Nome = request.Nome };
             db.Publicadores.Add(publicador);
         }
+        else if (!publicador.Ativo)
+        {
+            return PublicadorInativo.Problema();
+        }
         else
         {
             publicador.Nome = request.Nome;

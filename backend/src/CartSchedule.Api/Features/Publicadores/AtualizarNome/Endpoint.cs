@@ -9,7 +9,7 @@ namespace CartSchedule.Api.Features.Publicadores.AtualizarNome;
 /// PUT /api/publicador — o publicador (header X-Publicador-Token) corrige o próprio nome, que
 /// passa a valer na hora para o administrador (revisão e grade). Se ele ainda não fez nenhum
 /// pedido, não existe no banco: nada é criado e o nome chega junto com o primeiro pedido.
-/// Mudar o nome não é pedir escala, então não depende da janela de envio.
+/// Mudar o nome não é pedir escala, então não depende da janela de envio. Desativado → 403.
 /// </summary>
 public static class Endpoint
 {
@@ -32,6 +32,11 @@ public static class Endpoint
                 title: "Token de publicador ausente ou inválido",
                 detail: "Envie o header X-Publicador-Token com um GUID válido.",
                 statusCode: StatusCodes.Status400BadRequest);
+        }
+
+        if (await db.Publicadores.AnyAsync(p => p.Id == publicadorId && !p.Ativo, ct))
+        {
+            return PublicadorInativo.Problema();
         }
 
         var nome = request.Nome.Trim();

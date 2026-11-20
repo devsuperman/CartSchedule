@@ -207,4 +207,67 @@ public class RedefinirPinEDesativarTests(ApiFixture fixture) : ApiTestBase(fixtu
         var pedido = Assert.Single(PedidosDaGrade(await GradeAsync(admin)));
         Assert.Equal(pedroId, pedido.GetProperty("publicadorId").GetGuid());
     }
+    [Fact]
+    public async Task Desativado_ComTokenAnonimoDoAparelho_NaoPedeNemExcluiNemRenomeia()
+    {
+        var admin = await AdminAsync();
+        var carrinhoId = await CriarCarrinhoAsync(admin);
+        await DefinirTurnosAsync(admin, carrinhoId, (Segunda, Turno0810), (Terca, Turno0810));
+        var token = Guid.NewGuid();
+        var aparelho = Publicador(token);
+        var pedido = await JsonAsync(await SolicitarAsync(aparelho, carrinhoId, Segunda, Turno0810));
+
+        // O token anônimo do aparelho é o id do publicador.
+        await EditarAsync(admin, token, new { ativo = false });
+
+        var novo = await SolicitarAsync(aparelho, carrinhoId, Terca, Turno0810);
+        var exclusao = await aparelho.DeleteAsync($"/api/solicitacoes/{pedido.GetProperty("id").GetInt32()}");
+        var renomear = await aparelho.PutAsJsonAsync("/api/publicador", new { nome = "Outro" });
+
+        foreach (var resposta in new[] { novo, exclusao, renomear })
+        {
+            Assert.Equal(HttpStatusCode.Forbidden, resposta.StatusCode);
+            Assert.Equal("PUBLICADOR_INATIVO", (await JsonAsync(resposta)).GetProperty("codigo").GetString());
+        }
+
+        var item = Assert.Single(PedidosDaGrade(await GradeAsync(admin)));
+        Assert.Equal("Ana", item.GetProperty("publicadorNome").GetString());
+    }
+
+    [Fact]
+    public async Task Administrador_NaoDesativaNemTiraOProprioAdministrador_MasEditaOResto()
+    {
+        var recuperacao = await AdminAsync();
+        var (id, pin) = await CriarContaAsync(recuperacao, "Maria", "maria", administrador: true);
+        var maria = await LogadoAsync("maria", pin);
+
+        foreach (var corpo in new object[] { new { ativo = false }, new { administrador = false } })
+        {
+            var resposta = await EditarAsync(maria, id, corpo);
+            Assert.Equal(HttpStatusCode.Conflict, resposta.StatusCode);
+            Assert.Equal("PROPRIA_CONTA", (await JsonAsync(resposta)).GetProperty("codigo").GetString());
+        }
+
+        Assert.Equal(HttpStatusCode.NoContent,
+            (await EditarAsync(maria, id, new { nome = "Maria Souza", administrador = true, ativo = true })).StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await maria.GetAsync(RotaAdmin)).StatusCode);
+    }
+
+    [Fact]
+    public async Task Lista_MarcaQuemEstaLogado_ERecuperacaoNaoEhNinguem()
+    {
+        var recuperacao = await AdminAsync();
+        var (mariaId, pin) = await CriarContaAsync(recuperacao, "Maria", "maria", administrador: true);
+        await CriarContaAsync(recuperacao, "Ana", "ana");
+        var maria = await LogadoAsync("maria", pin);
+
+        var vistaPelaMaria = (await maria.GetFromJsonAsync<JsonElement>(RotaAdmin)).EnumerateArray()
+            .ToDictionary(p => p.GetProperty("id").GetGuid(), p => p.GetProperty("ehVoce").GetBoolean());
+        var vistaPelaRecuperacao = (await recuperacao.GetFromJsonAsync<JsonElement>(RotaAdmin)).EnumerateArray()
+            .Select(p => p.GetProperty("ehVoce").GetBoolean());
+
+        Assert.True(vistaPelaMaria[mariaId]);
+        Assert.Single(vistaPelaMaria, p => p.Value);
+        Assert.All(vistaPelaRecuperacao, Assert.False);
+    }
 }

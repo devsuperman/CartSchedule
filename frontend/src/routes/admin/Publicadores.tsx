@@ -26,6 +26,8 @@ interface Publicador {
   administrador: boolean;
   ativo: boolean;
   temPin: boolean;
+  /** O administrador logado: a tela não oferece desativar nem tirar o próprio administrador. */
+  ehVoce: boolean;
 }
 
 /** Resposta de criar (ou de dar usuário a um registro antigo): o único momento em que o PIN aparece. */
@@ -63,11 +65,23 @@ export default function Publicadores() {
   const [mostrarInativos, setMostrarInativos] = useState(false);
 
   useEffect(() => {
+    // Alternar "Mostrar desativados" rápido dispara buscas sobrepostas: só a última vale.
+    let atual = true;
     apiFetch<Publicador[]>(
       mostrarInativos ? "/api/admin/publicadores?incluirInativos=true" : "/api/admin/publicadores",
     )
-      .then(setPublicadores)
-      .catch((err) => setErro(err instanceof ApiError ? err.message : "Não foi possível carregar os publicadores."));
+      .then((lista) => {
+        if (!atual) return;
+        setPublicadores(lista);
+        setErro(null);
+      })
+      .catch(
+        (err) =>
+          atual && setErro(err instanceof ApiError ? err.message : "Não foi possível carregar os publicadores."),
+      );
+    return () => {
+      atual = false;
+    };
   }, [mostrarInativos]);
 
   const visiveis = useMemo(() => {
@@ -173,6 +187,26 @@ export default function Publicadores() {
 
 type AcaoDeAcesso = "pin" | "desativar" | "reativar";
 
+/** O que o administrador digitou no formulário; fica aqui para não se perder ao abrir uma confirmação. */
+interface Rascunho {
+  nome: string;
+  usuario: string;
+  /** Na criação, o usuário acompanha o primeiro nome até o administrador mexer nele. */
+  usuarioEditado: boolean;
+  criancaOuIdoso: boolean;
+  administrador: boolean;
+}
+
+function rascunhoInicial(original: Publicador | null): Rascunho {
+  return {
+    nome: original?.nome ?? "",
+    usuario: original?.usuario ?? "",
+    usuarioEditado: original !== null,
+    criancaOuIdoso: original?.criancaOuIdoso ?? false,
+    administrador: original?.administrador ?? false,
+  };
+}
+
 /** Formulário de criar/editar; na edição, também redefinir PIN e desativar/reativar (com confirmação). */
 function EdicaoPublicador({
   edicao,
@@ -182,6 +216,9 @@ function EdicaoPublicador({
   onSalvo: (publicador: Publicador, credenciais: Credenciais | null) => void;
 }) {
   const [confirmando, setConfirmando] = useState<AcaoDeAcesso | null>(null);
+  const [rascunho, setRascunho] = useState(() =>
+    rascunhoInicial(edicao.modo === "editar" ? edicao.publicador : null),
+  );
 
   if (edicao.modo === "editar" && confirmando) {
     return (
@@ -196,7 +233,12 @@ function EdicaoPublicador({
 
   return (
     <>
-      <FormularioPublicador edicao={edicao} onSalvo={onSalvo} />
+      <FormularioPublicador
+        edicao={edicao}
+        rascunho={rascunho}
+        onMudar={(mudanca) => setRascunho((atual) => ({ ...atual, ...mudanca }))}
+        onSalvo={onSalvo}
+      />
       {edicao.modo === "editar" && (
         <div className="flex flex-wrap gap-2 border-t border-border pt-4">
           {edicao.publicador.usuario !== null && (
@@ -204,7 +246,7 @@ function EdicaoPublicador({
               Redefinir PIN
             </Button>
           )}
-          {edicao.publicador.ativo ? (
+          {edicao.publicador.ehVoce ? null : edicao.publicador.ativo ? (
             <Button type="button" variant="destructive" onClick={() => setConfirmando("desativar")}>
               Desativar
             </Button>
@@ -307,18 +349,17 @@ function ConfirmarAcao({
 
 function FormularioPublicador({
   edicao,
+  rascunho,
+  onMudar,
   onSalvo,
 }: {
   edicao: Edicao;
+  rascunho: Rascunho;
+  onMudar: (mudanca: Partial<Rascunho>) => void;
   onSalvo: (publicador: Publicador, credenciais: Credenciais | null) => void;
 }) {
   const original = edicao.modo === "editar" ? edicao.publicador : null;
-  const [nome, setNome] = useState(original?.nome ?? "");
-  const [usuario, setUsuario] = useState(original?.usuario ?? "");
-  // Na criação, o usuário acompanha o primeiro nome até o administrador mexer nele.
-  const [usuarioEditado, setUsuarioEditado] = useState(original !== null);
-  const [criancaOuIdoso, setCriancaOuIdoso] = useState(original?.criancaOuIdoso ?? false);
-  const [administrador, setAdministrador] = useState(original?.administrador ?? false);
+  const { nome, usuario, usuarioEditado, criancaOuIdoso, administrador } = rascunho;
   const [salvando, setSalvando] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
 
@@ -328,8 +369,7 @@ function FormularioPublicador({
   const valido = nome.trim() !== "" && (!usuarioObrigatorio || usuarioLimpo !== "") && !/\s/.test(usuarioLimpo);
 
   function mudarNome(valor: string) {
-    setNome(valor);
-    if (!usuarioEditado) setUsuario(primeiroNome(valor));
+    onMudar(usuarioEditado ? { nome: valor } : { nome: valor, usuario: primeiroNome(valor) });
   }
 
   async function salvar(evento: FormEvent) {
@@ -358,6 +398,7 @@ function FormularioPublicador({
           administrador,
           ativo: original?.ativo ?? true,
           temPin: (original?.temPin ?? false) || credenciais !== null,
+          ehVoce: original?.ehVoce ?? false,
         },
         credenciais,
       );
@@ -387,10 +428,7 @@ function FormularioPublicador({
           Usuário
           <Input
             value={usuario}
-            onChange={(e) => {
-              setUsuarioEditado(true);
-              setUsuario(e.target.value);
-            }}
+            onChange={(e) => onMudar({ usuarioEditado: true, usuario: e.target.value })}
             maxLength={50}
             autoCapitalize="none"
             autoCorrect="off"
@@ -404,11 +442,22 @@ function FormularioPublicador({
             : "Uma palavra, sem espaços. Maiúsculas e acentos não contam."}
         </span>
       </div>
-      <CampoCriancaOuIdoso marcado={criancaOuIdoso} onMudar={setCriancaOuIdoso} />
-      <Label className="min-h-11 font-normal">
-        <Checkbox checked={administrador} onCheckedChange={(valor) => setAdministrador(valor === true)} />
-        Administrador (entra na área administrativa)
-      </Label>
+      <CampoCriancaOuIdoso marcado={criancaOuIdoso} onMudar={(valor) => onMudar({ criancaOuIdoso: valor })} />
+      <div className="flex flex-col gap-1.5">
+        <Label className="min-h-11 font-normal">
+          <Checkbox
+            checked={administrador}
+            disabled={original?.ehVoce}
+            onCheckedChange={(valor) => onMudar({ administrador: valor === true })}
+          />
+          Administrador (entra na área administrativa)
+        </Label>
+        {original?.ehVoce && (
+          <span className="text-[0.9rem] text-muted-foreground">
+            Você não pode tirar o próprio administrador. Peça a outro administrador.
+          </span>
+        )}
+      </div>
       {erro && (
         <Alert variant="destructive">
           <AlertDescription>{erro}</AlertDescription>
