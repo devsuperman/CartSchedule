@@ -2,6 +2,7 @@ using System.Security.Claims;
 using CartSchedule.Api.Domain;
 using CartSchedule.Api.Domain.Enums;
 using CartSchedule.Api.Infrastructure;
+using CartSchedule.Api.Shared;
 using Microsoft.EntityFrameworkCore;
 
 namespace CartSchedule.Api.Features.Administradores.UnirPublicadores;
@@ -17,8 +18,6 @@ namespace CartSchedule.Api.Features.Administradores.UnirPublicadores;
 /// </summary>
 public static class Endpoint
 {
-    public const string CodigoPropriaConta = "PROPRIA_CONTA";
-
     public static IEndpointRouteBuilder MapUnirPublicadores(this IEndpointRouteBuilder app)
     {
         var group = app.MapGroup("/api/admin/publicadores/{origemId:guid}/unir/{destinoId:guid}")
@@ -118,20 +117,14 @@ public static class Endpoint
             });
         }
 
-        if (IdDoLogado(usuarioLogado) == origemId)
+        if (PropriaConta.Eh(usuarioLogado, origemId))
         {
-            return Results.Problem(
-                title: "Você não pode unir a sua própria conta a outra: ela seria apagada. Una a outra conta à sua.",
-                statusCode: StatusCodes.Status409Conflict,
-                extensions: new Dictionary<string, object?> { ["codigo"] = CodigoPropriaConta });
+            return PropriaConta.Problema(
+                "Você não pode unir a sua própria conta a outra: ela seria apagada. Una a outra conta à sua.");
         }
 
         return null;
     }
-
-    /// <summary>Id do publicador logado; null para o administrador de recuperação.</summary>
-    private static Guid? IdDoLogado(ClaimsPrincipal usuario) =>
-        Guid.TryParse(usuario.FindFirstValue(ClaimTypes.NameIdentifier), out var id) ? id : null;
 
     /// <summary>A chave da duplicidade (PLANNING.md regra 4): a mesma vaga na mesma escala.</summary>
     private readonly record struct Vaga(int EscalaId, int CarrinhoId, DiaSemana DiaSemana, int TurnoId)
