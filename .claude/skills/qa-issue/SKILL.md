@@ -2,7 +2,7 @@
 name: qa-issue
 description: Acceptance QA of a GitHub issue in a disposable local environment, driven through the browser with Playwright MCP.
 disable-model-invocation: true
-argument-hint: <issue number>
+argument-hint: "[issue number] (default: the current branch's issue)"
 ---
 
 # QA an issue
@@ -12,6 +12,14 @@ Verify, as a user would, that the running app delivers every **acceptance criter
 Work in English. The app UI and the domain words (Publicador, Escala, vaga, PIN…) stay in Portuguese; quote them as they appear.
 
 ## 1. Read the spec
+
+Without an issue number, QA the **current issue**, found in this order:
+
+1. The current branch name: `feat/47-unir-publicadores` → 47 (the number after the first `/`).
+2. The open PR of the branch: `gh pr view --json body --jq .body`, the `Closes #N` line.
+3. Neither found (e.g. on `main`): ask the user for the number.
+
+State the issue number and title before going on, so a wrong guess is caught early.
 
 ```bash
 gh issue view <N> --json title,body,labels,comments   # plain `gh issue view` fails on this repo
