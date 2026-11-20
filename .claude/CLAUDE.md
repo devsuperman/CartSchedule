@@ -251,6 +251,8 @@ Tudo numa sessão local do Claude Code (sem GitHub Action):
 3. **`/to-spec`** e **`/to-tickets`**: viram spec e tickets na issue tracker.
 4. **`/implement`** (ou `/tdd`): implementa com testes (seção Testes) numa branch.
 5. **`/code-review`** antes do PR; o PR referencia a issue (`Closes #N`).
+6. **`/qa-issue <N>`** (opcional): QA de aceitação no navegador (Playwright MCP),
+   num ambiente local descartável (`.claude/skills/qa-issue/`).
 
 Se o pedido conflitar com o `docs/PLANNING.md`, pergunte em vez de implementar.
 
