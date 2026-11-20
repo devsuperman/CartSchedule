@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { apiFetch, ApiError } from "../../../api/client";
+import { apiFetch, ApiError, codigoDoErro } from "../../../api/client";
 import { ehErroDeJanelaFechada } from "../../../hooks/useJanela";
 import { TURNOS } from "../../../constants/turnos";
 import { DIAS_SEMANA, type DiaSemana } from "../../../constants/diasSemana";
@@ -99,7 +99,7 @@ const CODIGO_VAGA_CHEIA = "VAGA_CHEIA";
 const CODIGO_HORARIO_OCUPADO = "HORARIO_OCUPADO";
 
 function ehErroComCodigo(err: unknown, codigo: string): boolean {
-  return err instanceof ApiError && (err.details as { codigo?: string } | null | undefined)?.codigo === codigo;
+  return codigoDoErro(err) === codigo;
 }
 
 /** Contrato de POST /api/solicitacoes (TECHNICAL_SPEC.md §2.1). */

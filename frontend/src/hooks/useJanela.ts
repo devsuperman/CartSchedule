@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { apiFetch, ApiError } from "../api/client";
+import { apiFetch, codigoDoErro } from "../api/client";
 
 /** Contrato de GET /api/janela (TECHNICAL_SPEC.md §2.5). */
 export interface JanelaResponse {
@@ -21,10 +21,7 @@ const CODIGO_JANELA_FECHADA = "JANELA_FECHADA";
 /** True se o erro veio do backend recusando o request por a janela de envio estar fechada
  * (e não por qualquer outro 400 — token inválido, turno indisponível, validação…). */
 export function ehErroDeJanelaFechada(err: unknown): boolean {
-  return (
-    err instanceof ApiError &&
-    (err.details as { codigo?: string } | null | undefined)?.codigo === CODIGO_JANELA_FECHADA
-  );
+  return codigoDoErro(err) === CODIGO_JANELA_FECHADA;
 }
 
 /** Consome GET /api/janela para saber se o envio está aberto e para qual mês. */

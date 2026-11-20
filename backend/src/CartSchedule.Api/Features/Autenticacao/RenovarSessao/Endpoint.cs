@@ -1,7 +1,7 @@
 using System.Security.Claims;
-using CartSchedule.Api.Features.Autenticacao.Login;
 using CartSchedule.Api.Infrastructure;
 using CartSchedule.Api.Infrastructure.Auth;
+using CartSchedule.Api.Shared;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -36,9 +36,6 @@ public static class Endpoint
             .AsNoTracking()
             .SingleAsync(p => p.Id == publicadorId, ct);
 
-        var token = jwtTokenService.GerarTokenDePublicador(
-            publicador.Id, publicador.Nome, publicador.VersaoSessao, publicador.Administrador);
-        return Results.Ok(new LoginResponse(
-            token, publicador.Administrador ? Papeis.Administrador : Papeis.Publicador));
+        return Results.Ok(SessaoDoPublicador.Emitir(publicador, jwtTokenService));
     }
 }

@@ -33,6 +33,13 @@ public static class UsuarioNormalizado
 /// </summary>
 public static class Pin
 {
+    /// <summary>Exatamente 4 dígitos de 0 a 9 (sem espaços nem dígitos de outros alfabetos).</summary>
+    public static bool TemFormatoValido(string? pin) =>
+        pin is { Length: 4 } && pin.All(char.IsAsciiDigit);
+
+    public const string MensagemDeFormato = "O PIN precisa ter exatamente 4 dígitos.";
+
+    /// <summary>Todos iguais ou sequência crescente/decrescente. Só para PIN com formato válido.</summary>
     public static bool EhFraco(string pin)
     {
         var d = pin.Select(c => c - '0').ToArray();

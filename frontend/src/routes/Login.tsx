@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { apiFetch, ApiError } from "../api/client";
+import { apiFetch, codigoDoErro } from "../api/client";
 import { ehAdministrativo, type Papel } from "../api/sessao";
 import { useSessao } from "../hooks/useSessao";
 import { Button } from "@/components/ui/button";
@@ -43,8 +43,7 @@ export default function Login() {
       const destino = de ? `${de.pathname}${de.search ?? ""}` : ehAdministrativo(resposta.papel) ? "/admin" : "/";
       navigate(destino, { replace: true });
     } catch (err) {
-      const codigo =
-        err instanceof ApiError ? (err.details as { codigo?: string } | null | undefined)?.codigo : undefined;
+      const codigo = codigoDoErro(err);
       // Muitas tentativas (429) e conta desativada trazem a própria mensagem do servidor.
       const mensagemDoServidor = codigo === "MUITAS_REQUISICOES" || codigo === "PUBLICADOR_INATIVO";
       setErro(mensagemDoServidor && err instanceof Error ? err.message : "Usuário ou PIN inválidos.");

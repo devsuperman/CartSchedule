@@ -70,7 +70,8 @@ backend/
         LotacaoDaVaga.cs             # limite de 2 (vaga cheia) para o publicador, código VAGA_CHEIA
         HorarioOcupado.cs            # filtro do "um lugar por horário" por grupo (normais × cada data especial), código HORARIO_OCUPADO
         DataEspecial.cs              # dia útil da data, mês da data, "cabe na escala"
-        Credenciais.cs               # UsuarioNormalizado (sem maiúsculas/acentos) e Pin (4 dígitos, gerado sem ser óbvio)
+        Credenciais.cs               # UsuarioNormalizado (sem maiúsculas/acentos) e Pin (4 dígitos, fraco = óbvio, gerado sem ser óbvio)
+        Sessao.cs                    # SessaoResponse {token, papel} e SessaoDoPublicador.Emitir (login, renovação, troca de PIN)
         ValidationFilter.cs          # filtro de endpoint que roda o FluentValidation do Request
       Features/
         Publicadores/
@@ -80,6 +81,7 @@ backend/
           ListarHistorico/           # GET  /api/solicitacoes  (do publicador logado; carrinhoNome + carrinhoDescricao + carrinhoDataEspecial; sem data/hora do envio na resposta)
           ExcluirSolicitacao/        # DELETE /api/solicitacoes/{id}  (apaga o registro; não há status)
           ObterEu/                   # GET  /api/eu  ({id, nome, usuario, administrador} da conta logada — cabeçalho "Olá" e link "Administração")
+          TrocarPin/                 # PUT  /api/eu/pin  ({pinAtual, pinNovo} → 200 {token, papel}; 400 PIN_ATUAL_INVALIDO / PIN_FRACO / formato; desconecta os outros aparelhos; rate limit "login")
         Autenticacao/
           Login/                    # POST /api/login  ({usuario, pin} → {token, papel}; administrador de recuperação ou publicador; 401 CREDENCIAIS_INVALIDAS; 403 PUBLICADOR_INATIVO)
           RenovarSessao/            # POST /api/sessao/renovar  (token novo com a validade cheia e o papel atual da conta; recuperação → 403)
@@ -110,11 +112,11 @@ Cada slice de `Features/` segue o mesmo padrão de arquivos:
 - **Login único** `POST /api/login` (`{ usuario, pin }` → `{ token, papel }`), tela `/login` no frontend (`/admin/login` redireciona para ela).
 - Primeiro confere o **administrador de recuperação**: usuário + hash da senha via **variáveis de ambiente** (`Admin:Usuario`/`Admin:SenhaHash`, hash do `PasswordHasher` do ASP.NET Core), nunca em código; a senha vai no campo `pin`. Senão, procura o **publicador** pelo usuário normalizado (sem maiúsculas e sem acentos, coluna `UsuarioNormalizado` com índice único) e confere o PIN (`PinHash`, mesmo hasher).
 - Usuário inexistente, PIN errado e conta sem PIN → mesma resposta `401` `codigo: "CREDENCIAIS_INVALIDAS"`; conta desativada → `403` `codigo: "PUBLICADOR_INATIVO"`. Sem bloqueio de conta: só o rate limit `login` por IP (2.9).
-- **JWT** HMAC SHA256 (chave em `Jwt:ChaveSecreta`), sem refresh token, com o papel em `ClaimTypes.Role` (`Papeis`): `recuperacao` e `administrador` valem **2 horas**; `publicador` vale 180 dias. Tokens de publicador levam o id e `versaoSessao`. A cada request autenticado, `Infrastructure/Auth/ValidacaoDaSessao` (evento `OnTokenValidated`) confere que o publicador existe, está ativo, que a `versaoSessao` do token é a atual e que, se o token é de administrador, a pessoa ainda é administrador; senão `401` (dar administrador não desconecta: o papel novo vem no próximo login). Redefinir o PIN e desativar incrementam `versaoSessao` — é assim que todos os aparelhos são desconectados (reativar não devolve as sessões antigas). Emissão e validade usam o `TimeProvider` injetado (`LifetimeValidator`), para os testes controlarem a expiração com `Fixture.Relogio`.
+- **JWT** HMAC SHA256 (chave em `Jwt:ChaveSecreta`), sem refresh token, com o papel em `ClaimTypes.Role` (`Papeis`): `recuperacao` e `administrador` valem **2 horas**; `publicador` vale 180 dias. Tokens de publicador levam o id e `versaoSessao`. A cada request autenticado, `Infrastructure/Auth/ValidacaoDaSessao` (evento `OnTokenValidated`) confere que o publicador existe, está ativo, que a `versaoSessao` do token é a atual e que, se o token é de administrador, a pessoa ainda é administrador; senão `401` (dar administrador não desconecta: o papel novo vem no próximo login). Redefinir ou trocar o PIN e desativar incrementam `versaoSessao` — é assim que todos os aparelhos são desconectados (reativar não devolve as sessões antigas). Emissão e validade usam o `TimeProvider` injetado (`LifetimeValidator`), para os testes controlarem a expiração com `Fixture.Relogio`.
 - **Renovação**: `POST /api/sessao/renovar` (autenticado) devolve `{ token, papel }` com a validade cheia (publicador 180 dias, administrador 2 h), com o papel atual da conta. O frontend chama uma vez ao abrir o app; o administrador de recuperação não renova (`403`).
 - **Frontend**: o token e o papel ficam no `localStorage` (`api/sessao.ts`, para durar os 180 dias) e vão em `Authorization: Bearer` (`api/client.ts`). Um `401` da API (fora do próprio login) encerra a sessão, e a guarda `ExigeLogin` leva ao `/login`, voltando à página pedida depois.
 - Todas as rotas de `Features/Administradores/*` exigem o token (`RequireAuthorization()`), e a política padrão exige o papel `administrador` ou `recuperacao`: o publicador comum recebe `403`.
-- Rotas de `Features/Publicadores/*` (`/api/janela`, `/api/carrinhos`, `/api/solicitacoes` GET/POST/DELETE, `/api/eu`) exigem a política `Politicas.Publicador`: papel `publicador` ou `administrador` (o administrador também pede vagas). Sem token → `401`; o administrador de recuperação → `403` (não é publicador). Exceção: `GET /api/janela` usa `Politicas.Logado` (qualquer papel), pois a área administrativa tira dela o mês da Escala. O publicador do request vem do token (`User.PublicadorId()`); um desativado já cai no `401` da `ValidacaoDaSessao`.
+- Rotas de `Features/Publicadores/*` (`/api/janela`, `/api/carrinhos`, `/api/solicitacoes` GET/POST/DELETE, `/api/eu`, `PUT /api/eu/pin`) exigem a política `Politicas.Publicador`: papel `publicador` ou `administrador` (o administrador também pede vagas). Sem token → `401`; o administrador de recuperação → `403` (não é publicador). Exceção: `GET /api/janela` usa `Politicas.Logado` (qualquer papel), pois a área administrativa tira dela o mês da Escala. O publicador do request vem do token (`User.PublicadorId()`); um desativado já cai no `401` da `ValidacaoDaSessao`.
 
 ### 2.3 Identificação do Publicador (conta com usuário + PIN)
 
@@ -278,7 +280,7 @@ frontend/
     hooks/
       useSessao.ts                # sessão atual + entrar/sair
       useJanela.ts
-    components/                   # ExigeLogin (guarda de todas as rotas, `admin` para /admin/*), Layout (menu "Olá" com Sair, link Administração) e UI
+    components/                   # ExigeLogin (guarda de todas as rotas, `admin` para /admin/*), Layout (menu "Olá" com Trocar PIN — `TrocarPin.tsx` — e Sair, link Administração) e UI
   index.html
   vite.config.ts
   package.json

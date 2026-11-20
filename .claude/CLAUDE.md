@@ -36,7 +36,7 @@ verdade.
 backend/src/CartSchedule.Api/
   Domain/                 # entidades + Enums/
   Infrastructure/          # AppDbContext, Migrations, Auth
-  Shared/                  # JanelaDeEnvio.cs, EscalaHelpers.cs, LotacaoDaVaga.cs, HorarioOcupado.cs, DataEspecial.cs, Credenciais.cs (usuário normalizado, PIN)
+  Shared/                  # JanelaDeEnvio.cs, EscalaHelpers.cs, LotacaoDaVaga.cs, HorarioOcupado.cs, DataEspecial.cs, Credenciais.cs (usuário normalizado, PIN: formato, fraco, gerar), Sessao.cs (token + papel de login/renovação/troca de PIN)
   Features/
     Autenticacao/          # Login/ (POST /api/login, login único), RenovarSessao/ (POST /api/sessao/renovar)
     Publicadores/<Slice>/  # Endpoint.cs, Request.cs, Response.cs, Validator.cs
@@ -50,6 +50,7 @@ frontend/src/
   routes/admin/            # GestaoCarrinhos, Publicadores (contas: criar, editar, redefinir PIN — mostrado uma vez —, desativar/reativar com "Mostrar desativados", unir duplicados com prévia), EscalaFinal (gestão da escala: mover/adicionar/excluir), EscalaCompartilhar (imagem só leitura do mês, dia → turno → carrinho, + uma por data especial)
   api/sessao.ts            # token + papel no localStorage; 401 da API encerra a sessão
   components/ExigeLogin.tsx # guarda de todas as rotas (admin → /admin/*); renova o token ao abrir o app
+  components/TrocarPin.tsx  # diálogo "Trocar PIN" do menu "Olá" (Layout.tsx)
   hooks/                   # useSessao, useJanela
   constants/                # turnos.ts, diasSemana.ts (espelham enums do backend)
 ```
@@ -111,7 +112,8 @@ todas são intencionais, confirmadas no `PLANNING.md`:
    existem** token anônimo, `X-Publicador-Token`, `/nome` nem `PUT /api/publicador` — não
    reintroduzir. O nome é o da conta: o pedido não leva nome e **só o admin edita**
    (`PUT /api/admin/publicadores/{id}`); "Olá, {primeiro nome}" (`GET /api/eu`) é um menu com
-   "Sair", sem edição de nome. Nomes repetidos são permitidos.
+   "Trocar PIN" (`PUT /api/eu/pin`: PIN atual + novo, `PIN_FRACO` para óbvios, devolve token
+   novo e desconecta os outros aparelhos) e "Sair", sem edição de nome. Nomes repetidos são permitidos.
 6. **Janela de envio: abre sozinha no dia 15, só o admin fecha**, sem
    job/cron: calculada a cada request (`JanelaDeEnvio`). Escala-alvo = a
    aberta no último dia 15 (dia ≥ 15 → mês seguinte; dia 1–14 → mês

@@ -6,6 +6,7 @@ import { useSessao } from "../hooks/useSessao";
 import { useJanela } from "../hooks/useJanela";
 import { useTelaLarga } from "../hooks/useTelaLarga";
 import { Button } from "@/components/ui/button";
+import { TrocarPin } from "./TrocarPin";
 import { cn } from "@/lib/utils";
 
 function navLinkClasses({ isActive }: { isActive: boolean }) {
@@ -52,7 +53,7 @@ function useEu(): Eu | null {
 
 /**
  * Canto do cabeçalho do publicador: link "Administração" (só para administradores) e o menu
- * "Olá, {primeiro nome}" com "Sair". Sem edição de nome: só o administrador altera.
+ * "Olá, {primeiro nome}" com "Trocar PIN" e "Sair". Sem edição de nome: só o administrador altera.
  */
 function MenuDoPublicador() {
   const eu = useEu();
@@ -60,6 +61,7 @@ function MenuDoPublicador() {
   const navigate = useNavigate();
   const { pathname } = useLocation();
   const [aberto, setAberto] = useState(false);
+  const [trocandoPin, setTrocandoPin] = useState(false);
   const botao = useRef<HTMLButtonElement>(null);
   const primeiroNome = eu?.nome.trim().split(/\s+/)[0];
 
@@ -112,6 +114,18 @@ function MenuDoPublicador() {
           <li>
             <button
               type="button"
+              onClick={() => {
+                setAberto(false);
+                setTrocandoPin(true);
+              }}
+              className="flex min-h-11 w-full items-center rounded-sm px-3 text-left text-[1rem] font-semibold hover:bg-muted focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent"
+            >
+              Trocar PIN
+            </button>
+          </li>
+          <li>
+            <button
+              type="button"
               onClick={encerrar}
               className="flex min-h-11 w-full items-center rounded-sm px-3 text-left text-[1rem] font-semibold hover:bg-muted focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent"
             >
@@ -120,6 +134,7 @@ function MenuDoPublicador() {
           </li>
         </ul>
       )}
+      <TrocarPin aberto={trocandoPin} onFechar={() => setTrocandoPin(false)} />
     </div>
   );
 }

@@ -50,7 +50,7 @@ public static class Endpoint
             && passwordHasher.VerifyHashedPassword(new object(), recuperacao.SenhaHash, request.Pin)
                 != PasswordVerificationResult.Failed)
         {
-            return Results.Ok(new LoginResponse(
+            return Results.Ok(new SessaoResponse(
                 jwtTokenService.GerarTokenDeRecuperacao(recuperacao.Usuario), Papeis.Recuperacao));
         }
 
@@ -76,9 +76,6 @@ public static class Endpoint
             return PublicadorInativo.Problema();
         }
 
-        var token = jwtTokenService.GerarTokenDePublicador(
-            publicador.Id, publicador.Nome, publicador.VersaoSessao, publicador.Administrador);
-        return Results.Ok(new LoginResponse(
-            token, publicador.Administrador ? Papeis.Administrador : Papeis.Publicador));
+        return Results.Ok(SessaoDoPublicador.Emitir(publicador, jwtTokenService));
     }
 }
