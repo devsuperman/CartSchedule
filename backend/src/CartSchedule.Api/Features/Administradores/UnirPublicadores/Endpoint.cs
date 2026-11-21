@@ -25,8 +25,10 @@ public static class Endpoint
         var group = app.MapGroup("/api/admin/publicadores/{destinoId:guid}/unir")
             .RequireAuthorization();
 
-        group.MapPost("/previa", PreviaAsync);
-        group.MapPost("/", UnirAsync);
+        group.MapPost("/previa", PreviaAsync)
+            .AddEndpointFilter<ValidationFilter<UnirPublicadoresRequest>>();
+        group.MapPost("/", UnirAsync)
+            .AddEndpointFilter<ValidationFilter<UnirPublicadoresRequest>>();
 
         return app;
     }
@@ -128,26 +130,21 @@ public static class Endpoint
     }
 
     /// <summary>
-    /// Lista vazia, ids repetidos ou o destino entre as origens (400); a própria conta do
-    /// administrador logado entre as origens (409).
+    /// O destino entre as origens (400); a própria conta do administrador logado entre as
+    /// origens (409). Lista vazia e ids repetidos ficam no <see cref="Validator"/>.
     /// </summary>
     private static IResult? Recusa(Guid destinoId, UnirPublicadoresRequest request, ClaimsPrincipal usuarioLogado)
     {
-        var origemIds = request.OrigemIds;
-        string? erro = origemIds switch
+        var origemIds = request.OrigemIds!;
+        if (origemIds.Contains(destinoId))
         {
-            null or [] => "Escolha ao menos um registro para unir.",
-            _ when origemIds.Contains(destinoId) =>
-                "Escolha outros registros: não dá para unir um registro com ele mesmo.",
-            _ when origemIds.Distinct().Count() < origemIds.Count => "O mesmo registro foi escolhido mais de uma vez.",
-            _ => null,
-        };
-        if (erro is not null)
-        {
-            return Results.ValidationProblem(new Dictionary<string, string[]> { ["origemIds"] = [erro] });
+            return Results.ValidationProblem(new Dictionary<string, string[]>
+            {
+                ["origemIds"] = ["Escolha outros registros: não dá para unir um registro com ele mesmo."],
+            });
         }
 
-        if (origemIds!.Any(id => PropriaConta.Eh(usuarioLogado, id)))
+        if (origemIds.Any(id => PropriaConta.Eh(usuarioLogado, id)))
         {
             return PropriaConta.Problema(
                 "Você não pode unir a sua própria conta a outra: ela seria apagada. Una a outra conta à sua.");

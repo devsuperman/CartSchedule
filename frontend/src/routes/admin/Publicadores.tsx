@@ -412,7 +412,7 @@ function UnirPublicador({
   }
 
   async function confirmar() {
-    if (origens.length === 0) return;
+    if (nenhuma) return;
     setEnviando(true);
     setErro(null);
     try {
@@ -462,7 +462,7 @@ function UnirPublicador({
           </Label>
         ))}
       </fieldset>
-      {origens.length > 0 && previa && (
+      {!nenhuma && previa && (
         <div className="grid gap-1 rounded-md bg-muted px-3 py-2">
           <p>
             {previa.pedidosMovidos === 0
@@ -499,7 +499,7 @@ function UnirPublicador({
           type="button"
           variant="destructive"
           onClick={confirmar}
-          disabled={origens.length === 0 || !previa || enviando}
+          disabled={nenhuma || !previa || enviando}
         >
           {enviando ? "Aguarde…" : "Unir"}
         </Button>
