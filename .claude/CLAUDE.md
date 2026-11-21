@@ -47,7 +47,7 @@ frontend/src/
   api/                     # client.ts + wrappers por área
   routes/publicador/       # InicioPublicador (histórico + botões), SolicitarEscala, wizard/, JanelaFechada
   routes/Login.tsx         # login único (/login, a única rota pública): usuário + senha; /admin/login redireciona
-  routes/admin/            # GestaoCarrinhos, Publicadores (contas: criar, editar, redefinir senha — mostrada uma vez, também o bloqueio temporário —, unir duplicados com prévia, excluir com prévia — apaga a conta e todos os pedidos, ADR 0002), EscalaFinal (gestão da escala: mover/adicionar/excluir), EscalaCompartilhar (imagem só leitura do mês, dia → turno → carrinho, + uma por data especial)
+  routes/admin/            # GestaoCarrinhos, Publicadores (contas: criar, editar, redefinir senha — mostrada uma vez, também o bloqueio temporário —, unir vários duplicados ao registro que fica, com prévia, excluir com prévia — apaga a conta e todos os pedidos, ADR 0002), EscalaFinal (gestão da escala: mover/adicionar/excluir), EscalaCompartilhar (imagem só leitura do mês, dia → turno → carrinho, + uma por data especial)
   api/sessao.ts            # token + papel no localStorage; 401 da API encerra a sessão
   components/ExigeLogin.tsx # guarda de todas as rotas (admin → /admin/*); renova o token ao abrir o app
   components/TrocarPin.tsx  # diálogo "Trocar senha" do menu "Olá" (Layout.tsx)

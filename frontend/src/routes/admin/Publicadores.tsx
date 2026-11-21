@@ -32,7 +32,7 @@ function primeiroNome(nome: string): string {
 
 type Edicao = { modo: "criar" } | { modo: "editar"; publicador: Publicador };
 
-/** Prévia e resultado de unir: GET/POST /api/admin/publicadores/{origem}/unir/{destino}. */
+/** Prévia e resultado de unir: POST /api/admin/publicadores/{destino}/unir(/previa), corpo { origemIds }. */
 interface ResultadoDaUniao {
   pedidosMovidos: number;
   pedidosDescartados: number;
@@ -49,6 +49,11 @@ function rotuloPedidos(n: number, verboSingular: string, verboPlural: string): s
   return n === 1 ? `1 pedido ${verboSingular}` : `${n} pedidos ${verboPlural}`;
 }
 
+/** "José", "José e Ana", "José, Ana e Joana". */
+function listaDeNomes(nomes: string[]): string {
+  return new Intl.ListFormat("pt-BR", { style: "long", type: "conjunction" }).format(nomes);
+}
+
 /**
  * Tela "Publicadores" (/admin/publicadores — ADR 0001): lista com busca, criar conta (o usuário
  * começa como o primeiro nome) e editar nome, usuário, criança/idoso e administrador. Registros
@@ -56,9 +61,10 @@ function rotuloPedidos(n: number, verboSingular: string, verboPlural: string): s
  * redefinir a senha, ela aparece uma única vez, com "Copiar mensagem" pronta para o WhatsApp.
  * Redefinir senha (com confirmação) desconecta todos os aparelhos da pessoa — é também o jeito de
  * bloquear o acesso por um tempo (ADR 0002); a lista mostra todos.
- * "Unir a outro registro" (issue #47) junta dois registros da mesma pessoa: os pedidos passam ao
- * registro escolhido, os que ele já tem na mesma vaga são descartados e o registro editado é
- * apagado — com prévia das contagens antes de confirmar.
+ * "Unir outros registros a este" (issues #47 e #67) junta registros duplicados da mesma pessoa no
+ * registro editado (o que fica): os pedidos dos escolhidos passam a ele, que fica com um só pedido
+ * por vaga (os demais são descartados), e os escolhidos são apagados — com prévia das contagens
+ * antes de confirmar.
  * "Excluir" (issue #61, ADR 0002) apaga a pessoa e todos os pedidos dela, de todas as escalas,
  * com prévia de quantos pedidos e em quantas escalas; não na própria conta.
  */
@@ -92,15 +98,16 @@ export default function Publicadores() {
     if (credenciais) setAcesso({ nome: publicador.nome, credenciais });
   }
 
-  function aoUnir(origem: Publicador, destino: Publicador) {
-    // A marca criança/idoso da origem passa ao destino (o backend nunca desmarca).
+  function aoUnir(destino: Publicador, origens: Publicador[]) {
+    // A marca criança/idoso de qualquer origem passa ao destino (o backend nunca desmarca).
+    const ids = new Set(origens.map((o) => o.id));
+    const criancaOuIdoso = destino.criancaOuIdoso || origens.some((o) => o.criancaOuIdoso);
     setPublicadores((atuais) =>
-      (atuais ?? [])
-        .filter((p) => p.id !== origem.id)
-        .map((p) => (p.id === destino.id ? { ...p, criancaOuIdoso: p.criancaOuIdoso || origem.criancaOuIdoso } : p)),
+      (atuais ?? []).filter((p) => !ids.has(p.id)).map((p) => (p.id === destino.id ? { ...p, criancaOuIdoso } : p)),
     );
     setEdicao(null);
-    setAviso(`${origem.nome} foi unido a ${destino.nome}.`);
+    const nomes = listaDeNomes(origens.map((o) => o.nome));
+    setAviso(`${nomes} ${origens.length === 1 ? "foi unido" : "foram unidos"} a ${destino.nome}.`);
   }
 
   function aoExcluir(excluido: Publicador) {
@@ -214,7 +221,7 @@ function rascunhoInicial(original: Publicador | null): Rascunho {
 }
 
 /**
- * Formulário de criar/editar; na edição, também redefinir a senha, unir a outro registro e excluir
+ * Formulário de criar/editar; na edição, também redefinir a senha, unir outros registros e excluir
  * (cada um com confirmação).
  */
 function EdicaoPublicador({
@@ -227,7 +234,7 @@ function EdicaoPublicador({
   edicao: Edicao;
   todos: Publicador[];
   onSalvo: (publicador: Publicador, credenciais: Credenciais | null) => void;
-  onUnido: (origem: Publicador, destino: Publicador) => void;
+  onUnido: (destino: Publicador, origens: Publicador[]) => void;
   onExcluido: (publicador: Publicador) => void;
 }) {
   const [confirmando, setConfirmando] = useState(false);
@@ -240,8 +247,8 @@ function EdicaoPublicador({
   if (edicao.modo === "editar" && unindo) {
     return (
       <UnirPublicador
-        origem={edicao.publicador}
-        candidatos={todos.filter((p) => p.id !== edicao.publicador.id)}
+        destino={edicao.publicador}
+        candidatos={todos.filter((p) => p.id !== edicao.publicador.id && !p.ehVoce)}
         onVoltar={() => setUnindo(false)}
         onUnido={onUnido}
       />
@@ -283,12 +290,10 @@ function EdicaoPublicador({
               Redefinir senha
             </Button>
           )}
-          {/* Unir apaga o registro editado: não na própria conta, que ficaria sem acesso. */}
-          {!edicao.publicador.ehVoce && (
-            <Button type="button" variant="outline" onClick={() => setUnindo(true)}>
-              Unir a outro registro
-            </Button>
-          )}
+          {/* O registro editado fica: vale também na própria conta (ela só não pode ser origem). */}
+          <Button type="button" variant="outline" onClick={() => setUnindo(true)}>
+            Unir outros registros a este
+          </Button>
           {/* Excluir apaga a conta: não na própria, que ficaria sem acesso. */}
           {!edicao.publicador.ehVoce && (
             <Button type="button" variant="destructive" onClick={() => setExcluindo(true)}>
@@ -354,32 +359,37 @@ function ConfirmarRedefinirPin({
 }
 
 /**
- * "Unir B em A": B é o registro editado (origem, será apagado); A é escolhido aqui (destino,
- * fica). Ao escolher A, busca a prévia — quantos pedidos passam e quantos são descartados.
+ * "Unir outros registros a este": o destino é o registro editado (fica); as origens são marcadas
+ * aqui (serão apagadas). A cada marcação busca a prévia — quantos pedidos passam e quantos são
+ * descartados. A conta logada nunca é candidata (seria apagada).
  */
 function UnirPublicador({
-  origem,
+  destino,
   candidatos,
   onVoltar,
   onUnido,
 }: {
-  origem: Publicador;
+  destino: Publicador;
   candidatos: Publicador[];
   onVoltar: () => void;
-  onUnido: (origem: Publicador, destino: Publicador) => void;
+  onUnido: (destino: Publicador, origens: Publicador[]) => void;
 }) {
   const [busca, setBusca] = useState("");
-  const [destino, setDestino] = useState<Publicador | null>(null);
+  const [marcados, setMarcados] = useState<string[]>([]);
   const [previa, setPrevia] = useState<ResultadoDaUniao | null>(null);
   const [enviando, setEnviando] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
-  const rota = destino && `/api/admin/publicadores/${origem.id}/unir/${destino.id}`;
+  const rota = `/api/admin/publicadores/${destino.id}/unir`;
+  // Na ordem da lista, para a prévia, o envio e a mensagem baterem com o que se vê.
+  const origens = candidatos.filter((p) => marcados.includes(p.id));
+  const corpo = JSON.stringify({ origemIds: origens.map((o) => o.id) });
+  const nenhuma = origens.length === 0;
 
   useEffect(() => {
-    if (!rota) return;
-    // Trocar de destino rápido dispara prévias sobrepostas: só a do destino atual vale.
+    if (nenhuma) return;
+    // Marcar rápido dispara prévias sobrepostas: só a da seleção atual vale.
     let atual = true;
-    apiFetch<ResultadoDaUniao>(rota)
+    apiFetch<ResultadoDaUniao>(`${rota}/previa`, { method: "POST", body: corpo })
       .then((resultado) => atual && setPrevia(resultado))
       .catch(
         (err) => atual && setErro(err instanceof ApiError ? err.message : "Não foi possível calcular a prévia."),
@@ -387,48 +397,52 @@ function UnirPublicador({
     return () => {
       atual = false;
     };
-  }, [rota]);
+  }, [rota, corpo, nenhuma]);
 
   const termo = normalizar(busca);
-  // O escolhido continua visível mesmo que a busca mude depois.
-  const visiveis = candidatos.filter((p) => p.id === destino?.id || combinaComBusca(p, termo));
+  // Os marcados continuam visíveis mesmo que a busca mude depois.
+  const visiveis = candidatos.filter((p) => marcados.includes(p.id) || combinaComBusca(p, termo));
 
-  function escolher(publicador: Publicador) {
-    setDestino(publicador);
+  function alternar(publicador: Publicador) {
+    setMarcados((atuais) =>
+      atuais.includes(publicador.id) ? atuais.filter((id) => id !== publicador.id) : [...atuais, publicador.id],
+    );
     setPrevia(null);
     setErro(null);
   }
 
   async function confirmar() {
-    if (!destino || !rota) return;
+    if (origens.length === 0) return;
     setEnviando(true);
     setErro(null);
     try {
-      await apiFetch<ResultadoDaUniao>(rota, { method: "POST" });
-      onUnido(origem, destino);
+      await apiFetch<ResultadoDaUniao>(rota, { method: "POST", body: corpo });
+      onUnido(destino, origens);
     } catch (err) {
       setErro(err instanceof ApiError ? err.message : "Não foi possível unir.");
       setEnviando(false);
     }
   }
 
+  const usuariosQueSaem = origens.flatMap((o) => (o.usuario === null ? [] : [o.usuario]));
+
   return (
     <div className="grid gap-4">
       <DialogHeader>
-        <DialogTitle>Unir {origem.nome} a outro registro</DialogTitle>
+        <DialogTitle>Unir outros registros a {destino.nome}</DialogTitle>
         <DialogDescription>
-          Escolha o registro que fica. Os pedidos de {origem.nome} passam para ele e {origem.nome} é apagado.
+          Marque os registros duplicados. Os pedidos deles passam para {destino.nome} e eles são apagados.
         </DialogDescription>
       </DialogHeader>
       <Input
         type="search"
-        aria-label="Buscar registro que fica"
+        aria-label="Buscar registros para unir"
         placeholder="Buscar por nome ou usuário"
         value={busca}
         onChange={(e) => setBusca(e.target.value)}
       />
       <fieldset className="flex max-h-64 flex-col gap-1 overflow-y-auto border-0 p-0">
-        <legend className="sr-only">Registro que fica</legend>
+        <legend className="sr-only">Registros para unir</legend>
         {visiveis.length === 0 && <p className="text-muted-foreground">Nenhum publicador encontrado.</p>}
         {visiveis.map((p) => (
           <Label
@@ -436,11 +450,10 @@ function UnirPublicador({
             className="min-h-11 rounded-md border border-border px-3 py-2 font-normal has-[:checked]:border-primary"
           >
             <input
-              type="radio"
-              name="destino"
+              type="checkbox"
               className="size-4"
-              checked={destino?.id === p.id}
-              onChange={() => escolher(p)}
+              checked={marcados.includes(p.id)}
+              onChange={() => alternar(p)}
             />
             <span className="flex flex-col">
               <span>{p.nome}</span>
@@ -449,7 +462,7 @@ function UnirPublicador({
           </Label>
         ))}
       </fieldset>
-      {destino && previa && (
+      {origens.length > 0 && previa && (
         <div className="grid gap-1 rounded-md bg-muted px-3 py-2">
           <p>
             {previa.pedidosMovidos === 0
@@ -459,12 +472,17 @@ function UnirPublicador({
           {previa.pedidosDescartados > 0 && (
             <p>
               {rotuloPedidos(previa.pedidosDescartados, "será descartado", "serão descartados")}: {destino.nome}{" "}
-              já tem a mesma vaga.
+              fica com um só pedido por vaga.
             </p>
           )}
           <p>
-            {origem.nome} será apagado. Nome, usuário e senha de {destino.nome} continuam os mesmos
-            {origem.usuario !== null && ` — o usuário ${origem.usuario} deixa de entrar`}.
+            {listaDeNomes(origens.map((o) => o.nome))} {origens.length === 1 ? "será apagado" : "serão apagados"}.
+            Nome, usuário e senha de {destino.nome} continuam os mesmos
+            {usuariosQueSaem.length > 0 &&
+              ` — ${usuariosQueSaem.length === 1 ? "o usuário" : "os usuários"} ${listaDeNomes(usuariosQueSaem)} ${
+                usuariosQueSaem.length === 1 ? "deixa" : "deixam"
+              } de entrar`}
+            .
           </p>
         </div>
       )}
@@ -477,7 +495,12 @@ function UnirPublicador({
         <Button type="button" variant="outline" onClick={onVoltar} disabled={enviando}>
           Voltar
         </Button>
-        <Button type="button" variant="destructive" onClick={confirmar} disabled={!previa || enviando}>
+        <Button
+          type="button"
+          variant="destructive"
+          onClick={confirmar}
+          disabled={origens.length === 0 || !previa || enviando}
+        >
           {enviando ? "Aguarde…" : "Unir"}
         </Button>
       </DialogFooter>
