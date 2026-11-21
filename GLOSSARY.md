@@ -33,6 +33,10 @@ _Avoid_: PIN, código
 Apagar definitivamente o publicador e todos os seus pedidos, de todas as escalas; não há como desfazer.
 _Avoid_: Remover, apagar
 
+**Unir publicadores**:
+Juntar num só os registros duplicados da mesma pessoa: um registro fica e recebe os pedidos de um ou mais outros, que são apagados.
+_Avoid_: Mesclar, fundir, merge
+
 **Criança ou idoso**:
 Marca que o administrador põe no publicador; quem a tem pode ser a 3ª pessoa de uma vaga sem excesso.
 _Avoid_: Prioridade, especial

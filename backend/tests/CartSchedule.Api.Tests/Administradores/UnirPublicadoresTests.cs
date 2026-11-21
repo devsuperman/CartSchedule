@@ -6,15 +6,21 @@ using CartSchedule.Api.Tests.Infraestrutura;
 namespace CartSchedule.Api.Tests.Administradores;
 
 /// <summary>
-/// Unir publicadores duplicados (issue #47): "Unir B em A" move os pedidos de B para A,
-/// descarta os de B que A já tem na mesma vaga (duplicidade), passa a marca criança/idoso
-/// para A e apaga B. A prévia (GET) mostra quantos serão movidos e descartados.
+/// Unir publicadores duplicados (issues #47 e #67): "Unir outros registros a este" parte do
+/// registro que fica (A) e une a ele uma ou mais origens (B, C…): os pedidos delas passam a A,
+/// que fica com um só pedido por vaga (duplicidade — com os dele ou entre origens), a marca
+/// criança/idoso passa a A e as origens são apagadas. A prévia mostra quantos serão movidos e
+/// descartados, sem alterar nada.
 /// </summary>
 public class UnirPublicadoresTests(ApiFixture fixture) : ApiTestBase(fixture)
 {
     private const string RotaAdmin = "/api/admin/publicadores";
 
-    private static string RotaUnir(Guid origem, Guid destino) => $"{RotaAdmin}/{origem}/unir/{destino}";
+    private static Task<HttpResponseMessage> PreviaAsync(HttpClient cliente, Guid destino, params Guid[] origens) =>
+        cliente.PostAsJsonAsync($"{RotaAdmin}/{destino}/unir/previa", new { origemIds = origens });
+
+    private static Task<HttpResponseMessage> UnirAsync(HttpClient cliente, Guid destino, params Guid[] origens) =>
+        cliente.PostAsJsonAsync($"{RotaAdmin}/{destino}/unir", new { origemIds = origens });
 
     /// <summary>
     /// Carrinho com Segunda 08–10, Segunda 10–12 e Terça 08–10; A pede Segunda 08–10;
@@ -44,7 +50,7 @@ public class UnirPublicadoresTests(ApiFixture fixture) : ApiTestBase(fixture)
     {
         var (admin, a, b, _) = await CenarioAsync();
 
-        var resposta = await admin.GetAsync(RotaUnir(b, a));
+        var resposta = await PreviaAsync(admin, a, b);
 
         Assert.Equal(HttpStatusCode.OK, resposta.StatusCode);
         var corpo = await JsonAsync(resposta);
@@ -59,7 +65,7 @@ public class UnirPublicadoresTests(ApiFixture fixture) : ApiTestBase(fixture)
     {
         var (admin, a, b, _) = await CenarioAsync();
 
-        var resposta = await admin.PostAsync(RotaUnir(b, a), null);
+        var resposta = await UnirAsync(admin, a, b);
 
         Assert.Equal(HttpStatusCode.OK, resposta.StatusCode);
         var corpo = await JsonAsync(resposta);
@@ -90,7 +96,7 @@ public class UnirPublicadoresTests(ApiFixture fixture) : ApiTestBase(fixture)
     {
         var (admin, a, b, _) = await CenarioAsync(bCriancaOuIdoso: true);
 
-        (await admin.PostAsync(RotaUnir(b, a), null)).EnsureSuccessStatusCode();
+        (await UnirAsync(admin, a, b)).EnsureSuccessStatusCode();
 
         Assert.True(Assert.Single(await PublicadoresAsync(admin)).GetProperty("criancaOuIdoso").GetBoolean());
     }
@@ -102,7 +108,7 @@ public class UnirPublicadoresTests(ApiFixture fixture) : ApiTestBase(fixture)
         var (a, _) = await CriarContaAsync(admin, "Avo Jose", "jose", criancaOuIdoso: true);
         var (b, _) = await CriarContaAsync(admin, "Jose", "josé2");
 
-        (await admin.PostAsync(RotaUnir(b, a), null)).EnsureSuccessStatusCode();
+        (await UnirAsync(admin, a, b)).EnsureSuccessStatusCode();
 
         Assert.True(Assert.Single(await PublicadoresAsync(admin)).GetProperty("criancaOuIdoso").GetBoolean());
     }
@@ -113,8 +119,8 @@ public class UnirPublicadoresTests(ApiFixture fixture) : ApiTestBase(fixture)
         var admin = await AdminAsync();
         var (a, _) = await CriarContaAsync(admin, "Maria", "maria");
 
-        Assert.Equal(HttpStatusCode.BadRequest, (await admin.GetAsync(RotaUnir(a, a))).StatusCode);
-        Assert.Equal(HttpStatusCode.BadRequest, (await admin.PostAsync(RotaUnir(a, a), null)).StatusCode);
+        Assert.Equal(HttpStatusCode.BadRequest, (await PreviaAsync(admin, a, a)).StatusCode);
+        Assert.Equal(HttpStatusCode.BadRequest, (await UnirAsync(admin, a, a)).StatusCode);
         Assert.Single(await PublicadoresAsync(admin));
     }
 
@@ -125,10 +131,10 @@ public class UnirPublicadoresTests(ApiFixture fixture) : ApiTestBase(fixture)
         var (a, _) = await CriarContaAsync(admin, "Maria", "maria");
         var inexistente = Guid.NewGuid();
 
-        Assert.Equal(HttpStatusCode.NotFound, (await admin.GetAsync(RotaUnir(inexistente, a))).StatusCode);
-        Assert.Equal(HttpStatusCode.NotFound, (await admin.GetAsync(RotaUnir(a, inexistente))).StatusCode);
-        Assert.Equal(HttpStatusCode.NotFound, (await admin.PostAsync(RotaUnir(inexistente, a), null)).StatusCode);
-        Assert.Equal(HttpStatusCode.NotFound, (await admin.PostAsync(RotaUnir(a, inexistente), null)).StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound, (await PreviaAsync(admin, a, inexistente)).StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound, (await PreviaAsync(admin, inexistente, a)).StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound, (await UnirAsync(admin, a, inexistente)).StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound, (await UnirAsync(admin, inexistente, a)).StatusCode);
         Assert.Single(await PublicadoresAsync(admin));
     }
 
@@ -141,7 +147,7 @@ public class UnirPublicadoresTests(ApiFixture fixture) : ApiTestBase(fixture)
         var login = await LoginAsync(Fixture.Factory.CreateClient(), "maria", pin);
         var publicador = ClienteComToken(await JsonAsync(login));
 
-        Assert.Equal(HttpStatusCode.Forbidden, (await publicador.PostAsync(RotaUnir(b, a), null)).StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, (await UnirAsync(publicador, a, b)).StatusCode);
         Assert.Equal(2, (await PublicadoresAsync(admin)).Length);
     }
 
@@ -153,15 +159,154 @@ public class UnirPublicadoresTests(ApiFixture fixture) : ApiTestBase(fixture)
         var (outro, _) = await CriarContaAsync(recuperacao, "Maria S.", "marias");
         var admin = ClienteComToken(await JsonAsync(await LoginAsync(Fixture.Factory.CreateClient(), "maria", pin)));
 
-        var previa = await admin.GetAsync(RotaUnir(eu, outro));
-        var unir = await admin.PostAsync(RotaUnir(eu, outro), null);
+        var previa = await PreviaAsync(admin, outro, eu);
+        var unir = await UnirAsync(admin, outro, eu);
 
         Assert.Equal(HttpStatusCode.Conflict, previa.StatusCode);
         Assert.Equal(HttpStatusCode.Conflict, unir.StatusCode);
         Assert.Equal("PROPRIA_CONTA", (await JsonAsync(unir)).GetProperty("codigo").GetString());
         Assert.Equal(2, (await PublicadoresAsync(recuperacao)).Length);
 
-        Assert.Equal(HttpStatusCode.OK, (await admin.PostAsync(RotaUnir(outro, eu), null)).StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await UnirAsync(admin, eu, outro)).StatusCode);
         Assert.Equal(eu, Assert.Single(await PublicadoresAsync(recuperacao)).GetProperty("id").GetGuid());
+    }
+
+    /// <summary>
+    /// Carrinho com Segunda 08–10, Segunda 10–12 e Terça 08–10; A pede Segunda 08–10;
+    /// B pede Segunda 08–10 (como A) e Segunda 10–12; C pede Segunda 10–12 (como B) e Terça 08–10.
+    /// </summary>
+    private async Task<(HttpClient Admin, Guid A, Guid B, Guid C)> CenarioComDuasOrigensAsync()
+    {
+        var admin = await AdminAsync();
+        var (a, _) = await CriarContaAsync(admin, "Maria Souza", "maria");
+        var (b, _) = await CriarContaAsync(admin, "Maria S.", "marias");
+        var (c, _) = await CriarContaAsync(admin, "Mariazinha", "mariazinha");
+        var carrinhoId = await CriarCarrinhoAsync(admin);
+        (await DefinirTurnosAsync(admin, carrinhoId, (Segunda, Turno0810), (Segunda, Turno1012), (Terca, Turno0810)))
+            .EnsureSuccessStatusCode();
+
+        (await AdicionarParaAsync(admin, carrinhoId, Segunda, Turno0810, a)).EnsureSuccessStatusCode();
+        (await AdicionarParaAsync(admin, carrinhoId, Segunda, Turno0810, b)).EnsureSuccessStatusCode();
+        (await AdicionarParaAsync(admin, carrinhoId, Segunda, Turno1012, b)).EnsureSuccessStatusCode();
+        (await AdicionarParaAsync(admin, carrinhoId, Segunda, Turno1012, c)).EnsureSuccessStatusCode();
+        (await AdicionarParaAsync(admin, carrinhoId, Terca, Turno0810, c)).EnsureSuccessStatusCode();
+        return (admin, a, b, c);
+    }
+
+    [Fact]
+    public async Task UnirVarias_DestinoFicaComUmPedidoPorVaga_DescartandoColisoesEntreOrigens()
+    {
+        var (admin, a, b, c) = await CenarioComDuasOrigensAsync();
+
+        var previa = await JsonAsync(await PreviaAsync(admin, a, b, c));
+        var resposta = await UnirAsync(admin, a, b, c);
+
+        Assert.Equal(HttpStatusCode.OK, resposta.StatusCode);
+        var corpo = await JsonAsync(resposta);
+        Assert.Equal(2, corpo.GetProperty("pedidosMovidos").GetInt32());
+        Assert.Equal(2, corpo.GetProperty("pedidosDescartados").GetInt32());
+        Assert.Equal(2, previa.GetProperty("pedidosMovidos").GetInt32());
+        Assert.Equal(2, previa.GetProperty("pedidosDescartados").GetInt32());
+
+        var grade = await GradeAsync(admin);
+        Assert.All(PedidosDaGrade(grade), p => Assert.Equal(a, p.GetProperty("publicadorId").GetGuid()));
+        var vagas = grade.GetProperty("celulas").EnumerateArray()
+            .Where(cel => cel.GetProperty("publicadores").GetArrayLength() > 0)
+            .Select(cel => (cel.GetProperty("diaSemana").GetInt32(), cel.GetProperty("turnoId").GetInt32(),
+                cel.GetProperty("publicadores").GetArrayLength()))
+            .OrderBy(v => v)
+            .ToArray();
+        Assert.Equal([(Segunda, Turno0810, 1), (Segunda, Turno1012, 1), (Terca, Turno0810, 1)], vagas);
+        Assert.Equal(a, Assert.Single(await PublicadoresAsync(admin)).GetProperty("id").GetGuid());
+    }
+
+    [Fact]
+    public async Task UnirVarias_CriancaOuIdosoDeQualquerOrigem_PassaAoDestino_EAdministradorNao()
+    {
+        var recuperacao = await AdminAsync();
+        var (a, _) = await CriarContaAsync(recuperacao, "Maria Souza", "maria");
+        var (b, _) = await CriarContaAsync(recuperacao, "Maria S.", "marias", administrador: true);
+        var (c, _) = await CriarContaAsync(recuperacao, "Mariazinha", "mariazinha", criancaOuIdoso: true);
+
+        (await UnirAsync(recuperacao, a, b, c)).EnsureSuccessStatusCode();
+
+        var destino = Assert.Single(await PublicadoresAsync(recuperacao));
+        Assert.True(destino.GetProperty("criancaOuIdoso").GetBoolean());
+        Assert.False(destino.GetProperty("administrador").GetBoolean());
+    }
+
+    [Fact]
+    public async Task UnirVarias_OrigensDeixamDeEntrar_EODestinoContinuaLogado()
+    {
+        var admin = await AdminAsync();
+        var (a, pinA) = await CriarContaAsync(admin, "Maria Souza", "maria");
+        var (b, pinB) = await CriarContaAsync(admin, "Maria S.", "marias");
+        var (c, pinC) = await CriarContaAsync(admin, "Mariazinha", "mariazinha");
+        var sessaoA = ClienteComToken(await JsonAsync(await LoginAsync(Fixture.Factory.CreateClient(), "maria", pinA)));
+        var sessaoB = ClienteComToken(await JsonAsync(await LoginAsync(Fixture.Factory.CreateClient(), "marias", pinB)));
+        var sessaoC = ClienteComToken(await JsonAsync(await LoginAsync(Fixture.Factory.CreateClient(), "mariazinha", pinC)));
+
+        (await UnirAsync(admin, a, b, c)).EnsureSuccessStatusCode();
+
+        Assert.Equal(HttpStatusCode.OK, (await sessaoA.GetAsync("/api/eu")).StatusCode);
+        Assert.Equal(HttpStatusCode.Unauthorized, (await sessaoB.GetAsync("/api/eu")).StatusCode);
+        Assert.Equal(HttpStatusCode.Unauthorized, (await sessaoC.GetAsync("/api/eu")).StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await LoginAsync(Fixture.Factory.CreateClient(), "maria", pinA)).StatusCode);
+        Assert.NotEqual(HttpStatusCode.OK, (await LoginAsync(Fixture.Factory.CreateClient(), "marias", pinB)).StatusCode);
+    }
+
+    [Fact]
+    public async Task UmaOrigemInexistente_Retorna404_ENadaMuda()
+    {
+        var (admin, a, b, c) = await CenarioComDuasOrigensAsync();
+        var inexistente = Guid.NewGuid();
+
+        Assert.Equal(HttpStatusCode.NotFound, (await PreviaAsync(admin, a, b, inexistente, c)).StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound, (await UnirAsync(admin, a, b, inexistente, c)).StatusCode);
+
+        Assert.Equal(3, (await PublicadoresAsync(admin)).Length);
+        Assert.Equal(5, PedidosDaGrade(await GradeAsync(admin)).Length);
+    }
+
+    [Fact]
+    public async Task ListaVaziaOuRepetida_Retorna400()
+    {
+        var admin = await AdminAsync();
+        var (a, _) = await CriarContaAsync(admin, "Maria", "maria");
+        var (b, _) = await CriarContaAsync(admin, "Maria S.", "marias");
+
+        Assert.Equal(HttpStatusCode.BadRequest, (await PreviaAsync(admin, a)).StatusCode);
+        Assert.Equal(HttpStatusCode.BadRequest, (await UnirAsync(admin, a)).StatusCode);
+        Assert.Equal(HttpStatusCode.BadRequest, (await UnirAsync(admin, a, b, b)).StatusCode);
+        Assert.Equal(HttpStatusCode.BadRequest, (await UnirAsync(admin, a, b, a)).StatusCode);
+        Assert.Equal(HttpStatusCode.BadRequest,
+            (await admin.PostAsJsonAsync($"{RotaAdmin}/{a}/unir", new { })).StatusCode);
+        Assert.Equal(2, (await PublicadoresAsync(admin)).Length);
+    }
+
+    [Fact]
+    public async Task AdministradorUneOutroAdministradorASuaConta()
+    {
+        var recuperacao = await AdminAsync();
+        var (eu, pin) = await CriarContaAsync(recuperacao, "Maria", "maria", administrador: true);
+        var (outroAdmin, _) = await CriarContaAsync(recuperacao, "Joao", "joao", administrador: true);
+        var (outro, _) = await CriarContaAsync(recuperacao, "Maria S.", "marias");
+        var admin = ClienteComToken(await JsonAsync(await LoginAsync(Fixture.Factory.CreateClient(), "maria", pin)));
+
+        Assert.Equal(HttpStatusCode.OK, (await UnirAsync(admin, eu, outroAdmin, outro)).StatusCode);
+
+        Assert.Equal(eu, Assert.Single(await PublicadoresAsync(recuperacao)).GetProperty("id").GetGuid());
+    }
+
+    [Fact]
+    public async Task RotaAntiga_NaoExisteMais()
+    {
+        var admin = await AdminAsync();
+        var (a, _) = await CriarContaAsync(admin, "Maria", "maria");
+        var (b, _) = await CriarContaAsync(admin, "Maria S.", "marias");
+
+        Assert.Equal(HttpStatusCode.NotFound, (await admin.GetAsync($"{RotaAdmin}/{b}/unir/{a}")).StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound, (await admin.PostAsync($"{RotaAdmin}/{b}/unir/{a}", null)).StatusCode);
+        Assert.Equal(2, (await PublicadoresAsync(admin)).Length);
     }
 }

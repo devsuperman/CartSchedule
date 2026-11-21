@@ -8,70 +8,80 @@ using Microsoft.EntityFrameworkCore;
 namespace CartSchedule.Api.Features.Administradores.UnirPublicadores;
 
 /// <summary>
-/// "Unir B em A" na tela "Publicadores" (ADR 0001, issue #47): acaba com registros duplicados
-/// da mesma pessoa. GET mostra a prévia; POST executa numa transação: move os pedidos da
-/// origem (B) para o destino (A), descarta os que o destino já tem na mesma
-/// <c>(escala, carrinho, dia, turno)</c> (duplicidade), passa a marca criança/idoso ao destino
-/// se a origem a tinha (nunca desmarca) e apaga a origem. Nome, usuário e PIN do destino ficam
-/// como estão. Não é limitado pela janela nem pela lotação (só sinalização na Escala).
-/// O administrador não une a própria conta a outra (409 PROPRIA_CONTA): ela seria apagada.
+/// "Unir outros registros a este" na tela "Publicadores" (PLANNING.md regra 15a, issues #47 e #67):
+/// acaba com registros duplicados da mesma pessoa. O administrador parte do registro que fica
+/// (destino) e escolhe uma ou mais origens. A prévia só conta; unir executa numa transação: os
+/// pedidos das origens passam ao destino, que fica com um só pedido por
+/// <c>(escala, carrinho, dia, turno)</c> (duplicidade) — os demais são descartados —, a marca
+/// criança/idoso passa ao destino se alguma origem a tinha (nunca desmarca) e as origens são
+/// apagadas. Nome, usuário e senha do destino ficam como estão. Não é limitado pela janela nem
+/// pela lotação (só sinalização na Escala). A própria conta do administrador não pode ser origem
+/// (409 PROPRIA_CONTA): seria apagada; ela pode ser o destino.
 /// </summary>
 public static class Endpoint
 {
     public static IEndpointRouteBuilder MapUnirPublicadores(this IEndpointRouteBuilder app)
     {
-        var group = app.MapGroup("/api/admin/publicadores/{origemId:guid}/unir/{destinoId:guid}")
+        var group = app.MapGroup("/api/admin/publicadores/{destinoId:guid}/unir")
             .RequireAuthorization();
 
-        group.MapGet("/", PreviaAsync);
-        group.MapPost("/", UnirAsync);
+        group.MapPost("/previa", PreviaAsync)
+            .AddEndpointFilter<ValidationFilter<UnirPublicadoresRequest>>();
+        group.MapPost("/", UnirAsync)
+            .AddEndpointFilter<ValidationFilter<UnirPublicadoresRequest>>();
 
         return app;
     }
 
     private static async Task<IResult> PreviaAsync(
-        Guid origemId, Guid destinoId, ClaimsPrincipal usuarioLogado, AppDbContext db, CancellationToken ct)
+        Guid destinoId, UnirPublicadoresRequest request, ClaimsPrincipal usuarioLogado, AppDbContext db,
+        CancellationToken ct)
     {
-        if (Recusa(origemId, destinoId, usuarioLogado) is { } recusa)
+        if (Recusa(destinoId, request, usuarioLogado) is { } recusa)
         {
             return recusa;
         }
 
-        var existem = await db.Publicadores.CountAsync(p => p.Id == origemId || p.Id == destinoId, ct);
-        if (existem < 2)
+        var origemIds = request.OrigemIds!;
+        var existem = await db.Publicadores.CountAsync(p => p.Id == destinoId || origemIds.Contains(p.Id), ct);
+        if (existem < origemIds.Count + 1)
         {
             return Results.NotFound();
         }
 
-        var (movidos, descartados) = await SepararPedidosAsync(db, origemId, destinoId, ct);
+        var (movidos, descartados) = await SepararPedidosAsync(db, origemIds, destinoId, ct);
         return Results.Ok(new UnirPublicadoresResponse(movidos.Count, descartados.Count));
     }
 
     private static async Task<IResult> UnirAsync(
-        Guid origemId, Guid destinoId, ClaimsPrincipal usuarioLogado, AppDbContext db, CancellationToken ct)
+        Guid destinoId, UnirPublicadoresRequest request, ClaimsPrincipal usuarioLogado, AppDbContext db,
+        CancellationToken ct)
     {
-        if (Recusa(origemId, destinoId, usuarioLogado) is { } recusa)
+        if (Recusa(destinoId, request, usuarioLogado) is { } recusa)
         {
             return recusa;
         }
 
+        var origemIds = request.OrigemIds!;
+        var todos = origemIds.Append(destinoId).ToArray();
+
         await using var transacao = await db.Database.BeginTransactionAsync(ct);
 
-        // FOR UPDATE nos dois registros: um pedido novo de qualquer um deles (a chave estrangeira
-        // trava a linha do publicador) espera a união terminar, então a separação abaixo não
-        // fica desatualizada nem esbarra no índice único da duplicidade.
+        // FOR UPDATE em todos os registros, em ordem de Id (sem deadlock entre uniões simultâneas):
+        // um pedido novo de qualquer um deles (a chave estrangeira trava a linha do publicador)
+        // espera a união terminar, então a separação abaixo não fica desatualizada nem esbarra
+        // no índice único da duplicidade.
         var publicadores = await db.Publicadores
-            .FromSql($"SELECT * FROM publicadores WHERE \"Id\" IN ({origemId}, {destinoId}) ORDER BY \"Id\" FOR UPDATE")
+            .FromSql($"SELECT * FROM publicadores WHERE \"Id\" = ANY({todos}) ORDER BY \"Id\" FOR UPDATE")
             .ToListAsync(ct);
 
-        var origem = publicadores.SingleOrDefault(p => p.Id == origemId);
         var destino = publicadores.SingleOrDefault(p => p.Id == destinoId);
-        if (origem is null || destino is null)
+        if (destino is null || publicadores.Count < todos.Length)
         {
             return Results.NotFound();
         }
 
-        var (movidos, descartados) = await SepararPedidosAsync(db, origemId, destinoId, ct);
+        var (movidos, descartados) = await SepararPedidosAsync(db, origemIds, destinoId, ct);
 
         db.Solicitacoes.RemoveRange(descartados);
         foreach (var pedido in movidos)
@@ -79,22 +89,29 @@ public static class Endpoint
             pedido.PublicadorId = destinoId;
         }
 
-        destino.CriancaOuIdoso |= origem.CriancaOuIdoso;
+        destino.CriancaOuIdoso |= publicadores.Any(p => p.CriancaOuIdoso);
         await db.SaveChangesAsync(ct);
 
-        // Apagada direto no banco, depois de os pedidos já terem saído dela: não depende de o EF
+        // Apagadas direto no banco, depois de os pedidos já terem saído delas: não depende de o EF
         // ter desvinculado os pedidos rastreados antes de aplicar a exclusão em cascata.
-        await db.Publicadores.Where(p => p.Id == origemId).ExecuteDeleteAsync(ct);
+        await db.Publicadores.Where(p => origemIds.Contains(p.Id)).ExecuteDeleteAsync(ct);
         await transacao.CommitAsync(ct);
 
         return Results.Ok(new UnirPublicadoresResponse(movidos.Count, descartados.Count));
     }
 
-    /// <summary>Pedidos da origem: os que vão ao destino e os que colidem com a duplicidade.</summary>
+    /// <summary>
+    /// Pedidos das origens: os que vão ao destino e os que colidem com a duplicidade — com um
+    /// pedido do destino ou com um de outra origem que já vai ao destino na mesma vaga.
+    /// </summary>
     private static async Task<(List<Solicitacao> Movidos, List<Solicitacao> Descartados)> SepararPedidosAsync(
-        AppDbContext db, Guid origemId, Guid destinoId, CancellationToken ct)
+        AppDbContext db, List<Guid> origemIds, Guid destinoId, CancellationToken ct)
     {
-        var daOrigem = await db.Solicitacoes.Where(s => s.PublicadorId == origemId).ToListAsync(ct);
+        var dasOrigens = await db.Solicitacoes
+            .Where(s => origemIds.Contains(s.PublicadorId))
+            .OrderBy(s => s.Id)
+            .ToListAsync(ct);
+        // Vagas que o destino terá: as dele e, uma a uma, as que cada pedido movido ocupa.
         var vagasDoDestino = (await db.Solicitacoes
                 .AsNoTracking()
                 .Where(s => s.PublicadorId == destinoId)
@@ -102,22 +119,32 @@ public static class Endpoint
             .Select(Vaga.De)
             .ToHashSet();
 
-        var descartados = daOrigem.Where(s => vagasDoDestino.Contains(Vaga.De(s))).ToList();
-        return (daOrigem.Except(descartados).ToList(), descartados);
+        var movidos = new List<Solicitacao>();
+        var descartados = new List<Solicitacao>();
+        foreach (var pedido in dasOrigens)
+        {
+            (vagasDoDestino.Add(Vaga.De(pedido)) ? movidos : descartados).Add(pedido);
+        }
+
+        return (movidos, descartados);
     }
 
-    /// <summary>Origem igual ao destino (400) ou a própria conta do administrador logado (409).</summary>
-    private static IResult? Recusa(Guid origemId, Guid destinoId, ClaimsPrincipal usuarioLogado)
+    /// <summary>
+    /// O destino entre as origens (400); a própria conta do administrador logado entre as
+    /// origens (409). Lista vazia e ids repetidos ficam no <see cref="Validator"/>.
+    /// </summary>
+    private static IResult? Recusa(Guid destinoId, UnirPublicadoresRequest request, ClaimsPrincipal usuarioLogado)
     {
-        if (origemId == destinoId)
+        var origemIds = request.OrigemIds!;
+        if (origemIds.Contains(destinoId))
         {
             return Results.ValidationProblem(new Dictionary<string, string[]>
             {
-                ["destinoId"] = ["Escolha outro publicador: não dá para unir um registro com ele mesmo."],
+                ["origemIds"] = ["Escolha outros registros: não dá para unir um registro com ele mesmo."],
             });
         }
 
-        if (PropriaConta.Eh(usuarioLogado, origemId))
+        if (origemIds.Any(id => PropriaConta.Eh(usuarioLogado, id)))
         {
             return PropriaConta.Problema(
                 "Você não pode unir a sua própria conta a outra: ela seria apagada. Una a outra conta à sua.");

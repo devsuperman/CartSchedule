@@ -16,6 +16,8 @@ const LISTA = [
   { id: "j", nome: "José Lima", usuario: null, criancaOuIdoso: true, administrador: false, temPin: false, ehVoce: false },
 ];
 
+const JOANA = { id: "o", nome: "Joana Dias", usuario: "joana", criancaOuIdoso: false, administrador: false, temPin: true, ehVoce: false };
+
 beforeEach(() => {
   mockApiFetch.mockReset();
   mockApiFetch.mockImplementation(async (path, opcoes) => {
@@ -224,7 +226,7 @@ describe("Publicadores", () => {
     expect(mockApiFetch).toHaveBeenCalledTimes(1);
   });
 
-  it("na própria conta não oferece excluir, unir nem tirar o administrador", async () => {
+  it("na própria conta não oferece excluir nem tirar o administrador", async () => {
     mockApiFetch.mockImplementation(async (path, opcoes) => {
       if (path === "/api/admin/publicadores" && !opcoes?.method) return [{ ...LISTA[0], ehVoce: true }, LISTA[1]];
       throw new Error(`chamada inesperada: ${path}`);
@@ -235,7 +237,6 @@ describe("Publicadores", () => {
 
     const dialogo = within(screen.getByRole("dialog"));
     expect(dialogo.queryByRole("button", { name: "Excluir" })).not.toBeInTheDocument();
-    expect(dialogo.queryByRole("button", { name: "Unir a outro registro" })).not.toBeInTheDocument();
     expect(dialogo.getByRole("checkbox", { name: /Administrador/ })).toBeDisabled();
     expect(dialogo.getByRole("button", { name: "Redefinir senha" })).toBeInTheDocument();
   });
@@ -279,67 +280,149 @@ describe("Publicadores", () => {
     expect(await confirmacao.findByText("Não encontrado.")).toBeInTheDocument();
   });
 
-  it("une um registro duplicado em outro: escolhe o destino, vê a prévia e confirma", async () => {
+  it("une vários registros ao que fica: marca as origens, vê a prévia somada e confirma", async () => {
+    const lista = [...LISTA, JOANA];
     mockApiFetch.mockImplementation(async (path, opcoes) => {
-      if (path === "/api/admin/publicadores" && !opcoes?.method) return LISTA;
-      if (path === "/api/admin/publicadores/j/unir/a" && !opcoes?.method) {
+      if (path === "/api/admin/publicadores" && !opcoes?.method) return lista;
+      if (path === "/api/admin/publicadores/a/unir/previa" && opcoes?.method === "POST") {
+        const { origemIds } = JSON.parse(opcoes.body as string);
+        return origemIds.length === 1 ? { pedidosMovidos: 2, pedidosDescartados: 0 } : { pedidosMovidos: 3, pedidosDescartados: 1 };
+      }
+      if (path === "/api/admin/publicadores/a/unir" && opcoes?.method === "POST") {
         return { pedidosMovidos: 3, pedidosDescartados: 1 };
       }
-      if (path === "/api/admin/publicadores/j/unir/a" && opcoes?.method === "POST") {
-        return { pedidosMovidos: 3, pedidosDescartados: 1 };
-      }
-      throw new Error(`chamada inesperada: ${path}`);
-    });
-    const user = renderizar();
-
-    await user.click((await itemDe("José Lima")).getByRole("button", { name: "Editar José Lima" }));
-    await user.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Unir a outro registro" }));
-
-    const unir = within(screen.getByRole("dialog", { name: "Unir José Lima a outro registro" }));
-    expect(unir.queryByRole("radio", { name: /José Lima/ })).not.toBeInTheDocument();
-    expect(unir.getByRole("button", { name: "Unir" })).toBeDisabled();
-    await user.click(unir.getByRole("radio", { name: /Ana Paula/ }));
-
-    expect(await unir.findByText("3 pedidos passam para Ana Paula.")).toBeInTheDocument();
-    expect(unir.getByText(/1 pedido será descartado/)).toBeInTheDocument();
-    expect(unir.getByText(/José Lima será apagado/)).toBeInTheDocument();
-    expect(mockApiFetch).not.toHaveBeenCalledWith("/api/admin/publicadores/j/unir/a", { method: "POST" });
-    await user.click(unir.getByRole("button", { name: "Unir" }));
-
-    expect(mockApiFetch).toHaveBeenCalledWith("/api/admin/publicadores/j/unir/a", { method: "POST" });
-    expect(await screen.findByRole("status")).toHaveTextContent("José Lima foi unido a Ana Paula.");
-    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
-    expect(screen.queryByText("José Lima")).not.toBeInTheDocument();
-    // A marca criança/idoso da origem passa para o destino.
-    expect((await itemDe("Ana Paula")).getByText("Criança ou idoso")).toBeInTheDocument();
-  });
-
-  it("na própria conta não oferece unir (apagaria a conta logada)", async () => {
-    mockApiFetch.mockImplementation(async (path, opcoes) => {
-      if (path === "/api/admin/publicadores" && !opcoes?.method) return [{ ...LISTA[0], ehVoce: true }, LISTA[1]];
       throw new Error(`chamada inesperada: ${path}`);
     });
     const user = renderizar();
 
     await user.click((await itemDe("Ana Paula")).getByRole("button", { name: "Editar Ana Paula" }));
+    await user.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Unir outros registros a este" }));
 
-    expect(within(screen.getByRole("dialog")).queryByRole("button", { name: "Unir a outro registro" })).not.toBeInTheDocument();
+    const unir = within(screen.getByRole("dialog", { name: "Unir outros registros a Ana Paula" }));
+    expect(unir.queryByRole("checkbox", { name: /Ana Paula/ })).not.toBeInTheDocument();
+    expect(unir.getByRole("button", { name: "Unir" })).toBeDisabled();
+
+    await user.click(unir.getByRole("checkbox", { name: /José Lima/ }));
+    expect(await unir.findByText("2 pedidos passam para Ana Paula.")).toBeInTheDocument();
+    expect(corpoDa("/api/admin/publicadores/a/unir/previa", "POST")).toEqual({ origemIds: ["j"] });
+
+    await user.click(unir.getByRole("checkbox", { name: /Joana Dias/ }));
+    expect(await unir.findByText("3 pedidos passam para Ana Paula.")).toBeInTheDocument();
+    expect(corpoDa("/api/admin/publicadores/a/unir/previa", "POST")).toEqual({ origemIds: ["j", "o"] });
+    expect(unir.getByText(/1 pedido será descartado/)).toBeInTheDocument();
+    expect(unir.getByText(/José Lima e Joana Dias serão apagados/)).toBeInTheDocument();
+    expect(unir.getByText(/o usuário joana deixa de entrar/)).toBeInTheDocument();
+    expect(mockApiFetch).not.toHaveBeenCalledWith("/api/admin/publicadores/a/unir", expect.anything());
+
+    await user.click(unir.getByRole("button", { name: "Unir" }));
+
+    expect(corpoDa("/api/admin/publicadores/a/unir", "POST")).toEqual({ origemIds: ["j", "o"] });
+    expect(await screen.findByRole("status")).toHaveTextContent("José Lima e Joana Dias foram unidos a Ana Paula.");
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(screen.queryByText("José Lima")).not.toBeInTheDocument();
+    expect(screen.queryByText("Joana Dias")).not.toBeInTheDocument();
+    // A marca criança/idoso de uma origem passa para o destino.
+    expect((await itemDe("Ana Paula")).getByText("Criança ou idoso")).toBeInTheDocument();
+  });
+
+  it("com uma origem só, a mensagem fica no singular", async () => {
+    mockApiFetch.mockImplementation(async (path, opcoes) => {
+      if (path === "/api/admin/publicadores" && !opcoes?.method) return LISTA;
+      if (path.startsWith("/api/admin/publicadores/a/unir") && opcoes?.method === "POST") {
+        return { pedidosMovidos: 0, pedidosDescartados: 0 };
+      }
+      throw new Error(`chamada inesperada: ${path}`);
+    });
+    const user = renderizar();
+
+    await user.click((await itemDe("Ana Paula")).getByRole("button", { name: "Editar Ana Paula" }));
+    await user.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Unir outros registros a este" }));
+    const unir = within(screen.getByRole("dialog"));
+    await user.click(unir.getByRole("checkbox", { name: /José Lima/ }));
+    expect(await unir.findByText("Nenhum pedido para passar a Ana Paula.")).toBeInTheDocument();
+    expect(unir.getByText(/José Lima será apagado/)).toBeInTheDocument();
+    await user.click(unir.getByRole("button", { name: "Unir" }));
+
+    expect(await screen.findByRole("status")).toHaveTextContent("José Lima foi unido a Ana Paula.");
+  });
+
+  it("a busca não esconde quem já foi marcado", async () => {
+    mockApiFetch.mockImplementation(async (path, opcoes) => {
+      if (path === "/api/admin/publicadores" && !opcoes?.method) return [...LISTA, JOANA];
+      if (path === "/api/admin/publicadores/a/unir/previa") return { pedidosMovidos: 0, pedidosDescartados: 0 };
+      throw new Error(`chamada inesperada: ${path}`);
+    });
+    const user = renderizar();
+
+    await user.click((await itemDe("Ana Paula")).getByRole("button", { name: "Editar Ana Paula" }));
+    await user.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Unir outros registros a este" }));
+    const unir = within(screen.getByRole("dialog"));
+    await user.click(unir.getByRole("checkbox", { name: /José Lima/ }));
+    await user.type(unir.getByRole("searchbox", { name: "Buscar registros para unir" }), "joana");
+
+    expect(unir.getByRole("checkbox", { name: /José Lima/ })).toBeChecked();
+    expect(unir.getByRole("checkbox", { name: /Joana Dias/ })).not.toBeChecked();
+  });
+
+  it("só vale a prévia da seleção atual, mesmo que uma anterior chegue depois", async () => {
+    let responderPrimeira: (valor: unknown) => void = () => {};
+    mockApiFetch.mockImplementation(async (path, opcoes) => {
+      if (path === "/api/admin/publicadores" && !opcoes?.method) return [...LISTA, JOANA];
+      if (path === "/api/admin/publicadores/a/unir/previa") {
+        const { origemIds } = JSON.parse(opcoes!.body as string);
+        if (origemIds.length === 1) return new Promise((resolver) => (responderPrimeira = resolver));
+        return { pedidosMovidos: 5, pedidosDescartados: 0 };
+      }
+      throw new Error(`chamada inesperada: ${path}`);
+    });
+    const user = renderizar();
+
+    await user.click((await itemDe("Ana Paula")).getByRole("button", { name: "Editar Ana Paula" }));
+    await user.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Unir outros registros a este" }));
+    const unir = within(screen.getByRole("dialog"));
+    await user.click(unir.getByRole("checkbox", { name: /José Lima/ }));
+    await user.click(unir.getByRole("checkbox", { name: /Joana Dias/ }));
+    expect(await unir.findByText("5 pedidos passam para Ana Paula.")).toBeInTheDocument();
+
+    responderPrimeira({ pedidosMovidos: 1, pedidosDescartados: 0 });
+
+    await new Promise((r) => setTimeout(r, 0));
+    expect(unir.getByText("5 pedidos passam para Ana Paula.")).toBeInTheDocument();
+    expect(unir.queryByText("1 pedido passa para Ana Paula.")).not.toBeInTheDocument();
+  });
+
+  it("na própria conta oferece unir outros a ela, e a conta logada nunca aparece como origem", async () => {
+    mockApiFetch.mockImplementation(async (path, opcoes) => {
+      if (path === "/api/admin/publicadores" && !opcoes?.method) return [{ ...LISTA[0], ehVoce: true }, LISTA[1], JOANA];
+      throw new Error(`chamada inesperada: ${path}`);
+    });
+    const user = renderizar();
+
+    await user.click((await itemDe("Ana Paula")).getByRole("button", { name: "Editar Ana Paula" }));
+    await user.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Unir outros registros a este" }));
+    expect(within(screen.getByRole("dialog")).getByRole("checkbox", { name: /José Lima/ })).toBeInTheDocument();
+    await user.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Voltar" }));
+    await user.keyboard("{Escape}");
+
+    await user.click((await itemDe("José Lima")).getByRole("button", { name: "Editar José Lima" }));
+    await user.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Unir outros registros a este" }));
+    const unir = within(screen.getByRole("dialog"));
+    expect(unir.getByRole("checkbox", { name: /Joana Dias/ })).toBeInTheDocument();
+    expect(unir.queryByRole("checkbox", { name: /Ana Paula/ })).not.toBeInTheDocument();
   });
 
   it("erro ao unir aparece na confirmação e nada some da lista", async () => {
     mockApiFetch.mockImplementation(async (path, opcoes) => {
       if (path === "/api/admin/publicadores" && !opcoes?.method) return LISTA;
-      if (path === "/api/admin/publicadores/j/unir/a" && !opcoes?.method) {
-        return { pedidosMovidos: 0, pedidosDescartados: 0 };
-      }
+      if (path === "/api/admin/publicadores/a/unir/previa") return { pedidosMovidos: 0, pedidosDescartados: 0 };
       throw new ApiError(404, "Não encontrado.");
     });
     const user = renderizar();
 
-    await user.click((await itemDe("José Lima")).getByRole("button", { name: "Editar José Lima" }));
-    await user.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Unir a outro registro" }));
+    await user.click((await itemDe("Ana Paula")).getByRole("button", { name: "Editar Ana Paula" }));
+    await user.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Unir outros registros a este" }));
     const unir = within(screen.getByRole("dialog"));
-    await user.click(unir.getByRole("radio", { name: /Ana Paula/ }));
+    await user.click(unir.getByRole("checkbox", { name: /José Lima/ }));
     expect(await unir.findByText("Nenhum pedido para passar a Ana Paula.")).toBeInTheDocument();
     await user.click(unir.getByRole("button", { name: "Unir" }));
 
